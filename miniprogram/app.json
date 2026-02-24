@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/my-reminders/index",
     "pages/my/my"
   ],
   "subpackages": [
@@ -25,7 +26,6 @@
       "root": "packageReminder",
       "name": "reminder",
       "pages": [
-        "pages/my-reminders/index",
         "pages/reminder-create/index"
       ]
     }
@@ -55,7 +55,7 @@
         "selectedIconPath": "assets/images/icons/home-active.png"
       },
       {
-        "pagePath": "packageReminder/pages/my-reminders/index",
+        "pagePath": "pages/my-reminders/index",
         "text": "我的提醒",
         "iconPath": "assets/images/icons/reminder.png",
         "selectedIconPath": "assets/images/icons/reminder-active.png"

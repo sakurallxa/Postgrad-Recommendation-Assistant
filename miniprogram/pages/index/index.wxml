@@ -11,7 +11,7 @@
   <view class="section">
     <view class="section-header">
       <text class="section-title">即将截止</text>
-      <navigator url="/packageReminder/pages/my-reminders/index" class="section-more">
+      <navigator url="/pages/my-reminders/index" open-type="switchTab" class="section-more">
         查看全部
         <text class="arrow-right">→</text>
       </navigator>

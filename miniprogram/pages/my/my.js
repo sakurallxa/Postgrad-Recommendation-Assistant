@@ -88,8 +88,8 @@ Page({
 
   // 跳转到我的提醒
   navigateToReminders() {
-    wx.navigateTo({
-      url: '/packageReminder/pages/my-reminders/index'
+    wx.switchTab({
+      url: '/pages/my-reminders/index'
     })
   },
 
