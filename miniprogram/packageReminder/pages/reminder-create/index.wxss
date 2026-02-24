@@ -1,0 +1,191 @@
+/* 提醒创建页样式 */
+.reminder-create-page {
+  min-height: 100vh;
+  background-color: #F8F9FA;
+  padding-bottom: 80px; /* 为底部操作栏留出空间 */
+}
+
+/* 夏令营信息 */
+.camp-info-section {
+  padding: 16px;
+}
+
+.camp-card {
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.camp-header {
+  margin-bottom: 12px;
+}
+
+.camp-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #202124;
+  margin-bottom: 8px;
+  display: block;
+  line-height: 1.4;
+}
+
+.camp-deadline {
+  font-size: 14px;
+  color: #5F6368;
+}
+
+.camp-university {
+  display: flex;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #F0F0F0;
+}
+
+.university-name {
+  font-size: 14px;
+  color: #5F6368;
+  margin-left: 8px;
+}
+
+/* 提醒设置 */
+.reminder-settings-section {
+  background-color: #FFFFFF;
+  margin-top: 12px;
+  padding: 16px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #202124;
+  margin-bottom: 16px;
+}
+
+/* 快捷时间选择 */
+.quick-time-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.quick-time-item {
+  padding: 10px 16px;
+  border: 1px solid #DADCE0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #5F6368;
+  background-color: #FFFFFF;
+}
+
+.quick-time-item.active {
+  background-color: #E8F0FE;
+  border-color: #1A73E8;
+  color: #1A73E8;
+}
+
+/* 自定义时间选择 */
+.custom-time-section {
+  border-top: 1px solid #F0F0F0;
+  padding-top: 16px;
+}
+
+.section-subtitle {
+  font-size: 14px;
+  color: #5F6368;
+  margin-bottom: 12px;
+}
+
+.time-picker {
+  width: 100%;
+}
+
+.picker-view {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.picker-label {
+  font-size: 14px;
+  color: #5F6368;
+}
+
+.picker-value {
+  font-size: 14px;
+  color: #202124;
+  flex: 1;
+  text-align: right;
+  margin-right: 8px;
+}
+
+/* 提醒方式 */
+.reminder-method-section {
+  background-color: #FFFFFF;
+  margin-top: 12px;
+  padding: 16px;
+}
+
+.method-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.method-item:last-child {
+  border-bottom: none;
+}
+
+.method-info {
+  display: flex;
+  align-items: center;
+}
+
+.method-name {
+  font-size: 14px;
+  color: #202124;
+  margin-left: 12px;
+}
+
+/* 底部操作区 */
+.bottom-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #FFFFFF;
+  padding: 12px 16px;
+  border-top: 1px solid #DADCE0;
+  display: flex;
+  gap: 12px;
+  height: 60px;
+}
+
+.cancel-btn {
+  flex: 1;
+  background-color: #FFFFFF;
+  color: #5F6368;
+  border: 1px solid #DADCE0;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.confirm-btn {
+  flex: 1;
+  background-color: #1A73E8;
+  color: #FFFFFF;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.cancel-btn::after,
+.confirm-btn::after {
+  border: none;
+}

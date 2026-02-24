@@ -1,0 +1,78 @@
+<view class="major-list-page">
+  <!-- 搜索框 -->
+  <view class="search-section">
+    <view class="search-box">
+      <icon class="search-icon" type="search" size="20" color="#9AA0A6" />
+      <input 
+        class="search-input" 
+        placeholder="搜索专业名称..." 
+        placeholder-class="search-placeholder"
+        bindinput="onSearchInput"
+      />
+    </view>
+  </view>
+
+  <!-- 学科门类筛选 -->
+  <view class="category-section">
+    <scroll-view class="category-scroll" scroll-x>
+      <view 
+        wx:for="{{categories}}" 
+        wx:key="{{item.value}}"
+        class="category-tag {{selectedCategory === item.value ? 'active' : ''}}"
+        bindtap="onCategoryTap"
+        data-value="{{item.value}}"
+      >
+        {{item.label}}
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 已选专业区 -->
+  <view class="selected-section">
+    <view class="selected-header">
+      <text class="selected-title">已选专业 ({{selectedMajors.length}})</text>
+      <text class="toggle-btn" bindtap="toggleSelectedSection">
+        {{isSelectedSectionExpanded ? '收起 ▲' : '展开 ▼'}}
+      </text>
+    </view>
+    <view class="selected-tags" wx:if="isSelectedSectionExpanded && selectedMajors.length > 0">
+      <view 
+        wx:for="{{selectedMajors}}" 
+        wx:key="{{item.id}}"
+        class="selected-tag"
+      >
+        <text class="tag-text">{{item.name}}</text>
+        <icon class="tag-close" type="close" size="16" color="#80868B" bindtap="onRemoveSelectedMajor" data-id="{{item.id}}" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 专业列表区 -->
+  <view class="major-list-section">
+    <view 
+      wx:for="{{filteredMajors}}" 
+      wx:key="{{item.id}}"
+      class="major-item"
+      bindtap="onMajorTap"
+      data-id="{{item.id}}"
+    >
+      <view class="major-info">
+        <text class="major-name">{{item.name}}</text>
+        <text class="major-category" wx:if="item.category">{{item.category}}</text>
+      </view>
+      <view class="major-checkbox">
+        <view class="checkbox {{isMajorSelected(item.id) ? 'checked' : ''}}">
+          <icon wx:if="isMajorSelected(item.id)" type="success" size="16" color="#1A73E8" />
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作区 -->
+  <view class="bottom-action-bar">
+    <view class="selected-count">已选择 {{selectedMajors.length}} 个专业</view>
+    <button class="confirm-btn" bindtap="onConfirmSelection">
+      确认选择
+    </button>
+  </view>
+</view>

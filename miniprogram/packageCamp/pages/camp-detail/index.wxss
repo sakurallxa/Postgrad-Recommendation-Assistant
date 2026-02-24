@@ -1,0 +1,321 @@
+/* 夏令营详情页面样式 */
+
+.container {
+  padding: var(--spacing-lg);
+  background-color: var(--background-light);
+  min-height: 100vh;
+  padding-bottom: 100px; /* 为底部操作区预留空间 */
+}
+
+/* 院校信息 */
+.university-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.university-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-sm);
+  margin-right: var(--spacing-md);
+}
+
+.university-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* 夏令营标题 */
+.camp-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin-bottom: var(--spacing-xl);
+}
+
+/* 区块通用样式 */
+.section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.info-card {
+  background-color: var(--background-white);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-1);
+  padding: var(--spacing-lg);
+}
+
+/* 基本信息 */
+.info-item {
+  display: flex;
+  margin-bottom: var(--spacing-md);
+  align-items: flex-start;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.value {
+  font-size: 14px;
+  color: var(--text-secondary);
+  flex: 1;
+  line-height: 1.5;
+}
+
+.deadline {
+  font-weight: 500;
+}
+
+.deadline.normal {
+  color: var(--success-color);
+}
+
+.deadline.warning {
+  color: var(--warning-color);
+}
+
+.deadline.urgent {
+  color: var(--error-color);
+}
+
+.deadline.expired {
+  color: var(--text-tertiary);
+}
+
+/* 申请条件 */
+.requirement-item {
+  margin-bottom: var(--spacing-sm);
+}
+
+.requirement-item:last-child {
+  margin-bottom: 0;
+}
+
+.requirement-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* 所需材料 */
+.copy-btn {
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: var(--border-radius-sm);
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.copy-btn::after {
+  border-radius: var(--border-radius-sm);
+}
+
+.material-item {
+  display: flex;
+  margin-bottom: var(--spacing-sm);
+  align-items: flex-start;
+}
+
+.material-item:last-child {
+  margin-bottom: 0;
+}
+
+.material-icon {
+  font-size: 16px;
+  color: var(--primary-color);
+  margin-right: var(--spacing-sm);
+  line-height: 1.5;
+}
+
+.material-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  flex: 1;
+  line-height: 1.5;
+}
+
+/* 报名流程 */
+.process-item {
+  display: flex;
+  margin-bottom: var(--spacing-lg);
+  position: relative;
+}
+
+.process-item:last-child {
+  margin-bottom: 0;
+}
+
+.process-step {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--spacing-md);
+  flex-shrink: 0;
+}
+
+.process-content {
+  flex: 1;
+}
+
+.process-action {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.process-deadline {
+  font-size: 12px;
+  color: var(--warning-color);
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.process-note {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+/* 原文链接 */
+.source-link {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm);
+  background-color: var(--primary-light);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.source-link:active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.link-text {
+  font-size: 14px;
+  color: var(--primary-color);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: var(--spacing-sm);
+}
+
+.source-link:active .link-text {
+  color: white;
+}
+
+.link-arrow {
+  font-size: 16px;
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+.source-link:active .link-arrow {
+  color: white;
+}
+
+/* 底部操作区 */
+.bottom-action {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--background-white);
+  padding: var(--spacing-lg);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  border-top: 1px solid var(--border-color);
+}
+
+.remind-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--primary-color) 0%, #4285F4 100%);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-md);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.remind-btn::after {
+  border-radius: var(--border-radius-sm);
+}
+
+.remind-btn:active {
+  background: var(--primary-dark);
+}
+
+/* 响应式设计 */
+@media (max-width: 375px) {
+  .container {
+    padding: var(--spacing-md);
+    padding-bottom: 90px;
+  }
+  
+  .camp-title {
+    font-size: 18px;
+  }
+  
+  .section-title {
+    font-size: 16px;
+  }
+  
+  .info-card {
+    padding: var(--spacing-md);
+  }
+  
+  .label {
+    min-width: 70px;
+    font-size: 13px;
+  }
+  
+  .value {
+    font-size: 13px;
+  }
+  
+  .bottom-action {
+    padding: var(--spacing-md);
+  }
+  
+  .remind-btn {
+    font-size: 15px;
+    padding: var(--spacing-sm);
+  }
+}

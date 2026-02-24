@@ -1,0 +1,182 @@
+/* 夏令营卡片组件样式 */
+
+.camp-card {
+  background-color: var(--background-white);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-1);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  transition: all 0.2s ease;
+}
+
+.camp-card:active {
+  box-shadow: var(--shadow-2);
+  transform: translateY(-2px);
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  margin-bottom: var(--spacing-md);
+}
+
+.university-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-sm);
+  margin-right: var(--spacing-md);
+}
+
+.header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.university-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.camp-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+/* 卡片主体 */
+.card-body {
+  margin-bottom: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-color);
+}
+
+.info-row {
+  margin-bottom: var(--spacing-sm);
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-right: var(--spacing-sm);
+  min-width: 60px;
+}
+
+.value {
+  font-size: 14px;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+/* 卡片底部 */
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-color);
+}
+
+.deadline {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.deadline-text {
+  font-size: 14px;
+  font-weight: 500;
+  margin-right: var(--spacing-sm);
+}
+
+.days-remaining {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.deadline.normal {
+  color: var(--success-color);
+}
+
+.deadline.warning {
+  color: var(--warning-color);
+}
+
+.deadline.urgent {
+  color: var(--error-color);
+}
+
+.deadline.expired {
+  color: var(--text-tertiary);
+}
+
+/* 操作区 */
+.actions {
+  display: flex;
+  align-items: center;
+}
+
+.reminder-status {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: var(--primary-color);
+}
+
+.reminder-icon {
+  margin-right: var(--spacing-xs);
+  font-size: 14px;
+}
+
+.reminder-text {
+  font-weight: 500;
+}
+
+.remind-btn {
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: var(--border-radius-sm);
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.remind-btn::after {
+  border-radius: var(--border-radius-sm);
+}
+
+/* 响应式设计 */
+@media (max-width: 375px) {
+  .camp-card {
+    padding: var(--spacing-md);
+  }
+  
+  .university-logo {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .camp-title {
+    font-size: 15px;
+  }
+  
+  .deadline-text {
+    font-size: 13px;
+  }
+  
+  .days-remaining {
+    font-size: 11px;
+  }
+}

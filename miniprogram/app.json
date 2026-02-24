@@ -1,0 +1,72 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/my/my"
+  ],
+  "subpackages": [
+    {
+      "root": "packageCamp",
+      "name": "camp",
+      "pages": [
+        "pages/camp-list/index",
+        "pages/camp-detail/index"
+      ]
+    },
+    {
+      "root": "packageSelector",
+      "name": "selector",
+      "pages": [
+        "pages/selector/index",
+        "pages/university-list/index",
+        "pages/major-list/index"
+      ]
+    },
+    {
+      "root": "packageReminder",
+      "name": "reminder",
+      "pages": [
+        "pages/my-reminders/index",
+        "pages/reminder-create/index"
+      ]
+    }
+  ],
+  "preloadRule": {
+    "pages/index/index": {
+      "network": "all",
+      "packages": ["camp"]
+    }
+  },
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTitleText": "保研信息助手",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#5F6368",
+    "selectedColor": "#1A73E8",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "assets/images/icons/home.png",
+        "selectedIconPath": "assets/images/icons/home-active.png"
+      },
+      {
+        "pagePath": "packageReminder/pages/my-reminders/index",
+        "text": "我的提醒",
+        "iconPath": "assets/images/icons/reminder.png",
+        "selectedIconPath": "assets/images/icons/reminder-active.png"
+      },
+      {
+        "pagePath": "pages/my/my",
+        "text": "个人中心",
+        "iconPath": "assets/images/icons/user.png",
+        "selectedIconPath": "assets/images/icons/user-active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,81 @@
+<view class="container">
+  <!-- 问候区 -->
+  <view class="greeting-card">
+    <text class="greeting-text">你好，保研er 👋</text>
+    <text class="stats-text">
+      已关注 {{stats.universityCount}} 所院校 · {{stats.campCount}} 个夏令营 · {{stats.reminderCount}} 个提醒
+    </text>
+  </view>
+
+  <!-- 即将截止提醒区 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">即将截止</text>
+      <navigator url="/packageReminder/pages/my-reminders/index" class="section-more">
+        查看全部
+        <text class="arrow-right">→</text>
+      </navigator>
+    </view>
+    
+    <view wx:if="{{urgentCamps.length > 0}}" class="urgent-camps">
+      <scroll-view scroll-x="true" class="urgent-scroll">
+        <view wx:for="{{urgentCamps}}" wx:key="{{item.id}}" class="urgent-card">
+          <view class="countdown {{item.statusClass}}">
+            <text class="countdown-number">{{item.daysRemaining}}</text>
+            <text class="countdown-unit">天</text>
+          </view>
+          <view class="urgent-info">
+            <text class="university-name">{{item.universityName}}</text>
+            <text class="camp-title">{{item.title}}</text>
+            <text class="deadline">{{item.deadlineText}}</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+    
+    <empty-state wx:else text="暂无即将截止的夏令营" />
+  </view>
+
+  <!-- 夏令营列表区 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">我的夏令营</text>
+      <view class="filter-bar">
+        <view 
+          wx:for="{{filterOptions}}" 
+          wx:key="{{item.value}}"
+          class="filter-item {{activeFilter === item.value ? 'active' : ''}}"
+          bindtap="handleFilterChange" 
+          data-value="{{item.value}}"
+        >
+          {{item.label}}
+        </view>
+        <navigator url="/packageSelector/pages/selector/index" class="filter-btn">
+          筛选 ▼
+        </navigator>
+      </view>
+    </view>
+    
+    <view wx:if="{{campList.length > 0}}" class="camp-list">
+      <camp-card 
+        wx:for="{{campList}}" 
+        wx:key="{{item.id}}"
+        camp="{{item}}"
+        bindtap="handleCampTap"
+        bindremind="handleRemindTap"
+      />
+      
+      <!-- 加载更多 -->
+      <view wx:if="{{loadingMore}}" class="loading-more">
+        <view class="loading"></view>
+        <text class="loading-text">加载中...</text>
+      </view>
+      
+      <view wx:else-if="{{!hasMore}}" class="no-more">
+        <text>没有更多了</text>
+      </view>
+    </view>
+    
+    <empty-state wx:else text="暂无夏令营信息" />
+  </view>
+</view>

@@ -1,0 +1,98 @@
+<view class="selector-page">
+  <!-- 搜索框 -->
+  <view class="search-section">
+    <view class="search-box">
+      <icon class="search-icon" type="search" size="20" color="#9AA0A6" />
+      <input 
+        class="search-input" 
+        placeholder="搜索院校名称..." 
+        placeholder-class="search-placeholder"
+        bindinput="onSearchInput"
+      />
+    </view>
+  </view>
+
+  <!-- 筛选区 -->
+  <view class="filter-section">
+    <view class="filter-group">
+      <view 
+        wx:for="{{regionFilters}}" 
+        wx:key="{{item.value}}"
+        class="filter-tag {{selectedRegion === item.value ? 'active' : ''}}"
+        bindtap="onRegionFilterTap"
+        data-value="{{item.value}}"
+      >
+        {{item.label}}
+      </view>
+    </view>
+    <view class="filter-group">
+      <view 
+        wx:for="{{levelFilters}}" 
+        wx:key="{{item.value}}"
+        class="filter-tag {{selectedLevel === item.value ? 'active' : ''}}"
+        bindtap="onLevelFilterTap"
+        data-value="{{item.value}}"
+      >
+        {{item.label}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 已选院校区 -->
+  <view class="selected-section">
+    <view class="selected-header">
+      <text class="selected-title">已选院校 ({{selectedUniversities.length}})</text>
+      <text class="toggle-btn" bindtap="toggleSelectedSection">
+        {{isSelectedSectionExpanded ? '收起 ▲' : '展开 ▼'}}
+      </text>
+    </view>
+    <view class="selected-tags" wx:if="isSelectedSectionExpanded && selectedUniversities.length > 0">
+      <view 
+        wx:for="{{selectedUniversities}}" 
+        wx:key="{{item.id}}"
+        class="selected-tag"
+      >
+        <text class="tag-text">{{item.name}}</text>
+        <icon class="tag-close" type="close" size="16" color="#80868B" bindtap="onRemoveSelectedUniversity" data-id="{{item.id}}" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 院校列表区 -->
+  <view class="university-list-section">
+    <view 
+      wx:for="{{groupedUniversities}}" 
+      wx:key="{{item.letter}}"
+      class="university-group"
+    >
+      <view class="group-letter">{{item.letter}}</view>
+      <view class="university-list">
+        <view 
+          wx:for="{{item.universities}}" 
+          wx:key="{{item.id}}"
+          class="university-item"
+          bindtap="onUniversityTap"
+          data-id="{{item.id}}"
+        >
+          <view class="university-info">
+            <text class="university-name">{{item.name}}</text>
+            <text class="university-level" wx:if="item.level">{{item.level}}</text>
+          </view>
+          <view class="university-checkbox">
+            <view class="checkbox {{isUniversitySelected(item.id) ? 'checked' : ''}}">
+              <icon wx:if="isUniversitySelected(item.id)" type="success" size="16" color="#1A73E8" />
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作区 -->
+  <view class="bottom-action-bar">
+    <view class="selected-count">已选择 {{selectedUniversities.length}} 所院校</view>
+    <button class="confirm-btn" bindtap="onConfirmSelection">
+      确认选择
+    </button>
+  </view>
+</view>
