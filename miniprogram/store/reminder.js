@@ -1,9 +1,7 @@
-import { observable, action, computed, makeObservable, runInAction } from 'mobx-miniprogram'
+import { observable, action, computed, runInAction } from 'mobx-miniprogram'
 
 class ReminderStore {
-  constructor() {
-    makeObservable(this)
-  }
+  constructor() {}
 
   @observable
   reminderList = []
@@ -25,10 +23,8 @@ class ReminderStore {
   async fetchReminderList() {
     this.loading = true
     try {
-      // 模拟API请求
       await new Promise(resolve => setTimeout(resolve, 500))
       
-      // 模拟数据
       const mockReminders = [
         {
           id: '1',
@@ -65,10 +61,8 @@ class ReminderStore {
   @action
   async createReminder(campId, remindTime) {
     try {
-      // 模拟API请求
       await new Promise(resolve => setTimeout(resolve, 300))
       
-      // 模拟数据
       const newReminder = {
         id: Date.now().toString(),
         campId,
@@ -91,7 +85,6 @@ class ReminderStore {
   @action
   async deleteReminder(reminderId) {
     try {
-      // 模拟API请求
       await new Promise(resolve => setTimeout(resolve, 300))
 
       runInAction(() => {

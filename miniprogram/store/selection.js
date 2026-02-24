@@ -1,8 +1,7 @@
-import { observable, action, makeObservable } from 'mobx-miniprogram'
+import { observable, action } from 'mobx-miniprogram'
 
 class SelectionStore {
   constructor() {
-    makeObservable(this)
     this.initFromStorage()
   }
 

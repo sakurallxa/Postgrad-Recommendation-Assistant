@@ -1,9 +1,7 @@
-import { observable, action, computed, makeObservable, runInAction } from 'mobx-miniprogram'
+import { observable, action, computed, runInAction } from 'mobx-miniprogram'
 
 class CampStore {
-  constructor() {
-    makeObservable(this)
-  }
+  constructor() {}
 
   @observable
   campList = []
@@ -79,10 +77,8 @@ class CampStore {
         this.loadingMore = true
       }
 
-      // 模拟API请求
       await new Promise(resolve => setTimeout(resolve, 500))
       
-      // 模拟数据
       const mockList = [
         {
           id: '1',
@@ -168,10 +164,8 @@ class CampStore {
   async fetchCampDetail(campId) {
     this.loading = true
     try {
-      // 模拟API请求
       await new Promise(resolve => setTimeout(resolve, 300))
       
-      // 模拟数据
       const mockCamp = {
         id: campId,
         universityId: '1',

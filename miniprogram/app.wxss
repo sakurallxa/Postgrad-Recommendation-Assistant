@@ -1,30 +1,28 @@
 /* app.wxss */
 
-/* 全局样式重置 */
-* {
+/* 全局样式重置 - 微信小程序不支持 * 选择器，使用 page 代替 */
+page {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* 字体设置 */
-@font-face {
-  font-family: 'PingFang SC';
-  src: local('PingFang SC');
+view, text, button, input, textarea, image, scroll-view {
+  box-sizing: border-box;
 }
 
-body {
+/* 字体设置 */
+page {
   font-family: 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
   font-size: 16px;
   line-height: 1.5;
   color: #202124;
   background-color: #F8F9FA;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 颜色变量 */
-:root {
+/* 颜色变量 - 微信小程序不支持 :root，使用 page 代替 */
+page {
   /* 主色调 */
   --primary-color: #1A73E8;
   --primary-light: #E8F0FE;
@@ -291,12 +289,9 @@ body {
 
 /* 响应式设计 */
 @media (max-width: 375px) {
-  :root {
+  page {
     --spacing-lg: 12px;
     --spacing-xl: 16px;
-  }
-  
-  body {
     font-size: 14px;
   }
 }

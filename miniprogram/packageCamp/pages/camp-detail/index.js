@@ -42,7 +42,7 @@ Page({
         id: this.data.campId,
         universityId: '1',
         universityName: '清华大学',
-        universityLogo: 'https://example.com/logo/tsinghua.png',
+        universityLogo: '',
         title: '计算机学院2024年优秀大学生夏令营',
         sourceUrl: 'https://example.com/camp/1',
         publishDate: '2024-03-01',

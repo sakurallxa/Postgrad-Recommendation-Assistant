@@ -19,7 +19,7 @@
     
     <view wx:if="{{urgentCamps.length > 0}}" class="urgent-camps">
       <scroll-view scroll-x="true" class="urgent-scroll">
-        <view wx:for="{{urgentCamps}}" wx:key="{{item.id}}" class="urgent-card">
+        <view wx:for="{{urgentCamps}}" wx:key="id" class="urgent-card">
           <view class="countdown {{item.statusClass}}">
             <text class="countdown-number">{{item.daysRemaining}}</text>
             <text class="countdown-unit">天</text>
@@ -43,7 +43,7 @@
       <view class="filter-bar">
         <view 
           wx:for="{{filterOptions}}" 
-          wx:key="{{item.value}}"
+          wx:key="value"
           class="filter-item {{activeFilter === item.value ? 'active' : ''}}"
           bindtap="handleFilterChange" 
           data-value="{{item.value}}"
@@ -59,7 +59,7 @@
     <view wx:if="{{campList.length > 0}}" class="camp-list">
       <camp-card 
         wx:for="{{campList}}" 
-        wx:key="{{item.id}}"
+        wx:key="id"
         camp="{{item}}"
         bindtap="handleCampTap"
         bindremind="handleRemindTap"

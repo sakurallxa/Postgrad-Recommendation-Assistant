@@ -1,8 +1,7 @@
-import { observable, action, computed, makeObservable } from 'mobx-miniprogram'
+import { observable, action, computed } from 'mobx-miniprogram'
 
 class UserStore {
   constructor() {
-    makeObservable(this)
     this.initFromStorage()
   }
 
