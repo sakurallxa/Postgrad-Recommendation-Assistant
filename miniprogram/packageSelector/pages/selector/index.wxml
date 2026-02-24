@@ -46,7 +46,7 @@
         {{isSelectedSectionExpanded ? '收起 ▲' : '展开 ▼'}}
       </text>
     </view>
-    <view class="selected-tags" wx:if="isSelectedSectionExpanded && selectedUniversities.length > 0">
+    <view class="selected-tags" wx:if="{{isSelectedSectionExpanded && selectedUniversities.length > 0}}">
       <view 
         wx:for="{{selectedUniversities}}" 
         wx:key="{{item.id}}"
@@ -69,28 +69,29 @@
     <view wx:if="{{groupedUniversities.length === 0}}" class="empty-section">
       <text class="empty-text">暂无匹配的院校</text>
     </view>
-    <view 
-      wx:else
-      wx:for="{{groupedUniversities}}" 
-      wx:key="{{item.letter}}"
-      class="university-group"
-    >
-      <view class="group-letter">{{item.letter}}</view>
-      <view class="university-list">
-        <view 
-          wx:for="{{item.universities}}" 
-          wx:key="{{item.id}}"
-          class="university-item"
-          bindtap="onUniversityTap"
-          data-id="{{item.id}}"
-        >
-          <view class="university-info">
-            <text class="university-name">{{item.name}}</text>
-            <text class="university-level" wx:if="item.level">{{item.level}}</text>
-          </view>
-          <view class="university-checkbox">
-            <view class="checkbox {{isUniversitySelected(item.id) ? 'checked' : ''}}">
-              <icon wx:if="isUniversitySelected(item.id)" type="success" size="16" color="#1A73E8" />
+    <view wx:else class="university-list-content">
+      <view 
+        wx:for="{{groupedUniversities}}" 
+        wx:key="{{item.letter}}"
+        class="university-group"
+      >
+        <view class="group-letter">{{item.letter}}</view>
+        <view class="university-list">
+          <view 
+            wx:for="{{item.universities}}" 
+            wx:key="{{item.id}}"
+            class="university-item"
+            bindtap="onUniversityTap"
+            data-id="{{item.id}}"
+          >
+            <view class="university-info">
+              <text class="university-name">{{item.name}}</text>
+              <text class="university-level" wx:if="{{item.level}}">{{item.level}}</text>
+            </view>
+            <view class="university-checkbox">
+              <view class="checkbox {{isUniversitySelected(item.id) ? 'checked' : ''}}">
+                <icon wx:if="{{isUniversitySelected(item.id)}}" type="success" size="16" color="#1A73E8" />
+              </view>
             </view>
           </view>
         </view>
