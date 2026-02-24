@@ -1,4 +1,7 @@
 // 院校选择页
+import { selectionStore } from '../../../store/selection'
+import { universityService } from '../../../services/university'
+
 Page({
   data: {
     // 筛选选项
@@ -29,29 +32,41 @@ Page({
     selectedUniversities: [],
     isSelectedSectionExpanded: true,
     
-    // 院校列表（模拟数据）
-    universities: [
-      { id: '1', name: '北京大学', level: '985', region: '华北', letter: 'B' },
-      { id: '2', name: '清华大学', level: '985', region: '华北', letter: 'Q' },
-      { id: '3', name: '复旦大学', level: '985', region: '华东', letter: 'F' },
-      { id: '4', name: '上海交通大学', level: '985', region: '华东', letter: 'S' },
-      { id: '5', name: '浙江大学', level: '985', region: '华东', letter: 'Z' },
-      { id: '6', name: '南京大学', level: '985', region: '华东', letter: 'N' },
-      { id: '7', name: '武汉大学', level: '985', region: '华中', letter: 'W' },
-      { id: '8', name: '中山大学', level: '985', region: '华南', letter: 'Z' },
-      { id: '9', name: '四川大学', level: '985', region: '西南', letter: 'S' },
-      { id: '10', name: '西安交通大学', level: '985', region: '西北', letter: 'X' },
-      { id: '11', name: '哈尔滨工业大学', level: '985', region: '东北', letter: 'H' },
-      { id: '12', name: '北京师范大学', level: '985', region: '华北', letter: 'B' },
-      { id: '13', name: '北京理工大学', level: '985', region: '华北', letter: 'B' },
-      { id: '14', name: '东南大学', level: '985', region: '华东', letter: 'D' },
-      { id: '15', name: '同济大学', level: '985', region: '华东', letter: 'T' }
-    ],
-    groupedUniversities: []
+    // 院校列表
+    universities: [],
+    groupedUniversities: [],
+    loading: false
   },
 
   onLoad() {
-    this.groupUniversities();
+    this.loadUniversities();
+    this.initSelectedUniversities();
+  },
+
+  // 初始化已选院校
+  initSelectedUniversities() {
+    this.setData({
+      selectedUniversities: selectionStore.selectedUniversities
+    });
+  },
+
+  // 加载院校列表
+  async loadUniversities() {
+    this.setData({ loading: true });
+    try {
+      const result = await universityService.getUniversityList();
+      const universities = result.list.map(item => ({
+        ...item,
+        letter: item.name.charAt(0).toUpperCase()
+      }));
+      this.setData({ universities });
+      this.groupUniversities();
+    } catch (error) {
+      console.error('加载院校列表失败:', error);
+      wx.showToast({ title: '加载失败', icon: 'none' });
+    } finally {
+      this.setData({ loading: false });
+    }
   },
 
   // 分组院校列表
@@ -175,8 +190,8 @@ Page({
 
   // 确认选择
   onConfirmSelection() {
-    // 保存选择到本地存储
-    wx.setStorageSync('selectedUniversities', this.data.selectedUniversities);
+    // 保存选择到状态管理
+    selectionStore.setSelection(this.data.selectedUniversities, []);
     
     // 提示用户
     wx.showToast({

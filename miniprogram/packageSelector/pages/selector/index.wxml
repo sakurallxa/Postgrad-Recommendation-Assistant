@@ -58,9 +58,19 @@
     </view>
   </view>
 
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-section">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
   <!-- 院校列表区 -->
-  <view class="university-list-section">
+  <view wx:else class="university-list-section">
+    <view wx:if="{{groupedUniversities.length === 0}}" class="empty-section">
+      <text class="empty-text">暂无匹配的院校</text>
+    </view>
     <view 
+      wx:else
       wx:for="{{groupedUniversities}}" 
       wx:key="{{item.letter}}"
       class="university-group"

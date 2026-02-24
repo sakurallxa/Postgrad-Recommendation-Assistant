@@ -11,6 +11,9 @@
     <button wx:if="{{!isLoggedIn}}" class="login-btn" bindtap="handleLogin">
       微信登录
     </button>
+    <button wx:else class="logout-btn" bindtap="handleLogout">
+      退出登录
+    </button>
   </view>
 
   <!-- 功能列表 -->

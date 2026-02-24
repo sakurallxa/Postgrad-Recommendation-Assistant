@@ -1,4 +1,7 @@
 // 个人中心页面逻辑
+import { userStore } from '../../store/user'
+import { authService } from '../../services/auth'
+
 Page({
   data: {
     userInfo: {
@@ -21,12 +24,9 @@ Page({
 
   // 检查登录状态
   checkLoginStatus() {
-    const userInfo = wx.getStorageSync('userInfo')
-    const token = wx.getStorageSync('token')
-    
-    if (userInfo && token) {
+    if (userStore.isLoggedIn && userStore.userInfo) {
       this.setData({
-        userInfo: userInfo,
+        userInfo: userStore.userInfo,
         isLoggedIn: true
       })
     } else {
@@ -42,50 +42,41 @@ Page({
   },
 
   // 处理微信登录
-  handleLogin() {
+  async handleLogin() {
     wx.showLoading({ title: '登录中...' })
     
-    // 调用微信登录API
-    wx.login({
-      success: (res) => {
-        if (res.code) {
-          // 模拟登录成功
-          this.mockLogin(res.code)
-        } else {
-          wx.hideLoading()
-          wx.showToast({ title: '登录失败', icon: 'none' })
-        }
-      },
-      fail: (err) => {
-        wx.hideLoading()
-        wx.showToast({ title: '登录失败', icon: 'none' })
-        console.error('登录失败:', err)
-      }
-    })
-  },
-
-  // 模拟登录成功
-  mockLogin(code) {
-    setTimeout(() => {
-      const mockUserInfo = {
-        nickname: '保研er',
-        avatar: 'https://example.com/avatar/default.png',
-        openid: 'mock_openid_' + Date.now()
-      }
-      const mockToken = 'mock_token_' + Date.now()
-      
-      // 存储用户信息和token
-      wx.setStorageSync('userInfo', mockUserInfo)
-      wx.setStorageSync('token', mockToken)
-      
-      this.setData({
-        userInfo: mockUserInfo,
-        isLoggedIn: true
+    try {
+      // 调用微信登录API
+      const loginRes = await new Promise((resolve, reject) => {
+        wx.login({
+          success: resolve,
+          fail: reject
+        })
       })
-      
+
+      if (loginRes.code) {
+        // 调用登录服务
+        const loginData = await authService.login(loginRes.code)
+        
+        // 更新状态管理
+        userStore.setUserInfo(loginData.userInfo)
+        userStore.setToken(loginData.token)
+        
+        this.setData({
+          userInfo: loginData.userInfo,
+          isLoggedIn: true
+        })
+        
+        wx.showToast({ title: '登录成功', icon: 'success' })
+      } else {
+        wx.showToast({ title: '登录失败', icon: 'none' })
+      }
+    } catch (error) {
+      console.error('登录失败:', error)
+      wx.showToast({ title: '登录失败', icon: 'none' })
+    } finally {
       wx.hideLoading()
-      wx.showToast({ title: '登录成功', icon: 'success' })
-    }, 1000)
+    }
   },
 
   // 跳转到目标院校管理
@@ -119,6 +110,32 @@ Page({
       content: '保研信息助手 v1.0.0\n\n专注于为保研学生提供目标院校夏令营信息的精准聚合与截止日期智能提醒服务。\n\n让保研学生不再错过任何一个夏令营报名截止日期。',
       showCancel: false,
       confirmText: '确定'
+    })
+  },
+
+  // 处理退出登录
+  handleLogout() {
+    wx.showModal({
+      title: '退出登录',
+      content: '确定要退出登录吗？',
+      success: (res) => {
+        if (res.confirm) {
+          // 清除状态管理
+          userStore.logout()
+          
+          // 更新页面状态
+          this.setData({
+            userInfo: {
+              nickname: '',
+              avatar: '',
+              openid: ''
+            },
+            isLoggedIn: false
+          })
+          
+          wx.showToast({ title: '已退出登录', icon: 'success' })
+        }
+      }
     })
   }
 })

@@ -64,6 +64,24 @@
   border-radius: var(--border-radius-sm);
 }
 
+.logout-btn {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-xs) var(--spacing-lg);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.logout-btn::after {
+  border-radius: var(--border-radius-sm);
+}
+
+.logout-btn:active {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
 /* 功能菜单 */
 .menu-section {
   background-color: var(--background-white);
