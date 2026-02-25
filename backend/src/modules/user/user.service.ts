@@ -1,10 +1,30 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateSelectionDto } from './dto/update-selection.dto';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * 安全解析JSON字符串
+   * @param jsonString JSON字符串
+   * @param defaultValue 默认值
+   * @returns 解析后的数据或默认值
+   */
+  private safeJsonParse<T>(jsonString: string | null | undefined, defaultValue: T): T {
+    if (!jsonString) {
+      return defaultValue;
+    }
+    try {
+      return JSON.parse(jsonString) as T;
+    } catch (error) {
+      this.logger.error(`JSON解析失败: ${jsonString}`, error.message);
+      return defaultValue;
+    }
+  }
 
   /**
    * 获取用户信息
@@ -53,13 +73,9 @@ export class UserService {
       };
     }
 
-    // 解析JSON字符串
-    const universityIds = selection.universityIds 
-      ? JSON.parse(selection.universityIds) 
-      : [];
-    const majorIds = selection.majorIds 
-      ? JSON.parse(selection.majorIds) 
-      : [];
+    // 解析JSON字符串（使用安全解析方法）
+    const universityIds = this.safeJsonParse<string[]>(selection.universityIds, []);
+    const majorIds = this.safeJsonParse<string[]>(selection.majorIds, []);
 
     // 获取院校详情
     const universities = await this.prisma.university.findMany({
@@ -158,8 +174,8 @@ export class UserService {
     return {
       message: '用户选择更新成功',
       selection: {
-        universityIds: JSON.parse(selection.universityIds || '[]'),
-        majorIds: JSON.parse(selection.majorIds || '[]'),
+        universityIds: this.safeJsonParse<string[]>(selection.universityIds, []),
+        majorIds: this.safeJsonParse<string[]>(selection.majorIds, []),
       },
     };
   }

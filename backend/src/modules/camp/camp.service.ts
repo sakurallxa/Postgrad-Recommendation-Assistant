@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -41,5 +41,35 @@ export class CampService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async findOne(id: string) {
+    const camp = await this.prisma.campInfo.findUnique({
+      where: { id },
+      include: {
+        university: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+            level: true,
+            website: true,
+          },
+        },
+        major: {
+          select: {
+            id: true,
+            name: true,
+            category: true,
+          },
+        },
+      },
+    });
+
+    if (!camp) {
+      throw new NotFoundException('夏令营不存在');
+    }
+
+    return camp;
   }
 }

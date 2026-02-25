@@ -2,7 +2,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UpdateSelectionDto } from './dto/update-selection.dto';
 export declare class UserService {
     private readonly prisma;
+    private readonly logger;
     constructor(prisma: PrismaService);
+    private safeJsonParse;
     getProfile(userId: string): Promise<{
         selection: {
             universityIds: string;
@@ -43,8 +45,8 @@ export declare class UserService {
     updateSelection(userId: string, dto: UpdateSelectionDto): Promise<{
         message: string;
         selection: {
-            universityIds: any;
-            majorIds: any;
+            universityIds: string[];
+            majorIds: string[];
         };
     }>;
 }

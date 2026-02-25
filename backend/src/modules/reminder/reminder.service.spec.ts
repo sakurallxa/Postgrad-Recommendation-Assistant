@@ -16,6 +16,7 @@ describe('ReminderService', () => {
       findMany: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
   };
 
@@ -139,31 +140,37 @@ describe('ReminderService', () => {
       ];
 
       mockPrismaService.reminder.findMany.mockResolvedValue(mockReminders);
+      mockPrismaService.reminder.count.mockResolvedValue(2);
 
       const result = await service.findAll();
 
-      expect(result).toEqual(mockReminders);
-      expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith({
-        orderBy: { createdAt: 'desc' },
-      });
+      expect(result.data).toEqual(mockReminders);
+      expect(result.meta).toBeDefined();
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.total).toBe(2);
     });
 
     it('应该按createdAt降序排列', async () => {
       mockPrismaService.reminder.findMany.mockResolvedValue([]);
+      mockPrismaService.reminder.count.mockResolvedValue(0);
 
       await service.findAll();
 
-      expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith({
-        orderBy: { createdAt: 'desc' },
-      });
+      expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
     });
 
     it('空数据库应该返回空数组', async () => {
       mockPrismaService.reminder.findMany.mockResolvedValue([]);
+      mockPrismaService.reminder.count.mockResolvedValue(0);
 
       const result = await service.findAll();
 
-      expect(result).toEqual([]);
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
     });
 
     it('应该返回包含所有状态的提醒', async () => {
@@ -175,10 +182,40 @@ describe('ReminderService', () => {
       ];
 
       mockPrismaService.reminder.findMany.mockResolvedValue(mockReminders);
+      mockPrismaService.reminder.count.mockResolvedValue(4);
 
       const result = await service.findAll();
 
-      expect(result).toHaveLength(4);
+      expect(result.data).toHaveLength(4);
+    });
+
+    it('应该支持分页参数', async () => {
+      mockPrismaService.reminder.findMany.mockResolvedValue([]);
+      mockPrismaService.reminder.count.mockResolvedValue(100);
+
+      const result = await service.findAll(2, 10);
+
+      expect(result.meta.page).toBe(2);
+      expect(result.meta.limit).toBe(10);
+      expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 10,
+          take: 10,
+        }),
+      );
+    });
+
+    it('应该限制最大返回数量', async () => {
+      mockPrismaService.reminder.findMany.mockResolvedValue([]);
+      mockPrismaService.reminder.count.mockResolvedValue(1000);
+
+      await service.findAll(1, 200);
+
+      expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 100,
+        }),
+      );
     });
   });
 
@@ -233,10 +270,11 @@ describe('ReminderService', () => {
       }));
 
       mockPrismaService.reminder.findMany.mockResolvedValue(mockReminders);
+      mockPrismaService.reminder.count.mockResolvedValue(1000);
 
       const result = await service.findAll();
 
-      expect(result).toHaveLength(1000);
+      expect(result.data).toHaveLength(1000);
     });
 
     it('应该正确处理数据库错误', async () => {

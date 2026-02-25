@@ -422,7 +422,7 @@ describe('UserService', () => {
       expect(result.majors).toEqual([]);
     });
 
-    it('应该处理无效的JSON字符串', async () => {
+    it('应该安全处理无效的JSON字符串', async () => {
       const userId = 'user_123';
       const mockSelection = {
         userId,
@@ -431,8 +431,14 @@ describe('UserService', () => {
       };
 
       mockPrismaService.userSelection.findUnique.mockResolvedValue(mockSelection);
+      mockPrismaService.university.findMany.mockResolvedValue([]);
+      mockPrismaService.major.findMany.mockResolvedValue([]);
 
-      await expect(service.getSelection(userId)).rejects.toThrow();
+      // 使用安全解析后，无效JSON应该返回空数组而不是抛出异常
+      const result = await service.getSelection(userId);
+
+      expect(result.universities).toEqual([]);
+      expect(result.majors).toEqual([]);
     });
 
     it('应该处理特殊字符在ID中', async () => {

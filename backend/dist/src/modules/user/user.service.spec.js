@@ -337,7 +337,7 @@ describe('UserService', () => {
             expect(result.universities).toEqual([]);
             expect(result.majors).toEqual([]);
         });
-        it('应该处理无效的JSON字符串', async () => {
+        it('应该安全处理无效的JSON字符串', async () => {
             const userId = 'user_123';
             const mockSelection = {
                 userId,
@@ -345,7 +345,11 @@ describe('UserService', () => {
                 majorIds: '[]',
             };
             mockPrismaService.userSelection.findUnique.mockResolvedValue(mockSelection);
-            await expect(service.getSelection(userId)).rejects.toThrow();
+            mockPrismaService.university.findMany.mockResolvedValue([]);
+            mockPrismaService.major.findMany.mockResolvedValue([]);
+            const result = await service.getSelection(userId);
+            expect(result.universities).toEqual([]);
+            expect(result.majors).toEqual([]);
         });
         it('应该处理特殊字符在ID中', async () => {
             const userId = 'user_123';
