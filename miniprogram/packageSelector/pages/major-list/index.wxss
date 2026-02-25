@@ -1,0 +1,217 @@
+/* 专业列表页样式 */
+.major-list-page {
+  min-height: 100vh;
+  background-color: #F8F9FA;
+  padding-bottom: 70px; /* 为底部操作栏留出空间 */
+}
+
+/* 搜索框 */
+.search-section {
+  padding: 16px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #DADCE0;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background-color: #F8F9FA;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.search-icon {
+  margin-right: 8px;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 16px;
+  color: #202124;
+  padding: 4px 0;
+}
+
+.search-placeholder {
+  color: #9AA0A6;
+}
+
+/* 学科门类筛选 */
+.category-section {
+  background-color: #FFFFFF;
+  padding: 12px 0;
+  border-bottom: 1px solid #DADCE0;
+}
+
+.category-scroll {
+  white-space: nowrap;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.category-tag {
+  display: inline-block;
+  padding: 6px 16px;
+  border: 1px solid #DADCE0;
+  border-radius: 16px;
+  font-size: 14px;
+  color: #5F6368;
+  margin-right: 8px;
+  background-color: #FFFFFF;
+}
+
+.category-tag.active {
+  background-color: #E8F0FE;
+  border-color: #1A73E8;
+  color: #1A73E8;
+}
+
+/* 已选专业区 */
+.selected-section {
+  background-color: #FFFFFF;
+  padding: 16px;
+  margin-top: 12px;
+  border-radius: 12px;
+  margin-left: 16px;
+  margin-right: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.selected-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.selected-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #202124;
+}
+
+.toggle-btn {
+  font-size: 14px;
+  color: #1A73E8;
+}
+
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selected-tag {
+  display: flex;
+  align-items: center;
+  background-color: #E8F0FE;
+  padding: 6px 10px;
+  border-radius: 16px;
+  font-size: 14px;
+  color: #1A73E8;
+}
+
+.tag-text {
+  margin-right: 6px;
+}
+
+.tag-close {
+  margin-left: 4px;
+}
+
+/* 专业列表区 */
+.major-list-section {
+  margin-top: 12px;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  margin-left: 16px;
+  margin-right: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.major-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.major-item:last-child {
+  border-bottom: none;
+}
+
+.major-info {
+  flex: 1;
+}
+
+.major-name {
+  font-size: 16px;
+  color: #202124;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.major-category {
+  font-size: 12px;
+  color: #80868B;
+  background-color: #F8F9FA;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.major-checkbox {
+  margin-left: 16px;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #DADCE0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFFFFF;
+}
+
+.checkbox.checked {
+  background-color: #1A73E8;
+  border-color: #1A73E8;
+}
+
+/* 底部操作区 */
+.bottom-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #FFFFFF;
+  padding: 12px 16px;
+  border-top: 1px solid #DADCE0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 56px;
+}
+
+.selected-count {
+  font-size: 14px;
+  color: #5F6368;
+}
+
+.confirm-btn {
+  background-color: #1A73E8;
+  color: #FFFFFF;
+  border-radius: 8px;
+  padding: 8px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  min-width: 120px;
+  text-align: center;
+}
+
+.confirm-btn::after {
+  border: none;
+}

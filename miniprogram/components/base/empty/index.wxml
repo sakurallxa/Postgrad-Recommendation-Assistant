@@ -1,0 +1,7 @@
+<view class="empty-state">
+  <view class="empty-state-icon">
+    <text class="icon">📭</text>
+  </view>
+  <text class="empty-state-text">{{text || '暂无数据'}}</text>
+  <slot></slot>
+</view>

@@ -1,0 +1,88 @@
+/* 夏令营列表页面样式 */
+
+.container {
+  padding: var(--spacing-lg);
+  background-color: var(--background-light);
+  min-height: 100vh;
+}
+
+/* 筛选栏 */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding: var(--spacing-xs) var(--spacing-md);
+  margin-right: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  border-radius: var(--border-radius-full);
+  background-color: var(--background-white);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-item.active {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  background-color: var(--primary-light);
+}
+
+.filter-btn {
+  font-size: 14px;
+  color: var(--primary-color);
+  margin-left: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--border-radius-full);
+  background-color: var(--background-white);
+  border: 1px solid var(--primary-color);
+}
+
+/* 夏令营列表 */
+.camp-list {
+  margin-bottom: var(--spacing-lg);
+}
+
+.loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+.loading-text {
+  margin-left: var(--spacing-sm);
+}
+
+.no-more {
+  text-align: center;
+  padding: var(--spacing-lg);
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+/* 响应式设计 */
+@media (max-width: 375px) {
+  .container {
+    padding: var(--spacing-md);
+  }
+  
+  .filter-item {
+    font-size: 13px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+  
+  .filter-btn {
+    font-size: 13px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+}

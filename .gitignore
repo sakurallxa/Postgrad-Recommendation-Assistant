@@ -1,0 +1,32 @@
+# 微信小程序
+miniprogram/miniprogram_npm/
+miniprogram/node_modules/
+
+# 依赖目录
+node_modules/
+
+# 日志文件
+*.log
+npm-debug.log*
+
+# 编辑器配置
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 微信开发者工具
+project.private.config.json
+
+# 临时文件
+*.tmp
+*.temp
+
+# 系统文件
+Thumbs.db
+ehthumbs.db
+
+# 打包文件
+*.zip
+*.rar

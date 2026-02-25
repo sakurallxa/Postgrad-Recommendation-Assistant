@@ -1,0 +1,89 @@
+<view class="reminder-create-page">
+  <!-- 夏令营信息 -->
+  <view class="camp-info-section">
+    <view class="camp-card">
+      <view class="camp-header">
+        <text class="camp-title">{{campInfo.title}}</text>
+        <text class="camp-deadline">截止日期: {{campInfo.deadline}}</text>
+      </view>
+      <view class="camp-university" wx:if="campInfo.universityName">
+        <icon type="location" size="16" color="#80868B" />
+        <text class="university-name">{{campInfo.universityName}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 提醒时间设置 -->
+  <view class="reminder-settings-section">
+    <view class="section-title">提醒时间</view>
+    
+    <!-- 快捷时间选择 -->
+    <view class="quick-time-section">
+      <view 
+        wx:for="{{quickTimeOptions}}" 
+        wx:key="{{item.value}}"
+        class="quick-time-item {{selectedQuickTime === item.value ? 'active' : ''}}"
+        bindtap="onQuickTimeTap"
+        data-value="{{item.value}}"
+      >
+        {{item.label}}
+      </view>
+    </view>
+    
+    <!-- 自定义时间选择 -->
+    <view class="custom-time-section">
+      <view class="section-subtitle">自定义时间</view>
+      <picker 
+        mode="datetime" 
+        value="{{customDateTime}}"
+        start="{{minDateTime}}"
+        end="{{campInfo.deadline}}"
+        bindchange="onCustomTimeChange"
+        class="time-picker"
+      >
+        <view class="picker-view">
+          <text class="picker-label">提醒时间:</text>
+          <text class="picker-value">{{formattedCustomDateTime}}</text>
+          <icon type="arrowright" size="20" color="#9AA0A6" />
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 提醒方式 -->
+  <view class="reminder-method-section">
+    <view class="section-title">提醒方式</view>
+    <view class="method-item">
+      <view class="method-info">
+        <icon type="bell" size="20" color="#1A73E8" />
+        <text class="method-name">微信订阅消息</text>
+      </view>
+      <switch 
+        checked="{{wechatReminder}}" 
+        bindchange="onWechatReminderChange"
+        color="#1A73E8"
+      />
+    </view>
+    <view class="method-item">
+      <view class="method-info">
+        <icon type="info" size="20" color="#1A73E8" />
+        <text class="method-name">小程序内提醒</text>
+      </view>
+      <switch 
+        checked="{{appReminder}}" 
+        bindchange="onAppReminderChange"
+        color="#1A73E8"
+      />
+    </view>
+  </view>
+
+  <!-- 底部操作区 -->
+  <view class="bottom-action-bar">
+    <button class="cancel-btn" bindtap="onCancel">
+      取消
+    </button>
+    <button class="confirm-btn" bindtap="onConfirm">
+      确认设置
+    </button>
+  </view>
+</view>

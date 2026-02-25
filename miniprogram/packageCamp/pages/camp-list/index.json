@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "夏令营列表",
+  "usingComponents": {
+    "camp-card": "../../../components/business/camp-card/index",
+    "empty-state": "../../../components/base/empty/index"
+  }
+}

@@ -1,0 +1,58 @@
+<view class="camp-card {{statusClass}}" bindtap="handleTap">
+  <view class="card-header">
+    <image 
+      wx:if="{{camp.universityLogo}}" 
+      class="university-logo" 
+      src="{{camp.universityLogo}}" 
+      mode="aspectFit"
+      lazy-load
+    />
+    <view class="header-info">
+      <view class="university-tag">{{camp.universityName}}</view>
+      <text class="camp-title">{{camp.title}}</text>
+    </view>
+  </view>
+
+  <view class="card-body">
+    <view class="info-grid">
+      <view class="info-item" wx:if="{{camp.startDate && camp.endDate}}">
+        <view class="info-icon">📅</view>
+        <view class="info-content">
+          <text class="info-label">举办时间</text>
+          <text class="info-value">{{camp.startDate}} ~ {{camp.endDate}}</text>
+        </view>
+      </view>
+      <view class="info-item" wx:if="{{camp.location}}">
+        <view class="info-icon">📍</view>
+        <view class="info-content">
+          <text class="info-label">举办地点</text>
+          <text class="info-value">{{camp.location}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card-footer">
+    <view class="deadline {{statusClass}}">
+      <view class="deadline-icon">⏰</view>
+      <view class="deadline-content">
+        <text class="deadline-text">{{deadlineText}}</text>
+        <text class="days-remaining" wx:if="{{daysRemaining > 0}}">剩余{{daysRemaining}}天</text>
+      </view>
+    </view>
+    <view class="actions">
+      <view wx:if="{{camp.hasReminder}}" class="reminder-status">
+        <text class="reminder-icon">🔔</text>
+        <text class="reminder-text">已设置提醒</text>
+      </view>
+      <button 
+        wx:else 
+        class="remind-btn" 
+        size="mini" 
+        catchtap="handleRemindTap"
+      >
+        设置提醒
+      </button>
+    </view>
+  </view>
+</view>

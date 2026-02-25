@@ -1,0 +1,40 @@
+<view class="container">
+  <!-- 筛选栏 -->
+  <view class="filter-bar">
+    <view 
+      wx:for="{{filterOptions}}" 
+      wx:key="{{item.value}}"
+      class="filter-item {{activeFilter === item.value ? 'active' : ''}}"
+      bindtap="handleFilterChange" 
+      data-value="{{item.value}}"
+    >
+      {{item.label}}
+    </view>
+    <navigator url="/packageSelector/pages/selector/index" class="filter-btn">
+      筛选 ▼
+    </navigator>
+  </view>
+
+  <!-- 夏令营列表 -->
+  <view wx:if="{{campList.length > 0}}" class="camp-list">
+    <camp-card 
+      wx:for="{{campList}}" 
+      wx:key="{{item.id}}"
+      camp="{{item}}"
+      bindtap="handleCampTap"
+      bindremind="handleRemindTap"
+    />
+    
+    <!-- 加载更多 -->
+    <view wx:if="{{loadingMore}}" class="loading-more">
+      <view class="loading"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+    
+    <view wx:else-if="{{!hasMore}}" class="no-more">
+      <text>没有更多了</text>
+    </view>
+  </view>
+  
+  <empty-state wx:else text="暂无夏令营信息" />
+</view>

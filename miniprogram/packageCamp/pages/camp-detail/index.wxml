@@ -1,0 +1,156 @@
+<view class="container">
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <view class="loading"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+  
+  <!-- 内容区域 -->
+  <view wx:else>
+    <!-- 院校信息 -->
+    <view class="university-header">
+      <view class="university-info">
+        <image 
+          class="university-logo" 
+          src="{{campDetail.universityLogo || '/assets/images/icons/user.png'}}" 
+          mode="aspectFit"
+        />
+        <view class="university-tag">{{campDetail.universityName}}</view>
+      </view>
+    </view>
+
+    <!-- 夏令营标题 -->
+    <view class="camp-title">
+      {{campDetail.title}}
+    </view>
+
+    <!-- 基本信息 -->
+    <view class="section">
+      <text class="section-title">基本信息</text>
+      <view class="info-card">
+        <view class="info-item">
+          <text class="label">发布日期</text>
+          <text class="value">{{campDetail.publishDate || '待定'}}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">报名截止</text>
+          <text class="value deadline">{{campDetail.deadline || '待定'}}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">举办时间</text>
+          <text class="value">{{campDetail.startDate || '待定'}} ~ {{campDetail.endDate || '待定'}}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">举办地点</text>
+          <text class="value">{{campDetail.location || '待定'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 申请条件 -->
+    <view class="section" wx:if="{{campDetail.requirements}}">
+      <text class="section-title">申请条件</text>
+      <view class="info-card">
+        <view class="requirement-item" wx:for="{{campDetail.requirements.other}}" wx:key="{{index}}">
+          <text class="requirement-text">{{item}}</text>
+        </view>
+        <view class="requirement-item">
+          <text class="requirement-text">学历要求: {{campDetail.requirements.education}}</text>
+        </view>
+        <view class="requirement-item">
+          <text class="requirement-text">GPA要求: {{campDetail.requirements.gpa}}</text>
+        </view>
+        <view class="requirement-item">
+          <text class="requirement-text">英语要求: {{campDetail.requirements.english}}</text>
+        </view>
+        <view class="requirement-item">
+          <text class="requirement-text">专业要求: {{campDetail.requirements.major}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 所需材料 -->
+    <view class="section" wx:if="{{campDetail.materials && campDetail.materials.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">所需材料</text>
+        <button class="copy-btn" size="mini" bindtap="handleCopyMaterials">
+          一键复制
+        </button>
+      </view>
+      <view class="info-card materials-card">
+        <view class="material-item" wx:for="{{campDetail.materials}}" wx:key="{{index}}">
+          <text class="material-text">{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 报名流程 -->
+    <view class="section" wx:if="{{campDetail.process && campDetail.process.length > 0}}">
+      <text class="section-title">报名流程</text>
+      <view class="info-card">
+        <view class="timeline">
+          <view class="timeline-item" wx:for="{{campDetail.process}}" wx:key="{{index}}">
+            <view class="timeline-marker">
+              <view class="timeline-dot {{index === 0 ? 'active' : ''}}">{{index + 1}}</view>
+              <view class="timeline-line" wx:if="{{index < campDetail.process.length - 1}}"></view>
+            </view>
+            <view class="timeline-content">
+              <view class="timeline-header">
+                <text class="timeline-title">{{item.action}}</text>
+                <view class="timeline-status {{index === 0 ? 'current' : (index === 1 ? 'next' : 'pending')}}">
+                  {{index === 0 ? '当前' : (index === 1 ? '下一步' : '待完成')}}
+                </view>
+              </view>
+              <text class="timeline-deadline" wx:if="{{item.deadline}}">
+                <text class="deadline-label">截止时间：</text>{{item.deadline}}
+              </text>
+              <text class="timeline-note" wx:if="{{item.note}}">{{item.note}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 联系方式 -->
+    <view class="section" wx:if="{{campDetail.contact}}">
+      <text class="section-title">联系方式</text>
+      <view class="info-card">
+        <view class="contact-item">
+          <text class="label">邮箱</text>
+          <text class="value">{{campDetail.contact.email || '待定'}}</text>
+        </view>
+        <view class="contact-item">
+          <text class="label">电话</text>
+          <text class="value">{{campDetail.contact.phone || '待定'}}</text>
+        </view>
+        <view class="contact-item">
+          <text class="label">地址</text>
+          <text class="value">{{campDetail.contact.address || '待定'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 原文链接 -->
+    <view class="section" wx:if="{{campDetail.sourceUrl}}">
+      <text class="section-title">原文链接</text>
+      <view class="info-card">
+        <view class="source-link" bindtap="handleOpenSourceUrl">
+          <text class="link-text">{{campDetail.sourceUrl}}</text>
+          <text class="link-arrow">→</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部操作区 -->
+    <view class="bottom-action">
+      <button class="remind-btn" bindtap="handleSetReminder">
+        {{campDetail.hasReminder ? '已设置提醒' : '设置提醒'}}
+      </button>
+    </view>
+  </view>
+  
+  <!-- 复制成功提示 -->
+  <view wx:if="{{showCopySuccess}}" class="copy-success">
+    复制成功
+  </view>
+</view>
