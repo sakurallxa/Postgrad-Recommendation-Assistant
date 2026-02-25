@@ -1,5 +1,5 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Query, Param, ParseUUIDPipe, NotFoundException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { CampService } from './camp.service';
 
 @ApiTags('夏令营')
@@ -16,5 +16,13 @@ export class CampController {
     @Query('majorId') majorId?: string,
   ) {
     return this.campService.findAll({ page, limit, universityId, majorId });
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: '获取夏令营详情', description: '获取夏令营详细信息，包含关联院校和专业' })
+  @ApiParam({ name: 'id', description: '夏令营ID', type: 'string' })
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    // Service层已处理NotFoundException，直接返回结果
+    return this.campService.findOne(id);
   }
 }

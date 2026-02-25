@@ -43,8 +43,8 @@ export declare class UserController {
     updateSelection(userId: string, dto: UpdateSelectionDto): Promise<{
         message: string;
         selection: {
-            universityIds: any;
-            majorIds: any;
+            universityIds: string[];
+            majorIds: string[];
         };
     }>;
 }

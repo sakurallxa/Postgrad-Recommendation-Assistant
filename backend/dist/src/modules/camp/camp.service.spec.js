@@ -9,6 +9,7 @@ describe('CampService', () => {
     const mockPrismaService = {
         campInfo: {
             findMany: jest.fn(),
+            findUnique: jest.fn(),
             count: jest.fn(),
         },
     };
@@ -248,6 +249,59 @@ describe('CampService', () => {
             expect(result.meta.total).toBe(25);
             expect(result.meta.totalPages).toBe(3);
             expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 10, take: 10 }));
+        });
+    });
+    describe('获取夏令营详情', () => {
+        it('应该返回夏令营详情', async () => {
+            const campId = 'camp_123';
+            const mockCamp = {
+                id: campId,
+                title: '2026年计算机学院夏令营',
+                sourceUrl: 'http://example.com/camp',
+                status: 'published',
+                confidence: 0.95,
+                university: {
+                    id: 'u1',
+                    name: '清华大学',
+                    logo: 'http://example.com/logo.png',
+                    level: '985',
+                    website: 'http://www.tsinghua.edu.cn',
+                },
+                major: {
+                    id: 'm1',
+                    name: '计算机科学与技术',
+                    category: '工学',
+                },
+            };
+            mockPrismaService.campInfo.findUnique.mockResolvedValue(mockCamp);
+            const result = await service.findOne(campId);
+            expect(result).toEqual(mockCamp);
+            expect(mockPrismaService.campInfo.findUnique).toHaveBeenCalledWith({
+                where: { id: campId },
+                include: {
+                    university: {
+                        select: {
+                            id: true,
+                            name: true,
+                            logo: true,
+                            level: true,
+                            website: true,
+                        },
+                    },
+                    major: {
+                        select: {
+                            id: true,
+                            name: true,
+                            category: true,
+                        },
+                    },
+                },
+            });
+        });
+        it('夏令营不存在时应该抛出NotFoundException', async () => {
+            const campId = 'non_existent_id';
+            mockPrismaService.campInfo.findUnique.mockResolvedValue(null);
+            await expect(service.findOne(campId)).rejects.toThrow('夏令营不存在');
         });
     });
 });

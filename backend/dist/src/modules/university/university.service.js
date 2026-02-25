@@ -12,9 +12,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UniversityService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const redis_service_1 = require("../../common/services/redis.service");
 let UniversityService = class UniversityService {
-    constructor(prisma) {
+    constructor(prisma, redisService) {
         this.prisma = prisma;
+        this.redisService = redisService;
     }
     async findAll(query) {
         const { page, limit, region, level, keyword, sortBy, sortOrder } = query;
@@ -128,6 +130,7 @@ let UniversityService = class UniversityService {
 exports.UniversityService = UniversityService;
 exports.UniversityService = UniversityService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        redis_service_1.RedisService])
 ], UniversityService);
 //# sourceMappingURL=university.service.js.map
