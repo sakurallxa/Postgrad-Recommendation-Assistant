@@ -1,0 +1,186 @@
+// 保研信息助手小程序 - Prisma Schema
+// 数据库模型定义
+// 支持: MySQL (生产环境) / SQLite (开发环境)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id        String   @id @default(uuid())
+  openid    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联
+  selection UserSelection?
+  reminders Reminder[]
+
+  @@index([openid])
+  @@map("users")
+}
+
+// 院校表
+model University {
+  id       String @id @default(uuid())
+  name     String
+  logo     String?
+  region   String?
+  level    String? // 985/211/双一流/普通
+  website  String?
+  priority String  @default("P3") // P0/P1/P2/P3
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联
+  majors   Major[]
+  campInfos CampInfo[]
+
+  @@index([name])
+  @@index([region])
+  @@index([level])
+  @@index([priority])
+  @@map("universities")
+}
+
+// 专业表
+model Major {
+  id       String @id @default(uuid())
+  name     String
+  category String?
+  
+  universityId String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联
+  university University @relation(fields: [universityId], references: [id])
+  campInfos  CampInfo[]
+
+  @@index([name])
+  @@index([category])
+  @@index([universityId])
+  @@map("majors")
+}
+
+// 夏令营信息表
+model CampInfo {
+  id          String   @id @default(uuid())
+  title       String
+  sourceUrl   String
+  
+  universityId String
+  majorId      String?
+  
+  publishDate DateTime?
+  deadline    DateTime?
+  startDate   DateTime?
+  endDate     DateTime?
+  
+  requirements String? // 申请要求（JSON字符串）
+  materials    String? // 所需材料清单（JSON字符串）
+  process      String? // 报名流程步骤（JSON字符串）
+  
+  status     String   @default("published") // draft/published/expired
+  confidence Float    @default(1.00) // 信息置信度 0-1
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联
+  university University   @relation(fields: [universityId], references: [id])
+  major      Major?       @relation(fields: [majorId], references: [id])
+  reminders  Reminder[]
+
+  @@index([universityId])
+  @@index([majorId])
+  @@index([deadline])
+  @@index([status])
+  @@index([publishDate])
+  @@map("camp_infos")
+}
+
+// 用户选择表
+model UserSelection {
+  id       String @id @default(uuid())
+  userId   String @unique
+  
+  universityIds String? // 关注的院校ID列表（JSON字符串）
+  majorIds      String? // 关注的专业ID列表（JSON字符串）
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_selections")
+}
+
+// 提醒表
+model Reminder {
+  id          String   @id @default(uuid())
+  userId      String
+  campId      String
+  remindTime  DateTime
+  status      String   @default("pending") // pending/sent/failed/expired
+  templateId  String?
+  sentAt      DateTime?
+  errorMsg    String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  camp CampInfo @relation(fields: [campId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([campId])
+  @@index([status])
+  @@index([remindTime])
+  @@map("reminders")
+}
+
+// 爬虫任务日志表
+model CrawlerLog {
+  id           String   @id @default(uuid())
+  universityId String
+  status       String // success/failed/running
+  startTime    DateTime
+  endTime      DateTime?
+  errorMsg     String?
+  itemsCount   Int      @default(0)
+  
+  createdAt DateTime @default(now())
+
+  @@index([universityId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("crawler_logs")
+}
+
+// API调用日志表（用于成本监控）
+model ApiCallLog {
+  id        String   @id @default(uuid())
+  apiType   String // deepseek/wechat
+  callCount Int      @default(1)
+  cost      Float    @default(0) // 成本（元）
+  status    String // success/failed
+  errorMsg  String?
+  
+  createdAt DateTime @default(now())
+
+  @@index([apiType])
+  @@index([createdAt])
+  @@map("api_call_logs")
+}

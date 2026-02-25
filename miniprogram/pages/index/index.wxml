@@ -38,7 +38,7 @@
 
   <!-- 夏令营列表区 -->
   <view class="section">
-    <view class="section-header">
+    <view class="section-header-vertical">
       <text class="section-title">我的夏令营</text>
       <view class="filter-bar">
         <view 

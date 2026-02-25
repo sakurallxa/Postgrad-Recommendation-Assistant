@@ -41,6 +41,21 @@
   margin-bottom: var(--spacing-md);
 }
 
+.section-header-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+}
+
+.section-header-vertical .section-title {
+  margin-bottom: var(--spacing-md);
+}
+
+.section-header-vertical .filter-bar {
+  width: 100%;
+}
+
 .section-title {
   font-size: 18px;
   font-weight: 600;
@@ -66,7 +81,8 @@
 
 .urgent-scroll {
   display: flex;
-  padding-bottom: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-xs);
+  gap: var(--spacing-lg);
 }
 
 .urgent-card {
@@ -75,9 +91,10 @@
   background-color: var(--background-white);
   border-radius: var(--border-radius-md);
   box-shadow: var(--shadow-2);
-  padding: var(--spacing-md);
-  margin-right: var(--spacing-md);
+  padding: var(--spacing-lg);
   min-width: 280px;
+  flex-shrink: 0;
+  margin-bottom: var(--spacing-sm);
 }
 
 .countdown {
@@ -117,11 +134,15 @@
 }
 
 .university-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  display: block;
-  margin-bottom: var(--spacing-xs);
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-light) 0%, rgba(74, 144, 226, 0.15) 100%);
+  padding: 4px 10px;
+  border-radius: var(--border-radius-sm);
+  margin-bottom: var(--spacing-sm);
+  border: 1px solid rgba(74, 144, 226, 0.2);
 }
 
 .camp-title {
@@ -146,31 +167,35 @@
 .filter-bar {
   display: flex;
   align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .filter-item {
   font-size: 14px;
   color: var(--text-secondary);
-  padding: var(--spacing-xs) var(--spacing-md);
-  margin-left: var(--spacing-sm);
+  padding: 6px 16px;
   border-radius: var(--border-radius-full);
   background-color: var(--background-white);
   border: 1px solid var(--border-color);
   cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
 }
 
 .filter-item.active {
   color: var(--primary-color);
   border-color: var(--primary-color);
   background-color: var(--primary-light);
+  font-weight: 500;
 }
 
 .filter-btn {
   font-size: 14px;
   color: var(--primary-color);
-  margin-left: var(--spacing-sm);
+  padding: 6px 12px;
   display: flex;
   align-items: center;
+  white-space: nowrap;
 }
 
 /* 夏令营列表 */

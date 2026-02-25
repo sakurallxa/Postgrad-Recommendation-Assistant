@@ -2,7 +2,7 @@
   <!-- 用户信息区 -->
   <view class="user-info-card">
     <view class="user-avatar">
-      <image src="{{userInfo.avatar || 'https://example.com/avatar/default.png'}}" mode="aspectFill" />
+      <image src="{{userInfo.avatar || '/assets/images/icons/user.png'}}" mode="aspectFill" />
     </view>
     <view class="user-details">
       <text class="user-name">{{userInfo.nickname || '未登录'}}</text>

@@ -8,14 +8,15 @@
   <!-- 内容区域 -->
   <view wx:else>
     <!-- 院校信息 -->
-    <view class="university-info">
-      <image 
-        wx:if="{{campDetail.universityLogo}}" 
-        class="university-logo" 
-        src="{{campDetail.universityLogo}}" 
-        mode="aspectFit"
-      />
-      <text class="university-name">{{campDetail.universityName}}</text>
+    <view class="university-header">
+      <view class="university-info">
+        <image 
+          class="university-logo" 
+          src="{{campDetail.universityLogo || '/assets/images/icons/user.png'}}" 
+          mode="aspectFit"
+        />
+        <view class="university-tag">{{campDetail.universityName}}</view>
+      </view>
     </view>
 
     <!-- 夏令营标题 -->
@@ -76,9 +77,8 @@
           一键复制
         </button>
       </view>
-      <view class="info-card">
+      <view class="info-card materials-card">
         <view class="material-item" wx:for="{{campDetail.materials}}" wx:key="{{index}}">
-          <text class="material-icon">•</text>
           <text class="material-text">{{item}}</text>
         </view>
       </view>
@@ -88,12 +88,24 @@
     <view class="section" wx:if="{{campDetail.process && campDetail.process.length > 0}}">
       <text class="section-title">报名流程</text>
       <view class="info-card">
-        <view class="process-item" wx:for="{{campDetail.process}}" wx:key="{{index}}">
-          <view class="process-step">{{index + 1}}</view>
-          <view class="process-content">
-            <text class="process-action">{{item.action}}</text>
-            <text class="process-deadline" wx:if="{{item.deadline}}">截止: {{item.deadline}}</text>
-            <text class="process-note" wx:if="{{item.note}}">{{item.note}}</text>
+        <view class="timeline">
+          <view class="timeline-item" wx:for="{{campDetail.process}}" wx:key="{{index}}">
+            <view class="timeline-marker">
+              <view class="timeline-dot {{index === 0 ? 'active' : ''}}">{{index + 1}}</view>
+              <view class="timeline-line" wx:if="{{index < campDetail.process.length - 1}}"></view>
+            </view>
+            <view class="timeline-content">
+              <view class="timeline-header">
+                <text class="timeline-title">{{item.action}}</text>
+                <view class="timeline-status {{index === 0 ? 'current' : (index === 1 ? 'next' : 'pending')}}">
+                  {{index === 0 ? '当前' : (index === 1 ? '下一步' : '待完成')}}
+                </view>
+              </view>
+              <text class="timeline-deadline" wx:if="{{item.deadline}}">
+                <text class="deadline-label">截止时间：</text>{{item.deadline}}
+              </text>
+              <text class="timeline-note" wx:if="{{item.note}}">{{item.note}}</text>
+            </view>
           </view>
         </view>
       </view>

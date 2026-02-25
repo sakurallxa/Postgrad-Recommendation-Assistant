@@ -68,8 +68,8 @@ Component({
     },
 
     // 处理设置提醒
-    handleRemindTap(e) {
-      e.stopPropagation()
+    handleRemindTap() {
+      // catchtap 已自动阻止事件冒泡，无需额外处理
       this.triggerEvent('remind', { campId: this.properties.camp.id })
     }
   },

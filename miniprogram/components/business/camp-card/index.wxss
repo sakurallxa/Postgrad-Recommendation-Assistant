@@ -2,7 +2,7 @@
 
 .camp-card {
   background-color: var(--background-white);
-  border-radius: var(--border-radius-md);
+  border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-1);
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-md);
@@ -21,10 +21,11 @@
 }
 
 .university-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--border-radius-sm);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--border-radius-md);
   margin-right: var(--spacing-md);
+  background-color: var(--background-light);
 }
 
 .header-info {
@@ -32,12 +33,17 @@
   min-width: 0;
 }
 
-.university-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  display: block;
-  margin-bottom: var(--spacing-xs);
+/* 院校标签样式 */
+.university-tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-light) 0%, rgba(74, 144, 226, 0.12) 100%);
+  padding: 4px 10px;
+  border-radius: var(--border-radius-sm);
+  margin-bottom: var(--spacing-sm);
+  border: 1px solid rgba(74, 144, 226, 0.15);
 }
 
 .camp-title {
@@ -48,36 +54,51 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
-/* 卡片主体 */
+/* 卡片主体 - 网格布局 */
 .card-body {
   margin-bottom: var(--spacing-md);
-  padding-top: var(--spacing-md);
+  padding: var(--spacing-md) 0;
   border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
-.info-row {
-  margin-bottom: var(--spacing-sm);
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
 .info-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
 }
 
-.label {
+.info-icon {
+  font-size: 16px;
+  margin-right: var(--spacing-sm);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.info-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.info-label {
   font-size: 12px;
   color: var(--text-tertiary);
-  margin-right: var(--spacing-sm);
-  min-width: 60px;
+  margin-bottom: 2px;
 }
 
-.value {
+.info-value {
   font-size: 14px;
-  color: var(--text-secondary);
-  flex: 1;
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 /* 卡片底部 */
@@ -85,8 +106,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: var(--spacing-md);
-  border-top: 1px solid var(--border-color);
 }
 
 .deadline {
@@ -95,15 +114,26 @@
   flex: 1;
 }
 
+.deadline-icon {
+  font-size: 16px;
+  margin-right: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.deadline-content {
+  display: flex;
+  flex-direction: column;
+}
+
 .deadline-text {
   font-size: 14px;
-  font-weight: 500;
-  margin-right: var(--spacing-sm);
+  font-weight: 600;
 }
 
 .days-remaining {
   font-size: 12px;
   font-weight: 400;
+  margin-top: 2px;
 }
 
 .deadline.normal {
@@ -133,6 +163,9 @@
   align-items: center;
   font-size: 12px;
   color: var(--primary-color);
+  background-color: var(--primary-light);
+  padding: 6px 12px;
+  border-radius: var(--border-radius-sm);
 }
 
 .reminder-icon {
@@ -146,8 +179,12 @@
 
 .remind-btn {
   font-size: 12px;
-  padding: 4px 12px;
+  padding: 6px 14px;
   border-radius: var(--border-radius-sm);
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  line-height: 1.5;
   background-color: var(--primary-light);
   color: var(--primary-color);
   border: 1px solid var(--primary-color);
