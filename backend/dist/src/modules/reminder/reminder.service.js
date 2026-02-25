@@ -16,16 +16,36 @@ let ReminderService = class ReminderService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async findAll(page = 1, limit = 20) {
+    async findAll(userId, page = 1, limit = 20, status) {
         const skip = (page - 1) * limit;
         const take = Math.min(limit, 100);
+        const where = { userId };
+        if (status) {
+            where.status = status;
+        }
         const [data, total] = await Promise.all([
             this.prisma.reminder.findMany({
+                where,
                 skip,
                 take,
                 orderBy: { createdAt: 'desc' },
+                include: {
+                    camp: {
+                        select: {
+                            id: true,
+                            title: true,
+                            deadline: true,
+                            university: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                },
+                            },
+                        },
+                    },
+                },
             }),
-            this.prisma.reminder.count(),
+            this.prisma.reminder.count({ where }),
         ]);
         return {
             data,

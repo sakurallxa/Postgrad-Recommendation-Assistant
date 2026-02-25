@@ -2,8 +2,18 @@ import { PrismaService } from '../prisma/prisma.service';
 export declare class ReminderService {
     private readonly prisma;
     constructor(prisma: PrismaService);
-    findAll(page?: number, limit?: number): Promise<{
-        data: {
+    findAll(userId: string, page?: number, limit?: number, status?: string): Promise<{
+        data: ({
+            camp: {
+                id: string;
+                title: string;
+                deadline: Date;
+                university: {
+                    id: string;
+                    name: string;
+                };
+            };
+        } & {
             id: string;
             userId: string;
             campId: string;
@@ -14,7 +24,7 @@ export declare class ReminderService {
             errorMsg: string | null;
             createdAt: Date;
             updatedAt: Date;
-        }[];
+        })[];
         meta: {
             page: number;
             limit: number;

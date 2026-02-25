@@ -16,12 +16,14 @@ exports.ReminderController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const reminder_service_1 = require("./reminder.service");
+const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
 let ReminderController = class ReminderController {
     constructor(reminderService) {
         this.reminderService = reminderService;
     }
-    async findAll(page, limit) {
-        return this.reminderService.findAll(page, limit);
+    async findAll(userId, page, limit, status) {
+        return this.reminderService.findAll(userId, page, limit, status);
     }
     async create(dto) {
         return this.reminderService.create(dto);
@@ -33,13 +35,16 @@ let ReminderController = class ReminderController {
 exports.ReminderController = ReminderController;
 __decorate([
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOperation)({ summary: '获取提醒列表' }),
+    (0, swagger_1.ApiOperation)({ summary: '获取提醒列表', description: '获取当前登录用户的提醒列表，支持分页和状态筛选' }),
     (0, swagger_1.ApiQuery)({ name: 'page', required: false, description: '页码', type: Number }),
     (0, swagger_1.ApiQuery)({ name: 'limit', required: false, description: '每页数量', type: Number }),
-    __param(0, (0, common_1.Query)('page', new common_1.DefaultValuePipe(1), common_1.ParseIntPipe)),
-    __param(1, (0, common_1.Query)('limit', new common_1.DefaultValuePipe(20), common_1.ParseIntPipe)),
+    (0, swagger_1.ApiQuery)({ name: 'status', required: false, description: '状态筛选(pending/sent/failed/expired)', type: String }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('sub')),
+    __param(1, (0, common_1.Query)('page', new common_1.DefaultValuePipe(1), common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Query)('limit', new common_1.DefaultValuePipe(20), common_1.ParseIntPipe)),
+    __param(3, (0, common_1.Query)('status')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Number]),
+    __metadata("design:paramtypes", [String, Number, Number, String]),
     __metadata("design:returntype", Promise)
 ], ReminderController.prototype, "findAll", null);
 __decorate([
@@ -60,6 +65,8 @@ __decorate([
 ], ReminderController.prototype, "remove", null);
 exports.ReminderController = ReminderController = __decorate([
     (0, swagger_1.ApiTags)('提醒'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('reminders'),
     __metadata("design:paramtypes", [reminder_service_1.ReminderService])
 ], ReminderController);

@@ -93,65 +93,110 @@ describe('ReminderService', () => {
         });
     });
     describe('获取提醒列表', () => {
+        const userId = 'user_123';
         it('TC-REM-004: 获取提醒列表 - 基础查询', async () => {
             const mockReminders = [
                 {
                     id: 'reminder_1',
-                    userId: 'user_123',
+                    userId: userId,
                     campId: 'camp_456',
                     remindTime: new Date('2026-06-25'),
                     status: 'pending',
                     createdAt: new Date('2026-01-01'),
+                    camp: {
+                        id: 'camp_456',
+                        title: 'Test Camp',
+                        deadline: new Date('2026-06-30'),
+                        university: {
+                            id: 'uni_1',
+                            name: 'Test University',
+                        },
+                    },
                 },
                 {
                     id: 'reminder_2',
-                    userId: 'user_123',
+                    userId: userId,
                     campId: 'camp_789',
                     remindTime: new Date('2026-07-01'),
                     status: 'sent',
                     sentAt: new Date(),
                     createdAt: new Date('2026-01-02'),
+                    camp: {
+                        id: 'camp_789',
+                        title: 'Test Camp 2',
+                        deadline: new Date('2026-07-15'),
+                        university: {
+                            id: 'uni_2',
+                            name: 'Test University 2',
+                        },
+                    },
                 },
             ];
             mockPrismaService.reminder.findMany.mockResolvedValue(mockReminders);
             mockPrismaService.reminder.count.mockResolvedValue(2);
-            const result = await service.findAll();
+            const result = await service.findAll(userId);
             expect(result.data).toEqual(mockReminders);
             expect(result.meta).toBeDefined();
             expect(result.meta.page).toBe(1);
             expect(result.meta.total).toBe(2);
+            expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(expect.objectContaining({
+                where: { userId },
+            }));
         });
         it('应该按createdAt降序排列', async () => {
             mockPrismaService.reminder.findMany.mockResolvedValue([]);
             mockPrismaService.reminder.count.mockResolvedValue(0);
-            await service.findAll();
+            await service.findAll(userId);
             expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(expect.objectContaining({
                 orderBy: { createdAt: 'desc' },
+            }));
+        });
+        it('应该包含关联的camp和university数据', async () => {
+            mockPrismaService.reminder.findMany.mockResolvedValue([]);
+            mockPrismaService.reminder.count.mockResolvedValue(0);
+            await service.findAll(userId);
+            expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(expect.objectContaining({
+                include: {
+                    camp: {
+                        select: {
+                            id: true,
+                            title: true,
+                            deadline: true,
+                            university: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                },
+                            },
+                        },
+                    },
+                },
             }));
         });
         it('空数据库应该返回空数组', async () => {
             mockPrismaService.reminder.findMany.mockResolvedValue([]);
             mockPrismaService.reminder.count.mockResolvedValue(0);
-            const result = await service.findAll();
+            const result = await service.findAll(userId);
             expect(result.data).toEqual([]);
             expect(result.meta.total).toBe(0);
         });
-        it('应该返回包含所有状态的提醒', async () => {
+        it('应该按状态筛选提醒', async () => {
             const mockReminders = [
-                { id: '1', status: 'pending' },
-                { id: '2', status: 'sent' },
-                { id: '3', status: 'failed' },
-                { id: '4', status: 'expired' },
+                { id: '1', status: 'pending', userId },
+                { id: '2', status: 'pending', userId },
             ];
             mockPrismaService.reminder.findMany.mockResolvedValue(mockReminders);
-            mockPrismaService.reminder.count.mockResolvedValue(4);
-            const result = await service.findAll();
-            expect(result.data).toHaveLength(4);
+            mockPrismaService.reminder.count.mockResolvedValue(2);
+            const result = await service.findAll(userId, 1, 20, 'pending');
+            expect(result.data).toHaveLength(2);
+            expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(expect.objectContaining({
+                where: { userId, status: 'pending' },
+            }));
         });
         it('应该支持分页参数', async () => {
             mockPrismaService.reminder.findMany.mockResolvedValue([]);
             mockPrismaService.reminder.count.mockResolvedValue(100);
-            const result = await service.findAll(2, 10);
+            const result = await service.findAll(userId, 2, 10);
             expect(result.meta.page).toBe(2);
             expect(result.meta.limit).toBe(10);
             expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -162,7 +207,7 @@ describe('ReminderService', () => {
         it('应该限制最大返回数量', async () => {
             mockPrismaService.reminder.findMany.mockResolvedValue([]);
             mockPrismaService.reminder.count.mockResolvedValue(1000);
-            await service.findAll(1, 200);
+            await service.findAll(userId, 1, 200);
             expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(expect.objectContaining({
                 take: 100,
             }));
@@ -198,23 +243,36 @@ describe('ReminderService', () => {
         });
     });
     describe('边界条件测试', () => {
+        const userId = 'user_123';
         it('应该处理大量提醒数据', async () => {
             const mockReminders = Array(1000).fill(null).map((_, i) => ({
                 id: `reminder_${i}`,
-                userId: `user_${i % 10}`,
+                userId: userId,
                 campId: `camp_${i % 5}`,
                 remindTime: new Date(),
                 status: 'pending',
                 createdAt: new Date(),
+                camp: {
+                    id: `camp_${i % 5}`,
+                    title: `Camp ${i % 5}`,
+                    deadline: new Date(),
+                    university: {
+                        id: `uni_${i % 3}`,
+                        name: `University ${i % 3}`,
+                    },
+                },
             }));
             mockPrismaService.reminder.findMany.mockResolvedValue(mockReminders);
             mockPrismaService.reminder.count.mockResolvedValue(1000);
-            const result = await service.findAll();
+            const result = await service.findAll(userId);
             expect(result.data).toHaveLength(1000);
+            expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(expect.objectContaining({
+                where: { userId },
+            }));
         });
         it('应该正确处理数据库错误', async () => {
             mockPrismaService.reminder.findMany.mockRejectedValue(new Error('Database connection error'));
-            await expect(service.findAll()).rejects.toThrow('Database connection error');
+            await expect(service.findAll(userId)).rejects.toThrow('Database connection error');
         });
         it('创建提醒时应该允许未来的日期', async () => {
             const futureDate = new Date('2027-01-01');
@@ -233,6 +291,20 @@ describe('ReminderService', () => {
             mockPrismaService.reminder.create.mockResolvedValue(mockReminder);
             const result = await service.create(createDto);
             expect(result.remindTime).toEqual(futureDate);
+        });
+        it('应该只返回当前用户的提醒，不返回其他用户的', async () => {
+            const otherUserId = 'user_456';
+            const currentUserReminders = [
+                { id: '1', userId, campId: 'camp_1', status: 'pending' },
+                { id: '2', userId, campId: 'camp_2', status: 'sent' },
+            ];
+            mockPrismaService.reminder.findMany.mockResolvedValue(currentUserReminders);
+            mockPrismaService.reminder.count.mockResolvedValue(2);
+            const result = await service.findAll(userId);
+            expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(expect.objectContaining({
+                where: { userId },
+            }));
+            expect(result.data.every((r) => r.userId === userId)).toBe(true);
         });
     });
 });

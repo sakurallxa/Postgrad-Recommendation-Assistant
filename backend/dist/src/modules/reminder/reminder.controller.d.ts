@@ -2,8 +2,18 @@ import { ReminderService } from './reminder.service';
 export declare class ReminderController {
     private readonly reminderService;
     constructor(reminderService: ReminderService);
-    findAll(page: number, limit: number): Promise<{
-        data: {
+    findAll(userId: string, page: number, limit: number, status?: string): Promise<{
+        data: ({
+            camp: {
+                id: string;
+                title: string;
+                deadline: Date;
+                university: {
+                    id: string;
+                    name: string;
+                };
+            };
+        } & {
             id: string;
             userId: string;
             campId: string;
@@ -14,7 +24,7 @@ export declare class ReminderController {
             errorMsg: string | null;
             createdAt: Date;
             updatedAt: Date;
-        }[];
+        })[];
         meta: {
             page: number;
             limit: number;
