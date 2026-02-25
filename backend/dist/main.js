@@ -6,6 +6,7 @@ const swagger_1 = require("@nestjs/swagger");
 const compression = require("compression");
 const helmet_1 = require("helmet");
 const app_module_1 = require("./app.module");
+const http_exception_filter_1 = require("./common/filters/http-exception.filter");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.use((0, helmet_1.default)());
@@ -14,11 +15,12 @@ async function bootstrap() {
         origin: true,
         credentials: true,
     });
-    app.useGlobalPipe(new common_1.ValidationPipe({
+    app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
         transform: true,
         forbidNonWhitelisted: true,
     }));
+    app.useGlobalFilters(new http_exception_filter_1.HttpExceptionFilter());
     app.setGlobalPrefix('api/v1');
     const config = new swagger_1.DocumentBuilder()
         .setTitle('保研信息助手 API')
