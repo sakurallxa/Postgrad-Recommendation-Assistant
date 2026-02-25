@@ -144,10 +144,13 @@ model Reminder {
   user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   camp CampInfo @relation(fields: [campId], references: [id], onDelete: Cascade)
 
+  // 索引优化
   @@index([userId])
   @@index([campId])
   @@index([status])
   @@index([remindTime])
+  @@index([userId, createdAt]) // 复合索引：优化用户提醒列表查询
+  @@index([userId, status])    // 复合索引：优化用户按状态筛选查询
   @@map("reminders")
 }
 
