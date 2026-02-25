@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './modules/prisma/prisma.module';
@@ -7,6 +7,9 @@ import { UniversityModule } from './modules/university/university.module';
 import { CampModule } from './modules/camp/camp.module';
 import { ReminderModule } from './modules/reminder/reminder.module';
 import { CrawlerModule } from './modules/crawler/crawler.module';
+import { UserModule } from './modules/user/user.module';
+import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 @Module({
   imports: [
@@ -28,6 +31,13 @@ import { CrawlerModule } from './modules/crawler/crawler.module';
     CampModule,
     ReminderModule,
     CrawlerModule,
+    UserModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware, RateLimitMiddleware)
+      .forRoutes('*');
+  }
+}
