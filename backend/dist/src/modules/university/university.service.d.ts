@@ -1,8 +1,10 @@
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../../common/services/redis.service';
 import { QueryUniversityDto } from './dto/query-university.dto';
 export declare class UniversityService {
     private readonly prisma;
-    constructor(prisma: PrismaService);
+    private readonly redisService;
+    constructor(prisma: PrismaService, redisService: RedisService);
     findAll(query: QueryUniversityDto): Promise<{
         data: {
             majorCount: number;
