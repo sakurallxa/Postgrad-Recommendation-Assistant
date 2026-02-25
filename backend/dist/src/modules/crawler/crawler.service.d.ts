@@ -10,9 +10,11 @@ export declare class CrawlerService {
     trigger(universityId?: string, priority?: string): Promise<{
         message: string;
         taskId: string;
+        logId: string;
         status: string;
     }>;
     private executeCrawler;
+    private scheduleTaskCleanup;
     private runScrapyCommand;
     private parseCrawlerOutput;
     getLogs(): Promise<{

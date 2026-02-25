@@ -22,10 +22,7 @@ export class CampController {
   @ApiOperation({ summary: '获取夏令营详情', description: '获取夏令营详细信息，包含关联院校和专业' })
   @ApiParam({ name: 'id', description: '夏令营ID', type: 'string' })
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    const camp = await this.campService.findOne(id);
-    if (!camp) {
-      throw new NotFoundException('夏令营不存在');
-    }
-    return camp;
+    // Service层已处理NotFoundException，直接返回结果
+    return this.campService.findOne(id);
   }
 }

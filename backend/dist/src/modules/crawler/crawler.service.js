@@ -31,24 +31,26 @@ let CrawlerService = CrawlerService_1 = class CrawlerService {
             throw new common_1.BadRequestException('已有爬虫任务正在运行，请等待完成后再触发');
         }
         const taskId = this.generateTaskId();
-        const task = {
-            id: taskId,
-            status: 'pending',
-            universityId,
-            priority,
-        };
-        this.activeTasks.set(taskId, task);
-        this.executeCrawler(task);
-        await this.prisma.crawlerLog.create({
+        const log = await this.prisma.crawlerLog.create({
             data: {
                 universityId: universityId || 'all',
                 status: 'running',
                 startTime: new Date(),
             },
         });
+        const task = {
+            id: taskId,
+            logId: log.id,
+            status: 'pending',
+            universityId,
+            priority,
+        };
+        this.activeTasks.set(taskId, task);
+        this.executeCrawler(task);
         return {
             message: '爬虫任务已触发',
             taskId,
+            logId: log.id,
             status: 'running',
         };
     }
@@ -68,11 +70,8 @@ let CrawlerService = CrawlerService_1 = class CrawlerService {
             task.status = 'completed';
             task.endTime = new Date();
             task.result = result;
-            await this.prisma.crawlerLog.updateMany({
-                where: {
-                    universityId: task.universityId || 'all',
-                    status: 'running',
-                },
+            await this.prisma.crawlerLog.update({
+                where: { id: task.logId },
                 data: {
                     status: 'success',
                     endTime: new Date(),
@@ -80,16 +79,14 @@ let CrawlerService = CrawlerService_1 = class CrawlerService {
                 },
             });
             this.logger.log(`爬虫任务完成: ${task.id}`);
+            this.scheduleTaskCleanup(task.id);
         }
         catch (error) {
             task.status = 'failed';
             task.endTime = new Date();
             task.error = error.message;
-            await this.prisma.crawlerLog.updateMany({
-                where: {
-                    universityId: task.universityId || 'all',
-                    status: 'running',
-                },
+            await this.prisma.crawlerLog.update({
+                where: { id: task.logId },
                 data: {
                     status: 'failed',
                     endTime: new Date(),
@@ -97,7 +94,14 @@ let CrawlerService = CrawlerService_1 = class CrawlerService {
                 },
             });
             this.logger.error(`爬虫任务失败: ${task.id}`, error.message);
+            this.scheduleTaskCleanup(task.id);
         }
+    }
+    scheduleTaskCleanup(taskId) {
+        setTimeout(() => {
+            this.activeTasks.delete(taskId);
+            this.logger.debug(`已清理完成任务: ${taskId}`);
+        }, 60 * 60 * 1000);
     }
     runScrapyCommand(args) {
         return new Promise((resolve, reject) => {
@@ -133,10 +137,19 @@ let CrawlerService = CrawlerService_1 = class CrawlerService {
             child.on('error', (error) => {
                 reject(new Error(`启动爬虫失败: ${error.message}`));
             });
-            setTimeout(() => {
+            const timeoutHandle = setTimeout(() => {
+                this.logger.warn(`爬虫任务超时，尝试终止进程: ${child.pid}`);
                 child.kill('SIGTERM');
-                reject(new Error('爬虫任务超时'));
+                setTimeout(() => {
+                    if (!child.killed) {
+                        this.logger.error(`爬虫进程未响应SIGTERM，强制终止: ${child.pid}`);
+                        child.kill('SIGKILL');
+                    }
+                }, 5000);
             }, 30 * 60 * 1000);
+            child.on('close', () => {
+                clearTimeout(timeoutHandle);
+            });
         });
     }
     parseCrawlerOutput(output) {

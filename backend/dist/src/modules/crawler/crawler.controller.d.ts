@@ -5,6 +5,7 @@ export declare class CrawlerController {
     trigger(universityId?: string, priority?: string): Promise<{
         message: string;
         taskId: string;
+        logId: string;
         status: string;
     }>;
     getLogs(): Promise<{

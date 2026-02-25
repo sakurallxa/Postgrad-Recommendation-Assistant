@@ -6,6 +6,7 @@ import * as path from 'path';
 
 interface CrawlerTask {
   id: string;
+  logId: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
   universityId?: string;
   priority?: string;
@@ -48,10 +49,20 @@ export class CrawlerService {
     }
 
     const taskId = this.generateTaskId();
-    
+
+    // 先创建数据库记录，获取logId
+    const log = await this.prisma.crawlerLog.create({
+      data: {
+        universityId: universityId || 'all',
+        status: 'running',
+        startTime: new Date(),
+      },
+    });
+
     // 创建任务记录
     const task: CrawlerTask = {
       id: taskId,
+      logId: log.id,
       status: 'pending',
       universityId,
       priority,
@@ -61,18 +72,10 @@ export class CrawlerService {
     // 异步执行爬虫
     this.executeCrawler(task);
 
-    // 记录到数据库
-    await this.prisma.crawlerLog.create({
-      data: {
-        universityId: universityId || 'all',
-        status: 'running',
-        startTime: new Date(),
-      },
-    });
-
     return {
       message: '爬虫任务已触发',
       taskId,
+      logId: log.id,
       status: 'running',
     };
   }
@@ -102,12 +105,9 @@ export class CrawlerService {
       task.endTime = new Date();
       task.result = result;
 
-      // 更新数据库记录
-      await this.prisma.crawlerLog.updateMany({
-        where: { 
-          universityId: task.universityId || 'all',
-          status: 'running',
-        },
+      // 使用logId精确更新数据库记录
+      await this.prisma.crawlerLog.update({
+        where: { id: task.logId },
         data: {
           status: 'success',
           endTime: new Date(),
@@ -116,17 +116,17 @@ export class CrawlerService {
       });
 
       this.logger.log(`爬虫任务完成: ${task.id}`);
+      
+      // 清理已完成的任务（1小时后）
+      this.scheduleTaskCleanup(task.id);
     } catch (error) {
       task.status = 'failed';
       task.endTime = new Date();
       task.error = error.message;
 
-      // 更新数据库记录
-      await this.prisma.crawlerLog.updateMany({
-        where: { 
-          universityId: task.universityId || 'all',
-          status: 'running',
-        },
+      // 使用logId精确更新数据库记录
+      await this.prisma.crawlerLog.update({
+        where: { id: task.logId },
         data: {
           status: 'failed',
           endTime: new Date(),
@@ -135,7 +135,20 @@ export class CrawlerService {
       });
 
       this.logger.error(`爬虫任务失败: ${task.id}`, error.message);
+      
+      // 清理已完成的任务（1小时后）
+      this.scheduleTaskCleanup(task.id);
     }
+  }
+
+  /**
+   * 定时清理已完成的任务，防止内存泄漏
+   */
+  private scheduleTaskCleanup(taskId: string): void {
+    setTimeout(() => {
+      this.activeTasks.delete(taskId);
+      this.logger.debug(`已清理完成任务: ${taskId}`);
+    }, 60 * 60 * 1000); // 1小时后清理
   }
 
   /**
@@ -183,11 +196,24 @@ export class CrawlerService {
         reject(new Error(`启动爬虫失败: ${error.message}`));
       });
 
-      // 设置超时
-      setTimeout(() => {
+      // 设置超时 - 先发送SIGTERM，5秒后如果仍在运行则强制终止
+      const timeoutHandle = setTimeout(() => {
+        this.logger.warn(`爬虫任务超时，尝试终止进程: ${child.pid}`);
         child.kill('SIGTERM');
-        reject(new Error('爬虫任务超时'));
+        
+        // 5秒后强制终止
+        setTimeout(() => {
+          if (!child.killed) {
+            this.logger.error(`爬虫进程未响应SIGTERM，强制终止: ${child.pid}`);
+            child.kill('SIGKILL');
+          }
+        }, 5000);
       }, 30 * 60 * 1000); // 30分钟超时
+      
+      // 清理超时定时器
+      child.on('close', () => {
+        clearTimeout(timeoutHandle);
+      });
     });
   }
 

@@ -24,11 +24,7 @@ let CampController = class CampController {
         return this.campService.findAll({ page, limit, universityId, majorId });
     }
     async findOne(id) {
-        const camp = await this.campService.findOne(id);
-        if (!camp) {
-            throw new common_1.NotFoundException('夏令营不存在');
-        }
-        return camp;
+        return this.campService.findOne(id);
     }
 };
 exports.CampController = CampController;
