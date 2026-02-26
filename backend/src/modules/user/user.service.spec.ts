@@ -45,9 +45,10 @@ describe('UserService', () => {
   describe('获取用户信息', () => {
     it('TC-USER-001: 获取用户信息 - 成功场景', async () => {
       const userId = 'user_123';
+      // mock数据模拟Prisma返回（不包含openid，因为select中已排除）
       const mockUser = {
         id: userId,
-        openid: 'openid_123',
+        // openid已从select中排除
         createdAt: new Date('2026-01-01'),
         selection: {
           universityIds: '["uni_1", "uni_2"]',
@@ -61,7 +62,6 @@ describe('UserService', () => {
 
       expect(result).toEqual({
         id: userId,
-        openid: 'openid_123',
         createdAt: mockUser.createdAt,
         selection: {
           universityIds: '["uni_1", "uni_2"]',
@@ -72,7 +72,7 @@ describe('UserService', () => {
         where: { id: userId },
         select: {
           id: true,
-          openid: true,
+          // openid: true, // 隐私字段不返回
           createdAt: true,
           selection: {
             select: {
@@ -94,9 +94,10 @@ describe('UserService', () => {
 
     it('TC-USER-003: 获取用户信息 - 用户无选择数据', async () => {
       const userId = 'user_no_selection';
+      // mock数据模拟Prisma返回（不包含openid，因为select中已排除）
       const mockUser = {
         id: userId,
-        openid: 'openid_123',
+        // openid已从select中排除
         createdAt: new Date('2026-01-01'),
         selection: null,
       };

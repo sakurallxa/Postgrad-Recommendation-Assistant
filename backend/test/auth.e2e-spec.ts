@@ -40,7 +40,8 @@ describe('AuthModule (integration)', () => {
     expect(result.user).toBeDefined();
     expect(result.accessToken).toBeDefined();
     expect(result.refreshToken).toBeDefined();
-    expect(result.user.openid).toBe('mock_openid_new_user_code');
+    // openid不再返回给客户端
+    expect(result.user.id).toBeDefined();
   });
 
   it('微信登录 - 已存在用户返回同一用户', async () => {
@@ -51,7 +52,7 @@ describe('AuthModule (integration)', () => {
     const result = await authService.wxLogin(code);
 
     expect(result.user.id).toBe(existing.id);
-    expect(result.user.openid).toBe(openid);
+    // openid不再返回给客户端
   });
 
   it('微信登录 - 缺少 code 抛出 401', async () => {

@@ -72,12 +72,21 @@ export class ReminderService {
    * @returns 创建的提醒
    */
   async create(userId: string, dto: CreateReminderDto) {
-    return this.prisma.reminder.create({
-      data: {
-        ...dto,
-        userId, // 强制使用当前登录用户的ID
-      },
-    });
+    // 使用unchecked create避免Prisma关系类型检查问题
+    const data: any = {
+      userId,
+      campId: dto.campId,
+    };
+    
+    if (dto.remindTime) {
+      data.remindTime = new Date(dto.remindTime);
+    }
+    
+    if (dto.content) {
+      data.content = dto.content;
+    }
+    
+    return this.prisma.reminder.create({ data });
   }
 
   /**

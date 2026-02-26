@@ -82,10 +82,9 @@ describe('ReminderModule (integration)', () => {
   });
 
   it('创建提醒 - 成功', async () => {
-    const result = await reminderService.create({
-      userId,
+    const result = await reminderService.create(userId, {
       campId,
-      remindTime: new Date('2026-06-25T00:00:00.000Z'),
+      remindTime: '2026-06-25T00:00:00.000Z',
     });
 
     expect(result.id).toBeDefined();
@@ -120,7 +119,7 @@ describe('ReminderModule (integration)', () => {
       },
     });
 
-    await reminderService.remove(reminder.id);
+    await reminderService.remove(userId, reminder.id);
 
     const deletedReminder = await prisma.reminder.findUnique({ where: { id: reminder.id } });
     expect(deletedReminder).toBeNull();

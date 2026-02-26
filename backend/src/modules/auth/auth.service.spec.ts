@@ -97,7 +97,7 @@ describe('AuthService', () => {
 
       // 验证结果
       expect(result).toHaveProperty('user');
-      expect(result.user).toEqual({ id: mockUser.id, openid: mockUser.openid });
+      expect(result.user).toEqual({ id: mockUser.id /* openid不返回 */ });
       expect(result).toHaveProperty('accessToken', mockTokens.accessToken);
       expect(result).toHaveProperty('refreshToken', mockTokens.refreshToken);
       expect(result).toHaveProperty('expiresIn');
@@ -133,7 +133,7 @@ describe('AuthService', () => {
 
       const result = await service.wxLogin(code);
 
-      expect(result.user).toEqual({ id: mockUser.id, openid: mockUser.openid });
+      expect(result.user).toEqual({ id: mockUser.id /* openid不返回 */ });
       expect(mockPrismaService.user.create).not.toHaveBeenCalled();
     });
 

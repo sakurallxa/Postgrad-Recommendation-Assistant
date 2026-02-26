@@ -6,6 +6,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReminderService } from './reminder.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 
 describe('ReminderService', () => {
   let service: ReminderService;
@@ -14,6 +15,7 @@ describe('ReminderService', () => {
   const mockPrismaService = {
     reminder: {
       findMany: jest.fn(),
+      findUnique: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
       count: jest.fn(),
@@ -35,16 +37,21 @@ describe('ReminderService', () => {
   });
 
   describe('创建提醒', () => {
+    const userId = 'user_123';
+
     it('TC-REM-001: 创建提醒 - 成功场景', async () => {
       const createDto = {
-        userId: 'user_123',
         campId: 'camp_456',
-        remindTime: new Date('2026-06-25'),
+        remindTime: '2026-06-25T09:00:00Z',
+        content: '测试提醒',
       };
 
       const mockReminder = {
         id: 'reminder_789',
-        ...createDto,
+        userId,
+        campId: createDto.campId,
+        remindTime: new Date(createDto.remindTime),
+        content: createDto.content,
         status: 'pending',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -52,53 +59,58 @@ describe('ReminderService', () => {
 
       mockPrismaService.reminder.create.mockResolvedValue(mockReminder);
 
-      const result = await service.create(createDto);
+      const result = await service.create(userId, createDto);
 
       expect(result).toEqual(mockReminder);
       expect(mockPrismaService.reminder.create).toHaveBeenCalledWith({
-        data: createDto,
+        data: {
+          campId: createDto.campId,
+          content: createDto.content,
+          remindTime: new Date(createDto.remindTime),
+          userId,
+        },
       });
     });
 
     it('TC-REM-002: 创建提醒 - 无效用户ID', async () => {
       const createDto = {
-        userId: 'invalid_user_id',
         campId: 'camp_456',
-        remindTime: new Date('2026-06-25'),
+        remindTime: '2026-06-25T09:00:00Z',
       };
 
       const prismaError = new Error('Foreign key constraint failed');
       (prismaError as any).code = 'P2003';
       mockPrismaService.reminder.create.mockRejectedValue(prismaError);
 
-      await expect(service.create(createDto)).rejects.toThrow();
+      await expect(service.create('invalid_user_id', createDto)).rejects.toThrow();
     });
 
     it('TC-REM-003: 创建提醒 - 无效夏令营ID', async () => {
       const createDto = {
-        userId: 'user_123',
         campId: 'invalid_camp_id',
-        remindTime: new Date('2026-06-25'),
+        remindTime: '2026-06-25T09:00:00Z',
       };
 
       const prismaError = new Error('Foreign key constraint failed');
       (prismaError as any).code = 'P2003';
       mockPrismaService.reminder.create.mockRejectedValue(prismaError);
 
-      await expect(service.create(createDto)).rejects.toThrow();
+      await expect(service.create(userId, createDto)).rejects.toThrow();
     });
 
     it('应该正确处理包含所有字段的DTO', async () => {
       const createDto = {
-        userId: 'user_123',
         campId: 'camp_456',
-        remindTime: new Date('2026-06-25'),
-        templateId: 'template_001',
+        remindTime: '2026-06-25T09:00:00Z',
+        content: '测试提醒内容',
       };
 
       const mockReminder = {
         id: 'reminder_789',
-        ...createDto,
+        userId,
+        campId: createDto.campId,
+        remindTime: new Date(createDto.remindTime),
+        content: createDto.content,
         status: 'pending',
         sentAt: null,
         errorMsg: null,
@@ -108,11 +120,47 @@ describe('ReminderService', () => {
 
       mockPrismaService.reminder.create.mockResolvedValue(mockReminder);
 
-      const result = await service.create(createDto);
+      const result = await service.create(userId, createDto);
 
       expect(result).toEqual(mockReminder);
       expect(mockPrismaService.reminder.create).toHaveBeenCalledWith({
-        data: createDto,
+        data: {
+          campId: createDto.campId,
+          content: createDto.content,
+          remindTime: new Date(createDto.remindTime),
+          userId,
+        },
+      });
+    });
+
+    it('安全测试: 用户A不能创建用户B的提醒', async () => {
+      const userA = 'user_a';
+      const createDto = {
+        campId: 'camp_456',
+        remindTime: '2026-06-25T09:00:00Z',
+      };
+
+      const mockReminder = {
+        id: 'reminder_789',
+        userId: userA,
+        campId: createDto.campId,
+        remindTime: new Date(createDto.remindTime),
+        status: 'pending',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.reminder.create.mockResolvedValue(mockReminder);
+
+      const result = await service.create(userA, createDto);
+      expect(result.userId).toBe(userA);
+      
+      expect(mockPrismaService.reminder.create).toHaveBeenCalledWith({
+        data: {
+          campId: createDto.campId,
+          remindTime: new Date(createDto.remindTime),
+          userId: userA,
+        },
       });
     });
   });
@@ -126,7 +174,7 @@ describe('ReminderService', () => {
           id: 'reminder_1',
           userId: userId,
           campId: 'camp_456',
-          remindTime: new Date('2026-06-25'),
+          remindTime: new Date('2026-06-25T09:00:00Z'),
           status: 'pending',
           createdAt: new Date('2026-01-01'),
           camp: {
@@ -143,7 +191,7 @@ describe('ReminderService', () => {
           id: 'reminder_2',
           userId: userId,
           campId: 'camp_789',
-          remindTime: new Date('2026-07-01'),
+          remindTime: new Date('2026-07-01T09:00:00Z'),
           status: 'sent',
           sentAt: new Date(),
           createdAt: new Date('2026-01-02'),
@@ -168,7 +216,6 @@ describe('ReminderService', () => {
       expect(result.meta).toBeDefined();
       expect(result.meta.page).toBe(1);
       expect(result.meta.total).toBe(2);
-      // 验证查询条件包含userId
       expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { userId },
@@ -276,20 +323,26 @@ describe('ReminderService', () => {
   });
 
   describe('删除提醒', () => {
+    const userId = 'user_123';
+
     it('TC-REM-005: 删除提醒 - 成功场景', async () => {
       const reminderId = 'reminder_123';
-      const mockDeletedReminder = {
+      const mockReminder = {
         id: reminderId,
-        userId: 'user_123',
+        userId: userId,
         campId: 'camp_456',
         status: 'pending',
       };
 
-      mockPrismaService.reminder.delete.mockResolvedValue(mockDeletedReminder);
+      mockPrismaService.reminder.findUnique.mockResolvedValue(mockReminder);
+      mockPrismaService.reminder.delete.mockResolvedValue(mockReminder);
 
-      const result = await service.remove(reminderId);
+      const result = await service.remove(userId, reminderId);
 
-      expect(result).toEqual(mockDeletedReminder);
+      expect(result).toEqual(mockReminder);
+      expect(mockPrismaService.reminder.findUnique).toHaveBeenCalledWith({
+        where: { id: reminderId },
+      });
       expect(mockPrismaService.reminder.delete).toHaveBeenCalledWith({
         where: { id: reminderId },
       });
@@ -298,19 +351,36 @@ describe('ReminderService', () => {
     it('TC-REM-006: 删除提醒 - 无效ID', async () => {
       const invalidId = 'invalid_reminder_id';
 
-      const prismaError = new Error('Record not found');
-      (prismaError as any).code = 'P2025';
-      mockPrismaService.reminder.delete.mockRejectedValue(prismaError);
+      mockPrismaService.reminder.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove(invalidId)).rejects.toThrow();
+      await expect(service.remove(userId, invalidId)).rejects.toThrow(NotFoundException);
+    });
+
+    it('安全测试: 用户A不能删除用户B的提醒', async () => {
+      const userA = 'user_a';
+      const userB = 'user_b';
+      const reminderId = 'reminder_123';
+
+      const mockReminder = {
+        id: reminderId,
+        userId: userB,
+        campId: 'camp_456',
+        status: 'pending',
+      };
+
+      mockPrismaService.reminder.findUnique.mockResolvedValue(mockReminder);
+
+      await expect(service.remove(userA, reminderId)).rejects.toThrow(ForbiddenException);
+      
+      expect(mockPrismaService.reminder.delete).not.toHaveBeenCalled();
     });
 
     it('应该正确处理空ID', async () => {
       const emptyId = '';
 
-      mockPrismaService.reminder.delete.mockRejectedValue(new Error('Invalid ID'));
+      mockPrismaService.reminder.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove(emptyId)).rejects.toThrow();
+      await expect(service.remove(userId, emptyId)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -322,7 +392,7 @@ describe('ReminderService', () => {
         id: `reminder_${i}`,
         userId: userId,
         campId: `camp_${i % 5}`,
-        remindTime: new Date(),
+        remindTime: new Date('2026-06-25T09:00:00Z'),
         status: 'pending',
         createdAt: new Date(),
         camp: {
@@ -342,7 +412,6 @@ describe('ReminderService', () => {
       const result = await service.findAll(userId);
 
       expect(result.data).toHaveLength(1000);
-      // 验证只查询当前用户的提醒
       expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { userId },
@@ -357,16 +426,17 @@ describe('ReminderService', () => {
     });
 
     it('创建提醒时应该允许未来的日期', async () => {
-      const futureDate = new Date('2027-01-01');
+      const futureDate = '2027-01-01T09:00:00Z';
       const createDto = {
-        userId: 'user_123',
         campId: 'camp_456',
         remindTime: futureDate,
       };
 
       const mockReminder = {
         id: 'reminder_789',
-        ...createDto,
+        userId,
+        campId: createDto.campId,
+        remindTime: new Date(futureDate),
         status: 'pending',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -374,9 +444,9 @@ describe('ReminderService', () => {
 
       mockPrismaService.reminder.create.mockResolvedValue(mockReminder);
 
-      const result = await service.create(createDto);
+      const result = await service.create(userId, createDto);
 
-      expect(result.remindTime).toEqual(futureDate);
+      expect(result.remindTime).toEqual(new Date(futureDate));
     });
 
     it('应该只返回当前用户的提醒，不返回其他用户的', async () => {
@@ -391,7 +461,6 @@ describe('ReminderService', () => {
 
       const result = await service.findAll(userId);
 
-      // 验证查询条件
       expect(mockPrismaService.reminder.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { userId },
