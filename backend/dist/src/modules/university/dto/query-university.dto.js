@@ -9,9 +9,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QueryUniversityDto = void 0;
+exports.QueryUniversityDto = exports.ALLOWED_SORT_FIELDS = void 0;
 const class_validator_1 = require("class-validator");
 const swagger_1 = require("@nestjs/swagger");
+exports.ALLOWED_SORT_FIELDS = ['name', 'priority', 'createdAt', 'updatedAt'];
 class QueryUniversityDto {
     constructor() {
         this.page = 1;
@@ -55,15 +56,15 @@ __decorate([
     __metadata("design:type", String)
 ], QueryUniversityDto.prototype, "keyword", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: '排序字段', required: false, default: 'priority' }),
+    (0, swagger_1.ApiProperty)({ description: '排序字段', required: false, default: 'priority', enum: exports.ALLOWED_SORT_FIELDS }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsIn)(exports.ALLOWED_SORT_FIELDS),
     __metadata("design:type", String)
 ], QueryUniversityDto.prototype, "sortBy", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: '排序方向', required: false, default: 'asc' }),
+    (0, swagger_1.ApiProperty)({ description: '排序方向', required: false, default: 'asc', enum: ['asc', 'desc'] }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsIn)(['asc', 'desc']),
     __metadata("design:type", String)
 ], QueryUniversityDto.prototype, "sortOrder", void 0);
 //# sourceMappingURL=query-university.dto.js.map

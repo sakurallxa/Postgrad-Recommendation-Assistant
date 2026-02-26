@@ -51,7 +51,6 @@ let AuthService = AuthService_1 = class AuthService {
             return {
                 user: {
                     id: user.id,
-                    openid: user.openid,
                 },
                 ...tokens,
             };
@@ -91,8 +90,18 @@ let AuthService = AuthService_1 = class AuthService {
     async callWxLoginApi(code) {
         const appid = this.configService.get('WECHAT_APPID');
         const secret = this.configService.get('WECHAT_SECRET');
+        const allowMock = this.configService.get('ALLOW_MOCK_WECHAT_LOGIN') === 'true';
+        const isProduction = this.configService.get('NODE_ENV') === 'production';
         if (!appid || appid === 'wx_appid_placeholder') {
-            this.logger.warn('微信AppID未配置，使用模拟数据');
+            if (isProduction) {
+                this.logger.error('生产环境微信AppID未配置，拒绝登录');
+                throw new common_1.UnauthorizedException('登录服务配置错误');
+            }
+            if (!allowMock) {
+                this.logger.error('微信AppID未配置且未开启mock模式，拒绝登录');
+                throw new common_1.UnauthorizedException('登录服务配置错误');
+            }
+            this.logger.warn('微信AppID未配置，使用模拟数据（仅开发环境）');
             return {
                 openid: `mock_openid_${code}`,
                 session_key: 'mock_session_key',

@@ -35,7 +35,7 @@ exports.AppModule = AppModule = __decorate([
                 isGlobal: true,
                 envFilePath: '.env',
             }),
-            schedule_1.ScheduleModule.forRoot(),
+            ...(process.env.NODE_ENV === 'test' ? [] : [schedule_1.ScheduleModule.forRoot()]),
             prisma_module_1.PrismaModule,
             common_module_1.CommonModule,
             auth_module_1.AuthModule,

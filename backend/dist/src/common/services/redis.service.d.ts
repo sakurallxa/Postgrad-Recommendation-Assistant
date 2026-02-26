@@ -4,6 +4,7 @@ export declare class RedisService implements OnModuleInit, OnModuleDestroy {
     private readonly configService;
     private readonly logger;
     private client;
+    private enabled;
     constructor(configService: ConfigService);
     onModuleInit(): Promise<void>;
     onModuleDestroy(): Promise<void>;

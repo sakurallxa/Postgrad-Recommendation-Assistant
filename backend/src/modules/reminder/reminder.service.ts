@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateReminderDto } from './dto/create-reminder.dto';
 
 @Injectable()
 export class ReminderService {
@@ -64,13 +65,44 @@ export class ReminderService {
     };
   }
 
-  async create(dto: any) {
+  /**
+   * 创建提醒
+   * @param userId 当前登录用户ID（从JWT获取）
+   * @param dto 创建提醒DTO
+   * @returns 创建的提醒
+   */
+  async create(userId: string, dto: CreateReminderDto) {
     return this.prisma.reminder.create({
-      data: dto,
+      data: {
+        ...dto,
+        userId, // 强制使用当前登录用户的ID
+      },
     });
   }
 
-  async remove(id: string) {
+  /**
+   * 删除提醒
+   * @param userId 当前登录用户ID
+   * @param id 提醒ID
+   * @returns 删除的提醒
+   * @throws NotFoundException 提醒不存在
+   * @throws ForbiddenException 用户无权删除此提醒
+   */
+  async remove(userId: string, id: string) {
+    // 先查询提醒，验证归属权
+    const reminder = await this.prisma.reminder.findUnique({
+      where: { id },
+    });
+
+    if (!reminder) {
+      throw new NotFoundException('提醒不存在');
+    }
+
+    // 验证当前用户是否有权删除此提醒
+    if (reminder.userId !== userId) {
+      throw new ForbiddenException('无权删除此提醒');
+    }
+
     return this.prisma.reminder.delete({
       where: { id },
     });

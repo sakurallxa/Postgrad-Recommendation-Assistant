@@ -13,10 +13,31 @@ async function bootstrap() {
   app.use(helmet());
   app.use(compression());
 
-  // CORS配置
+  // CORS配置 - 使用白名单
+  const isProduction = process.env.NODE_ENV === 'production';
+  const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+    ? process.env.CORS_ALLOWED_ORIGINS.split(',')
+    : isProduction
+      ? [] // 生产环境必须配置白名单
+      : ['http://localhost:3000', 'http://localhost:8080']; // 开发环境默认值
+
   app.enableCors({
-    origin: true,
+    origin: (origin, callback) => {
+      // 允许无origin的请求（如移动端APP、curl等）
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      // 检查是否在白名单中
+      if (allowedOrigins.includes(origin) || allowedOrigins.length === 0 && !isProduction) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS策略拒绝访问: ${origin}`), false);
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   });
 
   // 全局验证管道

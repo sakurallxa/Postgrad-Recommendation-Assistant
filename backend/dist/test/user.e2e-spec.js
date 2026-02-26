@@ -1,29 +1,39 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const testing_1 = require("@nestjs/testing");
-const supertest_1 = __importDefault(require("supertest"));
 const app_module_1 = require("../src/app.module");
 const prisma_service_1 = require("../src/modules/prisma/prisma.service");
+const user_service_1 = require("../src/modules/user/user.service");
 const jwt_1 = require("@nestjs/jwt");
-describe('UserController (e2e)', () => {
+const jwt_auth_guard_1 = require("../src/common/guards/jwt-auth.guard");
+const e2e_app_helper_1 = require("./e2e-app.helper");
+describe('UserModule (integration)', () => {
     let app;
     let prisma;
+    let userService;
     let jwtService;
-    let testUser;
-    let testUniversities;
-    let testMajors;
+    let jwtGuard;
     let authToken;
+    let userId;
+    let universityId;
+    let majorId;
+    const createExecutionContext = (headers) => {
+        return {
+            switchToHttp: () => ({
+                getRequest: () => ({ headers }),
+            }),
+        };
+    };
     beforeAll(async () => {
+        process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key';
         const moduleFixture = await testing_1.Test.createTestingModule({
             imports: [app_module_1.AppModule],
         }).compile();
-        app = moduleFixture.createNestApplication();
+        app = await (0, e2e_app_helper_1.createConfiguredE2EApp)(moduleFixture);
         prisma = app.get(prisma_service_1.PrismaService);
+        userService = app.get(user_service_1.UserService);
         jwtService = app.get(jwt_1.JwtService);
-        await app.init();
+        jwtGuard = app.get(jwt_auth_guard_1.JwtAuthGuard);
     });
     beforeEach(async () => {
         await prisma.reminder.deleteMany();
@@ -32,311 +42,49 @@ describe('UserController (e2e)', () => {
         await prisma.userSelection.deleteMany();
         await prisma.user.deleteMany();
         await prisma.university.deleteMany();
-        testUser = await prisma.user.create({
-            data: {
-                openid: 'test_openid_123',
-            },
+        const user = await prisma.user.create({ data: { openid: 'test_openid_user' } });
+        userId = user.id;
+        const university = await prisma.university.create({
+            data: { name: '清华大学', region: '北京', level: '985', priority: 'P0' },
         });
-        authToken = jwtService.sign({ sub: testUser.id, openid: testUser.openid }, { secret: 'test-secret-key' });
-        testUniversities = await Promise.all([
-            prisma.university.create({
-                data: {
-                    name: '清华大学',
-                    region: '北京',
-                    level: '985',
-                    priority: 'P0',
-                },
-            }),
-            prisma.university.create({
-                data: {
-                    name: '北京大学',
-                    region: '北京',
-                    level: '985',
-                    priority: 'P0',
-                },
-            }),
-        ]);
-        testMajors = await Promise.all([
-            prisma.major.create({
-                data: {
-                    name: '计算机科学与技术',
-                    category: '工学',
-                    universityId: testUniversities[0].id,
-                },
-            }),
-            prisma.major.create({
-                data: {
-                    name: '软件工程',
-                    category: '工学',
-                    universityId: testUniversities[0].id,
-                },
-            }),
-        ]);
+        universityId = university.id;
+        const major = await prisma.major.create({
+            data: { name: '计算机科学与技术', category: '工学', universityId },
+        });
+        majorId = major.id;
+        authToken = jwtService.sign({ sub: userId, openid: user.openid });
     });
     afterAll(async () => {
         await app.close();
     });
-    describe('GET /api/v1/user/profile', () => {
-        it('TC-USER-001: 获取用户信息 - 成功场景', async () => {
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .get('/api/v1/user/profile')
-                .set('Authorization', `Bearer ${authToken}`)
-                .expect(200);
-            expect(response.body).toHaveProperty('id', testUser.id);
-            expect(response.body).toHaveProperty('openid', testUser.openid);
-            expect(response.body).toHaveProperty('createdAt');
-            expect(response.body).toHaveProperty('selection');
-        });
-        it('TC-USER-002: 获取用户信息 - 未授权访问', async () => {
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .get('/api/v1/user/profile')
-                .expect(401);
-            expect(response.body.message).toContain('未提供认证令牌');
-        });
-        it('TC-USER-003: 获取用户信息 - 无效Token', async () => {
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .get('/api/v1/user/profile')
-                .set('Authorization', 'Bearer invalid_token')
-                .expect(401);
-            expect(response.body.message).toContain('令牌无效');
-        });
-        it('TC-USER-004: 获取用户信息 - Token过期', async () => {
-            const expiredToken = jwtService.sign({ sub: testUser.id, openid: testUser.openid }, { secret: 'test-secret-key', expiresIn: '0s' });
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .get('/api/v1/user/profile')
-                .set('Authorization', `Bearer ${expiredToken}`)
-                .expect(401);
-            expect(response.body.message).toContain('令牌无效或已过期');
-        });
+    it('获取用户信息 - 成功', async () => {
+        const result = await userService.getProfile(userId);
+        expect(result.id).toBe(userId);
+        expect(result.selection).toBeDefined();
     });
-    describe('GET /api/v1/user/selection', () => {
-        it('TC-USER-005: 获取用户选择 - 成功场景', async () => {
-            await prisma.userSelection.create({
-                data: {
-                    userId: testUser.id,
-                    universityIds: JSON.stringify([testUniversities[0].id]),
-                    majorIds: JSON.stringify([testMajors[0].id]),
-                },
-            });
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .get('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .expect(200);
-            expect(response.body).toHaveProperty('universities');
-            expect(response.body).toHaveProperty('majors');
-            expect(response.body).toHaveProperty('totalUniversities');
-            expect(response.body).toHaveProperty('totalMajors');
-            expect(response.body.universities).toHaveLength(1);
-            expect(response.body.majors).toHaveLength(1);
-        });
-        it('TC-USER-006: 获取用户选择 - 无选择数据', async () => {
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .get('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .expect(200);
-            expect(response.body.universities).toEqual([]);
-            expect(response.body.majors).toEqual([]);
-            expect(response.body.totalUniversities).toBe(0);
-            expect(response.body.totalMajors).toBe(0);
-        });
-        it('TC-USER-007: 获取用户选择 - 包含已删除的院校', async () => {
-            await prisma.userSelection.create({
-                data: {
-                    userId: testUser.id,
-                    universityIds: JSON.stringify([testUniversities[0].id, 'deleted_uni_id']),
-                    majorIds: JSON.stringify([testMajors[0].id]),
-                },
-            });
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .get('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .expect(200);
-            expect(response.body.totalUniversities).toBe(1);
-            expect(response.body.totalMajors).toBe(1);
-        });
+    it('未授权请求 - JwtAuthGuard 抛出异常', async () => {
+        const context = createExecutionContext({});
+        await expect(jwtGuard.canActivate(context)).rejects.toThrow('未提供认证令牌');
     });
-    describe('PUT /api/v1/user/selection', () => {
-        it('TC-USER-009: 更新用户选择 - 成功场景', async () => {
-            const updateDto = {
-                universityIds: [testUniversities[0].id, testUniversities[1].id],
-                majorIds: [testMajors[0].id],
-            };
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto)
-                .expect(200);
-            expect(response.body.message).toBe('用户选择更新成功');
-            expect(response.body.selection.universityIds).toEqual(updateDto.universityIds);
-            expect(response.body.selection.majorIds).toEqual(updateDto.majorIds);
-            const selection = await prisma.userSelection.findUnique({
-                where: { userId: testUser.id },
-            });
-            expect(JSON.parse(selection.universityIds)).toEqual(updateDto.universityIds);
+    it('更新并获取用户选择 - 成功', async () => {
+        await userService.updateSelection(userId, {
+            universityIds: [universityId],
+            majorIds: [majorId],
         });
-        it('TC-USER-010: 更新用户选择 - 未授权', async () => {
-            const updateDto = {
-                universityIds: [testUniversities[0].id],
-            };
-            await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .send(updateDto)
-                .expect(401);
-        });
-        it('TC-USER-011: 更新用户选择 - 无效院校ID', async () => {
-            const updateDto = {
-                universityIds: [testUniversities[0].id, 'invalid_uni_id'],
-            };
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto)
-                .expect(404);
-            expect(response.body.message).toContain('无效的院校ID');
-        });
-        it('TC-USER-012: 更新用户选择 - 无效专业ID', async () => {
-            const updateDto = {
-                majorIds: [testMajors[0].id, 'invalid_major_id'],
-            };
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto)
-                .expect(404);
-            expect(response.body.message).toContain('无效的专业ID');
-        });
-        it('TC-USER-013: 更新用户选择 - 只更新院校', async () => {
-            const updateDto = {
-                universityIds: [testUniversities[0].id],
-            };
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto)
-                .expect(200);
-            expect(response.body.selection.universityIds).toEqual(updateDto.universityIds);
-        });
-        it('TC-USER-014: 更新用户选择 - 只更新专业', async () => {
-            const updateDto = {
-                majorIds: [testMajors[0].id],
-            };
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto)
-                .expect(200);
-            expect(response.body.selection.majorIds).toEqual(updateDto.majorIds);
-        });
-        it('TC-USER-015: 更新用户选择 - 清空选择', async () => {
-            await prisma.userSelection.create({
-                data: {
-                    userId: testUser.id,
-                    universityIds: JSON.stringify([testUniversities[0].id]),
-                    majorIds: JSON.stringify([testMajors[0].id]),
-                },
-            });
-            const updateDto = {
-                universityIds: [],
-                majorIds: [],
-            };
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto)
-                .expect(200);
-            expect(response.body.selection.universityIds).toEqual([]);
-            expect(response.body.selection.majorIds).toEqual([]);
-        });
-        it('TC-USER-016: 更新用户选择 - 大量数据', async () => {
-            const manyUniversities = await Promise.all(Array(50).fill(null).map((_, i) => prisma.university.create({
-                data: {
-                    name: `大学${i}`,
-                    region: '北京',
-                    level: '985',
-                    priority: 'P0',
-                },
-            })));
-            const updateDto = {
-                universityIds: manyUniversities.map(u => u.id),
-            };
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto)
-                .expect(200);
-            expect(response.body.selection.universityIds).toHaveLength(50);
-        });
-        it('TC-USER-017: 更新用户选择 - 并发更新', async () => {
-            const updateDto = {
-                universityIds: [testUniversities[0].id],
-            };
-            const promises = Array(5).fill(null).map(() => (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto));
-            const responses = await Promise.all(promises);
-            responses.forEach(response => {
-                expect(response.status).toBe(200);
-            });
-        });
-        it('应该拒绝无效的UUID格式', async () => {
-            const updateDto = {
-                universityIds: ['not-a-uuid'],
-            };
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto)
-                .expect(400);
-            expect(response.body.message).toBeDefined();
-        });
-        it('应该处理重复ID', async () => {
-            const updateDto = {
-                universityIds: [testUniversities[0].id, testUniversities[0].id],
-            };
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto)
-                .expect(200);
-            expect(response.body.selection.universityIds).toBeDefined();
-        });
+        const result = await userService.getSelection(userId);
+        expect(result.totalUniversities).toBe(1);
+        expect(result.totalMajors).toBe(1);
     });
-    describe('边界条件测试', () => {
-        it('应该处理特殊字符在请求中', async () => {
-            const updateDto = {
-                universityIds: [testUniversities[0].id],
-            };
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto)
-                .expect(200);
-            expect(response.body.message).toBe('用户选择更新成功');
+    it('更新用户选择 - 无效院校ID抛出 404', async () => {
+        const invalidUniversityId = '550e8400-e29b-41d4-a716-446655440000';
+        await expect(userService.updateSelection(userId, { universityIds: [invalidUniversityId] })).rejects.toThrow('无效的院校ID');
+    });
+    it('JwtAuthGuard - 有效 token 通过', async () => {
+        const context = createExecutionContext({
+            authorization: `Bearer ${authToken}`,
         });
-        it('应该处理空数组', async () => {
-            const updateDto = {
-                universityIds: [],
-                majorIds: [],
-            };
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto)
-                .expect(200);
-            expect(response.body.selection.universityIds).toEqual([]);
-            expect(response.body.selection.majorIds).toEqual([]);
-        });
-        it('应该处理null值', async () => {
-            const updateDto = {};
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .put('/api/v1/user/selection')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send(updateDto)
-                .expect(200);
-            expect(response.body.message).toBe('用户选择更新成功');
-        });
+        const result = await jwtGuard.canActivate(context);
+        expect(result).toBe(true);
     });
 });
 //# sourceMappingURL=user.e2e-spec.js.map

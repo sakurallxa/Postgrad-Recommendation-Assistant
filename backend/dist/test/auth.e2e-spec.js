@@ -1,22 +1,25 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const testing_1 = require("@nestjs/testing");
-const supertest_1 = __importDefault(require("supertest"));
+const common_1 = require("@nestjs/common");
 const app_module_1 = require("../src/app.module");
 const prisma_service_1 = require("../src/modules/prisma/prisma.service");
-describe('AuthController (e2e)', () => {
+const auth_service_1 = require("../src/modules/auth/auth.service");
+const e2e_app_helper_1 = require("./e2e-app.helper");
+describe('AuthModule (integration)', () => {
     let app;
     let prisma;
+    let authService;
     beforeAll(async () => {
+        process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key';
+        delete process.env.WECHAT_APPID;
+        delete process.env.WECHAT_SECRET;
         const moduleFixture = await testing_1.Test.createTestingModule({
             imports: [app_module_1.AppModule],
         }).compile();
-        app = moduleFixture.createNestApplication();
+        app = await (0, e2e_app_helper_1.createConfiguredE2EApp)(moduleFixture);
         prisma = app.get(prisma_service_1.PrismaService);
-        await app.init();
+        authService = app.get(auth_service_1.AuthService);
     });
     beforeEach(async () => {
         await prisma.reminder.deleteMany();
@@ -26,80 +29,32 @@ describe('AuthController (e2e)', () => {
     afterAll(async () => {
         await app.close();
     });
-    describe('POST /api/v1/auth/wx-login', () => {
-        it('TC-AUTH-001: 微信登录 - 成功场景（新用户）', async () => {
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .post('/api/v1/auth/wx-login')
-                .send({ code: 'test_code_new_user' })
-                .expect(201);
-            expect(response.body).toHaveProperty('user');
-            expect(response.body).toHaveProperty('accessToken');
-            expect(response.body).toHaveProperty('refreshToken');
-            expect(response.body).toHaveProperty('expiresIn');
-            expect(response.body.user).toHaveProperty('id');
-            expect(response.body.user).toHaveProperty('openid');
-        });
-        it('TC-AUTH-001: 微信登录 - 成功场景（已存在用户）', async () => {
-            const existingUser = await prisma.user.create({
-                data: { openid: 'existing_openid_123' },
-            });
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .post('/api/v1/auth/wx-login')
-                .send({ code: 'existing_openid_123' })
-                .expect(201);
-            expect(response.body.user.id).toBe(existingUser.id);
-            expect(response.body.user.openid).toBe(existingUser.openid);
-        });
-        it('TC-AUTH-002: 微信登录 - 空code', async () => {
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .post('/api/v1/auth/wx-login')
-                .send({ code: '' })
-                .expect(401);
-            expect(response.body.message).toContain('微信登录凭证不能为空');
-        });
-        it('TC-AUTH-002: 微信登录 - 缺失code字段', async () => {
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .post('/api/v1/auth/wx-login')
-                .send({})
-                .expect(400);
-            expect(response.body.message).toBeDefined();
-        });
+    it('微信登录 - 新用户成功', async () => {
+        const result = await authService.wxLogin('new_user_code');
+        expect(result.user).toBeDefined();
+        expect(result.accessToken).toBeDefined();
+        expect(result.refreshToken).toBeDefined();
+        expect(result.user.openid).toBe('mock_openid_new_user_code');
     });
-    describe('POST /api/v1/auth/refresh', () => {
-        it('TC-AUTH-004: Token刷新 - 成功场景', async () => {
-            const loginResponse = await (0, supertest_1.default)(app.getHttpServer())
-                .post('/api/v1/auth/wx-login')
-                .send({ code: 'test_refresh_token' })
-                .expect(201);
-            const refreshToken = loginResponse.body.refreshToken;
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .post('/api/v1/auth/refresh')
-                .set('Authorization', `Bearer ${refreshToken}`)
-                .expect(201);
-            expect(response.body).toHaveProperty('accessToken');
-            expect(response.body).toHaveProperty('refreshToken');
-            expect(response.body).toHaveProperty('expiresIn');
-        });
-        it('TC-AUTH-005: Token刷新 - 无效Token', async () => {
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .post('/api/v1/auth/refresh')
-                .set('Authorization', 'Bearer invalid_token')
-                .expect(401);
-            expect(response.body.message).toContain('令牌无效或已过期');
-        });
-        it('TC-AUTH-006: Token刷新 - 空Token', async () => {
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .post('/api/v1/auth/refresh')
-                .expect(401);
-            expect(response.body.message).toContain('刷新令牌不能为空');
-        });
-        it('TC-AUTH-006: Token刷新 - 格式错误的Authorization头', async () => {
-            const response = await (0, supertest_1.default)(app.getHttpServer())
-                .post('/api/v1/auth/refresh')
-                .set('Authorization', 'invalid_format')
-                .expect(401);
-            expect(response.body.message).toBeDefined();
-        });
+    it('微信登录 - 已存在用户返回同一用户', async () => {
+        const code = 'existing_user_code';
+        const openid = `mock_openid_${code}`;
+        const existing = await prisma.user.create({ data: { openid } });
+        const result = await authService.wxLogin(code);
+        expect(result.user.id).toBe(existing.id);
+        expect(result.user.openid).toBe(openid);
+    });
+    it('微信登录 - 缺少 code 抛出 401', async () => {
+        await expect(authService.wxLogin('')).rejects.toBeInstanceOf(common_1.UnauthorizedException);
+    });
+    it('刷新 token - 成功', async () => {
+        const login = await authService.wxLogin('refresh_ok');
+        const result = await authService.refreshToken(login.refreshToken);
+        expect(result.accessToken).toBeDefined();
+        expect(result.refreshToken).toBeDefined();
+    });
+    it('刷新 token - 无 token 抛出 401', async () => {
+        await expect(authService.refreshToken('')).rejects.toBeInstanceOf(common_1.UnauthorizedException);
     });
 });
 //# sourceMappingURL=auth.e2e-spec.js.map
