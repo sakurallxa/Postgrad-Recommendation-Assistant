@@ -8,13 +8,15 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 var DeepSeekService_1;
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeepSeekService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const axios_1 = require("axios");
+const axios_1 = __importDefault(require("axios"));
 let DeepSeekService = DeepSeekService_1 = class DeepSeekService {
     constructor(configService) {
         this.configService = configService;
@@ -165,6 +167,6 @@ ${content.substring(0, 3000)}
 exports.DeepSeekService = DeepSeekService;
 exports.DeepSeekService = DeepSeekService = DeepSeekService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
+    __metadata("design:paramtypes", [config_1.ConfigService])
 ], DeepSeekService);
 //# sourceMappingURL=deepseek.service.js.map

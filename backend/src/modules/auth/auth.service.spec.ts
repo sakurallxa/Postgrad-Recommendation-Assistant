@@ -10,6 +10,11 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
 
+// Mock axios
+jest.mock('axios');
+import axios from 'axios';
+const mockedAxios = axios as jest.Mocked<typeof axios>;
+
 describe('AuthService', () => {
   let service: AuthService;
   let prismaService: PrismaService;
@@ -32,7 +37,7 @@ describe('AuthService', () => {
   // 模拟配置服务
   const mockConfigService = {
     get: jest.fn((key: string) => {
-      const config = {
+      const config: Record<string, string> = {
         WECHAT_APPID: 'test_appid',
         WECHAT_SECRET: 'test_secret',
         JWT_SECRET: 'test_secret',
@@ -63,7 +68,6 @@ describe('AuthService', () => {
 
   describe('微信登录', () => {
     it('TC-AUTH-001: 微信登录 - 成功场景（新用户）', async () => {
-      // 准备测试数据
       const code = 'valid_wechat_code';
       const mockOpenid = 'mock_openid_123';
       const mockUser = { id: 'user_123', openid: mockOpenid };
@@ -73,10 +77,12 @@ describe('AuthService', () => {
         expiresIn: '7d',
       };
 
-      // 模拟微信API调用（通过模拟配置返回mock数据）
-      mockConfigService.get = jest.fn((key: string) => {
-        if (key === 'WECHAT_APPID') return 'wx_appid_placeholder';
-        return mockConfigService.get(key);
+      // Mock微信API响应
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          openid: mockOpenid,
+          session_key: 'mock_session_key',
+        },
       });
 
       // 模拟数据库操作
@@ -112,9 +118,12 @@ describe('AuthService', () => {
         expiresIn: '7d',
       };
 
-      mockConfigService.get = jest.fn((key: string) => {
-        if (key === 'WECHAT_APPID') return 'wx_appid_placeholder';
-        return mockConfigService.get(key);
+      // Mock微信API响应
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          openid: mockOpenid,
+          session_key: 'mock_session_key',
+        },
       });
 
       mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
@@ -139,16 +148,16 @@ describe('AuthService', () => {
 
     it('TC-AUTH-003: 微信登录 - 无效code', async () => {
       const invalidCode = 'invalid_code';
-      
-      // 模拟微信API返回错误
-      mockConfigService.get = jest.fn((key: string) => {
-        if (key === 'WECHAT_APPID') return 'real_appid';
-        if (key === 'WECHAT_SECRET') return 'real_secret';
-        return mockConfigService.get(key);
+
+      // Mock微信API返回错误
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          errcode: 40029,
+          errmsg: 'invalid code',
+        },
       });
 
-      // 这里应该模拟axios调用失败，但由于是单元测试，我们直接测试错误处理逻辑
-      await expect(service.wxLogin(invalidCode)).rejects.toThrow();
+      await expect(service.wxLogin(invalidCode)).rejects.toThrow('微信登录失败');
     });
   });
 
@@ -225,15 +234,17 @@ describe('AuthService', () => {
       const mockAccessToken = 'access_token_123';
       const mockRefreshToken = 'refresh_token_123';
 
+      // Mock微信API响应
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          openid: openid,
+          session_key: 'mock_session_key',
+        },
+      });
+
       mockJwtService.signAsync
         .mockResolvedValueOnce(mockAccessToken)
         .mockResolvedValueOnce(mockRefreshToken);
-
-      // 使用wxLogin间接测试Token生成
-      mockConfigService.get = jest.fn((key: string) => {
-        if (key === 'WECHAT_APPID') return 'wx_appid_placeholder';
-        return mockConfigService.get(key);
-      });
 
       mockPrismaService.user.findUnique.mockResolvedValue({ id: userId, openid });
 
@@ -254,10 +265,13 @@ describe('AuthService', () => {
   describe('错误处理和日志', () => {
     it('微信登录异常时应该记录错误日志', async () => {
       const code = 'test_code';
-      
-      mockConfigService.get = jest.fn((key: string) => {
-        if (key === 'WECHAT_APPID') return 'wx_appid_placeholder';
-        return mockConfigService.get(key);
+
+      // Mock微信API响应
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          openid: 'openid_123',
+          session_key: 'mock_session_key',
+        },
       });
 
       // 模拟数据库错误

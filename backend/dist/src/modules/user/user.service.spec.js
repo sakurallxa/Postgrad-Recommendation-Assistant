@@ -130,10 +130,8 @@ describe('UserService', () => {
             mockPrismaService.userSelection.findUnique.mockResolvedValue(null);
             const result = await service.getSelection(userId);
             expect(result).toEqual({
-                universities: [],
-                majors: [],
-                totalUniversities: 0,
-                totalMajors: 0,
+                universityIds: [],
+                majorIds: [],
             });
         });
         it('TC-USER-007: 获取用户选择 - 空JSON数组', async () => {

@@ -12,21 +12,21 @@ export declare function createTestMajors(universityId: string): Promise<any[]>;
 export declare function createTestCamps(universityId: string, majorId?: string): Promise<any[]>;
 export declare function createTestUser(openid?: string): Promise<{
     id: string;
-    openid: string;
     createdAt: Date;
     updatedAt: Date;
+    openid: string;
 }>;
 export declare function createTestReminder(userId: string, campId: string): Promise<{
     id: string;
     createdAt: Date;
     updatedAt: Date;
-    remindTime: Date;
     status: string;
+    userId: string;
+    campId: string;
+    remindTime: Date;
     templateId: string | null;
     sentAt: Date | null;
     errorMsg: string | null;
-    userId: string;
-    campId: string;
 }>;
 export declare function generateTestToken(userId: string, openid: string): string;
 export declare class TestDataBuilder {
