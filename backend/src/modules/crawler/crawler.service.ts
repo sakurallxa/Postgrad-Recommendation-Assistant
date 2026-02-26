@@ -259,36 +259,56 @@ export class CrawlerService {
 
   /**
    * 获取任务状态
+   * 支持通过taskId（内存任务ID）或logId（数据库记录ID）查询
    */
   async getTaskStatus(taskId: string) {
+    // 首先尝试从内存中获取活跃任务
     const task = this.activeTasks.get(taskId);
-    if (!task) {
-      // 从数据库查询历史任务
-      const log = await this.prisma.crawlerLog.findFirst({
-        where: { id: taskId },
-      });
-      if (!log) {
-        throw new BadRequestException('任务不存在');
-      }
+    if (task) {
       return {
-        taskId: log.id,
-        status: log.status,
-        universityId: log.universityId,
-        itemsCount: log.itemsCount,
-        errorMsg: log.errorMsg,
-        createdAt: log.createdAt,
-        startTime: log.startTime,
-        endTime: log.endTime,
+        taskId: task.id,
+        logId: task.logId,
+        status: task.status,
+        startTime: task.startTime,
+        endTime: task.endTime,
+        result: task.result,
+        error: task.error,
       };
     }
 
+    // 内存中没有找到，尝试按taskId查找对应的logId映射
+    // 遍历所有活跃任务查找是否有匹配的logId
+    for (const [, activeTask] of this.activeTasks) {
+      if (activeTask.logId === taskId) {
+        return {
+          taskId: activeTask.id,
+          logId: activeTask.logId,
+          status: activeTask.status,
+          startTime: activeTask.startTime,
+          endTime: activeTask.endTime,
+          result: activeTask.result,
+          error: activeTask.error,
+        };
+      }
+    }
+
+    // 从数据库查询历史任务（支持按logId查询）
+    const log = await this.prisma.crawlerLog.findFirst({
+      where: { id: taskId },
+    });
+    if (!log) {
+      throw new BadRequestException('任务不存在');
+    }
     return {
-      taskId: task.id,
-      status: task.status,
-      startTime: task.startTime,
-      endTime: task.endTime,
-      result: task.result,
-      error: task.error,
+      taskId: log.id,
+      logId: log.id,
+      status: log.status,
+      universityId: log.universityId,
+      itemsCount: log.itemsCount,
+      errorMsg: log.errorMsg,
+      createdAt: log.createdAt,
+      startTime: log.startTime,
+      endTime: log.endTime,
     };
   }
 
