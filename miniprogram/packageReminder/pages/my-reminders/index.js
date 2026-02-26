@@ -1,4 +1,6 @@
 // 我的提醒页
+import { reminderService } from '../../services/reminder'
+
 Page({
   data: {
     // 筛选选项
@@ -10,64 +12,101 @@ Page({
     ],
     selectedFilter: 'all',
     
-    // 提醒列表（模拟数据）
-    reminders: [
-      {
-        id: '1',
-        campId: '1',
-        campTitle: '清华大学计算机科学与技术系2024年优秀大学生夏令营',
-        universityName: '清华大学',
-        deadline: '2024-03-18',
-        remindTime: '2024-03-15 09:00',
-        status: 'pending',
-        statusText: '待提醒'
-      },
-      {
-        id: '2',
-        campId: '2',
-        campTitle: '北京大学软件与微电子学院2024年保研夏令营',
-        universityName: '北京大学',
-        deadline: '2024-03-22',
-        remindTime: '2024-03-19 09:00',
-        status: 'pending',
-        statusText: '待提醒'
-      },
-      {
-        id: '3',
-        campId: '3',
-        campTitle: '复旦大学人工智能研究院2024年夏令营',
-        universityName: '复旦大学',
-        deadline: '2024-03-30',
-        remindTime: '2024-03-27 09:00',
-        status: 'pending',
-        statusText: '待提醒'
-      },
-      {
-        id: '4',
-        campId: '4',
-        campTitle: '上海交通大学电子信息与电气工程学院2024年夏令营',
-        universityName: '上海交通大学',
-        deadline: '2024-03-10',
-        remindTime: '2024-03-07 09:00',
-        status: 'sent',
-        statusText: '已提醒'
-      },
-      {
-        id: '5',
-        campId: '5',
-        campTitle: '浙江大学计算机科学与技术学院2024年夏令营',
-        universityName: '浙江大学',
-        deadline: '2024-03-05',
-        remindTime: '2024-03-02 09:00',
-        status: 'expired',
-        statusText: '已过期'
-      }
-    ],
-    filteredReminders: []
+    // 提醒列表
+    reminders: [],
+    filteredReminders: [],
+    
+    // 分页
+    page: 1,
+    limit: 20,
+    hasMore: true,
+    loading: false,
+    
+    // 首次加载
+    isFirstLoad: true
   },
 
   onLoad() {
-    this.filterReminders();
+    this.loadReminders();
+  },
+
+  onShow() {
+    // 页面显示时刷新数据
+    if (!this.data.isFirstLoad) {
+      this.refreshReminders();
+    }
+    this.setData({ isFirstLoad: false });
+  },
+
+  // 加载提醒列表
+  async loadReminders() {
+    if (this.data.loading || !this.data.hasMore) return;
+    
+    this.setData({ loading: true });
+    
+    try {
+      const { page, limit, selectedFilter } = this.data;
+      const params = {
+        page,
+        limit,
+        status: selectedFilter
+      };
+      
+      const result = await reminderService.getReminders(params);
+      
+      // 格式化提醒数据
+      const formattedReminders = result.data.map(item => ({
+        id: item.id,
+        campId: item.campId,
+        campTitle: item.camp?.title || '未知夏令营',
+        universityName: item.camp?.university?.name || '未知院校',
+        deadline: item.camp?.deadline || '',
+        remindTime: item.remindTime,
+        status: item.status,
+        statusText: this.getStatusText(item.status)
+      }));
+      
+      this.setData({
+        reminders: [...this.data.reminders, ...formattedReminders],
+        page: page + 1,
+        hasMore: result.data.length === limit,
+        loading: false
+      });
+      
+      this.filterReminders();
+    } catch (error) {
+      console.error('加载提醒失败:', error);
+      this.setData({ loading: false });
+      
+      // 如果是401错误，已经在http.js中处理
+      if (error.message !== '登录已过期') {
+        wx.showToast({
+          title: '加载失败',
+          icon: 'none'
+        });
+      }
+    }
+  },
+
+  // 刷新提醒列表
+  async refreshReminders() {
+    this.setData({
+      reminders: [],
+      page: 1,
+      hasMore: true
+    });
+    await this.loadReminders();
+  },
+
+  // 获取状态文本
+  getStatusText(status) {
+    const statusMap = {
+      'pending': '待提醒',
+      'sent': '已提醒',
+      'failed': '发送失败',
+      'expired': '已过期'
+    };
+    return statusMap[status] || status;
   },
 
   // 筛选提醒
@@ -86,10 +125,14 @@ Page({
 
   // 筛选点击
   onFilterTap(e) {
+    const selectedFilter = e.currentTarget.dataset.value;
     this.setData({
-      selectedFilter: e.currentTarget.dataset.value
+      selectedFilter,
+      reminders: [],
+      page: 1,
+      hasMore: true
     });
-    this.filterReminders();
+    this.loadReminders();
   },
 
   // 查看夏令营详情
@@ -101,26 +144,54 @@ Page({
   },
 
   // 删除提醒
-  onDeleteReminder(e) {
+  async onDeleteReminder(e) {
     const reminderId = e.currentTarget.dataset.reminderId;
     
     wx.showModal({
       title: '确认删除',
       content: '确定要删除这个提醒吗？',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          const reminders = this.data.reminders.filter(r => r.id !== reminderId);
-          this.setData({
-            reminders
-          });
-          this.filterReminders();
-          
-          wx.showToast({
-            title: '提醒已删除',
-            icon: 'success'
-          });
+          try {
+            await reminderService.deleteReminder(reminderId);
+            
+            // 从列表中移除
+            const reminders = this.data.reminders.filter(r => r.id !== reminderId);
+            this.setData({ reminders });
+            this.filterReminders();
+            
+            wx.showToast({
+              title: '提醒已删除',
+              icon: 'success'
+            });
+          } catch (error) {
+            console.error('删除提醒失败:', error);
+            wx.showToast({
+              title: '删除失败',
+              icon: 'none'
+            });
+          }
         }
       }
+    });
+  },
+
+  // 下拉刷新
+  onPullDownRefresh() {
+    this.refreshReminders().finally(() => {
+      wx.stopPullDownRefresh();
+    });
+  },
+
+  // 上拉加载更多
+  onReachBottom() {
+    this.loadReminders();
+  },
+
+  // 创建新提醒
+  onCreateReminder() {
+    wx.navigateTo({
+      url: '/packageReminder/pages/reminder-create/index'
     });
   }
 });

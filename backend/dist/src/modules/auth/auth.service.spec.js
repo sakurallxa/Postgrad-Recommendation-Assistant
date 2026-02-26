@@ -1,4 +1,7 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const testing_1 = require("@nestjs/testing");
 const auth_service_1 = require("./auth.service");
@@ -6,6 +9,9 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
 const common_1 = require("@nestjs/common");
+jest.mock('axios');
+const axios_1 = __importDefault(require("axios"));
+const mockedAxios = axios_1.default;
 describe('AuthService', () => {
     let service;
     let prismaService;
@@ -56,10 +62,11 @@ describe('AuthService', () => {
                 refreshToken: 'refresh_token_123',
                 expiresIn: '7d',
             };
-            mockConfigService.get = jest.fn((key) => {
-                if (key === 'WECHAT_APPID')
-                    return 'wx_appid_placeholder';
-                return mockConfigService.get(key);
+            mockedAxios.get.mockResolvedValueOnce({
+                data: {
+                    openid: mockOpenid,
+                    session_key: 'mock_session_key',
+                },
             });
             mockPrismaService.user.findUnique.mockResolvedValue(null);
             mockPrismaService.user.create.mockResolvedValue(mockUser);
@@ -85,10 +92,11 @@ describe('AuthService', () => {
                 refreshToken: 'refresh_token_123',
                 expiresIn: '7d',
             };
-            mockConfigService.get = jest.fn((key) => {
-                if (key === 'WECHAT_APPID')
-                    return 'wx_appid_placeholder';
-                return mockConfigService.get(key);
+            mockedAxios.get.mockResolvedValueOnce({
+                data: {
+                    openid: mockOpenid,
+                    session_key: 'mock_session_key',
+                },
             });
             mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
             mockJwtService.signAsync
@@ -107,14 +115,13 @@ describe('AuthService', () => {
         });
         it('TC-AUTH-003: 微信登录 - 无效code', async () => {
             const invalidCode = 'invalid_code';
-            mockConfigService.get = jest.fn((key) => {
-                if (key === 'WECHAT_APPID')
-                    return 'real_appid';
-                if (key === 'WECHAT_SECRET')
-                    return 'real_secret';
-                return mockConfigService.get(key);
+            mockedAxios.get.mockResolvedValueOnce({
+                data: {
+                    errcode: 40029,
+                    errmsg: 'invalid code',
+                },
             });
-            await expect(service.wxLogin(invalidCode)).rejects.toThrow();
+            await expect(service.wxLogin(invalidCode)).rejects.toThrow('微信登录失败');
         });
     });
     describe('Token刷新', () => {
@@ -175,14 +182,15 @@ describe('AuthService', () => {
             const openid = 'openid_123';
             const mockAccessToken = 'access_token_123';
             const mockRefreshToken = 'refresh_token_123';
+            mockedAxios.get.mockResolvedValueOnce({
+                data: {
+                    openid: openid,
+                    session_key: 'mock_session_key',
+                },
+            });
             mockJwtService.signAsync
                 .mockResolvedValueOnce(mockAccessToken)
                 .mockResolvedValueOnce(mockRefreshToken);
-            mockConfigService.get = jest.fn((key) => {
-                if (key === 'WECHAT_APPID')
-                    return 'wx_appid_placeholder';
-                return mockConfigService.get(key);
-            });
             mockPrismaService.user.findUnique.mockResolvedValue({ id: userId, openid });
             await service.wxLogin('test_code');
             expect(mockJwtService.signAsync).toHaveBeenCalledWith({ sub: userId, openid }, { expiresIn: '7d' });
@@ -192,10 +200,11 @@ describe('AuthService', () => {
     describe('错误处理和日志', () => {
         it('微信登录异常时应该记录错误日志', async () => {
             const code = 'test_code';
-            mockConfigService.get = jest.fn((key) => {
-                if (key === 'WECHAT_APPID')
-                    return 'wx_appid_placeholder';
-                return mockConfigService.get(key);
+            mockedAxios.get.mockResolvedValueOnce({
+                data: {
+                    openid: 'openid_123',
+                    session_key: 'mock_session_key',
+                },
             });
             mockPrismaService.user.findUnique.mockRejectedValue(new Error('Database error'));
             await expect(service.wxLogin(code)).rejects.toThrow();

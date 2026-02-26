@@ -6,24 +6,24 @@ export declare class ReminderController {
         data: ({
             camp: {
                 id: string;
-                title: string;
-                deadline: Date;
                 university: {
                     id: string;
                     name: string;
                 };
+                title: string;
+                deadline: Date;
             };
         } & {
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            status: string;
             userId: string;
             campId: string;
             remindTime: Date;
-            status: string;
             templateId: string | null;
             sentAt: Date | null;
             errorMsg: string | null;
-            createdAt: Date;
-            updatedAt: Date;
         })[];
         meta: {
             page: number;
@@ -34,26 +34,26 @@ export declare class ReminderController {
     }>;
     create(dto: any): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
         userId: string;
         campId: string;
         remindTime: Date;
-        status: string;
         templateId: string | null;
         sentAt: Date | null;
         errorMsg: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
     remove(id: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
         userId: string;
         campId: string;
         remindTime: Date;
-        status: string;
         templateId: string | null;
         sentAt: Date | null;
         errorMsg: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
 }

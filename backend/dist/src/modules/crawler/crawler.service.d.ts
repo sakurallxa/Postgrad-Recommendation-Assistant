@@ -19,13 +19,13 @@ export declare class CrawlerService {
     private parseCrawlerOutput;
     getLogs(): Promise<{
         id: string;
+        createdAt: Date;
         universityId: string;
         status: string;
+        errorMsg: string | null;
         startTime: Date;
         endTime: Date | null;
-        errorMsg: string | null;
         itemsCount: number;
-        createdAt: Date;
     }[]>;
     getTaskStatus(taskId: string): Promise<{
         taskId: string;
@@ -40,7 +40,7 @@ export declare class CrawlerService {
         error?: undefined;
     } | {
         taskId: string;
-        status: "running" | "pending" | "completed" | "failed";
+        status: "pending" | "failed" | "running" | "completed";
         startTime: Date;
         endTime: Date;
         result: any;

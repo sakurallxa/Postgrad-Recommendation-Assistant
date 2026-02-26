@@ -6,29 +6,30 @@ export declare class CampController {
         data: ({
             university: {
                 id: string;
-                createdAt: Date;
-                updatedAt: Date;
                 name: string;
                 logo: string | null;
                 region: string | null;
                 level: string | null;
                 website: string | null;
                 priority: string;
+                createdAt: Date;
+                updatedAt: Date;
             };
             major: {
                 id: string;
-                universityId: string;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 category: string | null;
+                universityId: string;
             };
         } & {
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            universityId: string;
             title: string;
             sourceUrl: string;
-            universityId: string;
-            majorId: string | null;
             publishDate: Date | null;
             deadline: Date | null;
             startDate: Date | null;
@@ -38,8 +39,7 @@ export declare class CampController {
             process: string | null;
             status: string;
             confidence: number;
-            createdAt: Date;
-            updatedAt: Date;
+            majorId: string | null;
         })[];
         meta: {
             page: number;
@@ -63,10 +63,11 @@ export declare class CampController {
         };
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        universityId: string;
         title: string;
         sourceUrl: string;
-        universityId: string;
-        majorId: string | null;
         publishDate: Date | null;
         deadline: Date | null;
         startDate: Date | null;
@@ -76,7 +77,6 @@ export declare class CampController {
         process: string | null;
         status: string;
         confidence: number;
-        createdAt: Date;
-        updatedAt: Date;
+        majorId: string | null;
     }>;
 }

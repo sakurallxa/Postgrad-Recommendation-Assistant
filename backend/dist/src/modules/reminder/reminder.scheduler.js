@@ -8,15 +8,17 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 var ReminderScheduler_1;
-var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReminderScheduler = void 0;
 const common_1 = require("@nestjs/common");
 const schedule_1 = require("@nestjs/schedule");
 const prisma_service_1 = require("../prisma/prisma.service");
 const config_1 = require("@nestjs/config");
-const axios_1 = require("axios");
+const axios_1 = __importDefault(require("axios"));
 let ReminderScheduler = ReminderScheduler_1 = class ReminderScheduler {
     constructor(prisma, configService) {
         this.prisma = prisma;
@@ -183,6 +185,7 @@ __decorate([
 ], ReminderScheduler.prototype, "cleanupExpiredReminders", null);
 exports.ReminderScheduler = ReminderScheduler = ReminderScheduler_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService, typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        config_1.ConfigService])
 ], ReminderScheduler);
 //# sourceMappingURL=reminder.scheduler.js.map

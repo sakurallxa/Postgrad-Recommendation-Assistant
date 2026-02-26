@@ -11,8 +11,8 @@ export declare class UserService {
             majorIds: string;
         };
         id: string;
-        openid: string;
         createdAt: Date;
+        openid: string;
     }>;
     getSelection(userId: string): Promise<{
         universityIds: any[];

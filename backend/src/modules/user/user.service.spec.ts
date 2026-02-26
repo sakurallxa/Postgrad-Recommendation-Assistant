@@ -159,10 +159,8 @@ describe('UserService', () => {
       const result = await service.getSelection(userId);
 
       expect(result).toEqual({
-        universities: [],
-        majors: [],
-        totalUniversities: 0,
-        totalMajors: 0,
+        universityIds: [],
+        majorIds: [],
       });
     });
 

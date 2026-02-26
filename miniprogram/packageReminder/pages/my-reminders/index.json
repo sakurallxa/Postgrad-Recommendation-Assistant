@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "我的提醒"
+  "navigationBarTitleText": "我的提醒",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {}
 }

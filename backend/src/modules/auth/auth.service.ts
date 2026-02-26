@@ -7,7 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 /**
  * 微信登录响应接口
  */
-interface WxLoginResponse {
+export interface WxLoginResponse {
   openid: string;
   session_key: string;
   unionid?: string;
@@ -18,7 +18,7 @@ interface WxLoginResponse {
 /**
  * Token响应接口
  */
-interface TokenResponse {
+export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
   expiresIn: string;
@@ -27,7 +27,7 @@ interface TokenResponse {
 /**
  * 登录响应接口
  */
-interface LoginResponse {
+export interface LoginResponse {
   user: {
     id: string;
     openid: string;
@@ -183,8 +183,8 @@ export class AuthService {
    */
   private async generateTokens(userId: string, openid: string): Promise<TokenResponse> {
     const payload = { sub: userId, openid };
-    const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN', '7d');
-    const refreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '30d');
+    const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN', '7d') as `${number}${'s' | 'm' | 'h' | 'd'}`;
+    const refreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '30d') as `${number}${'s' | 'm' | 'h' | 'd'}`;
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, { expiresIn }),
@@ -194,7 +194,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      expiresIn,
+      expiresIn: expiresIn as string,
     };
   }
 }
