@@ -26,11 +26,12 @@ export interface TokenResponse {
 
 /**
  * 登录响应接口
+ * 注意：出于隐私保护，不返回openid
  */
 export interface LoginResponse {
   user: {
     id: string;
-    openid: string;
+    // openid: string; // 隐私字段不返回
   };
   accessToken: string;
   refreshToken: string;
@@ -89,7 +90,7 @@ export class AuthService {
       return {
         user: {
           id: user.id,
-          openid: user.openid,
+          // openid: user.openid, // 隐私字段不返回
         },
         ...tokens,
       };
@@ -144,10 +145,24 @@ export class AuthService {
   private async callWxLoginApi(code: string): Promise<WxLoginResponse> {
     const appid = this.configService.get<string>('WECHAT_APPID');
     const secret = this.configService.get<string>('WECHAT_SECRET');
+    const allowMock = this.configService.get<string>('ALLOW_MOCK_WECHAT_LOGIN') === 'true';
+    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
 
     // 检查配置
     if (!appid || appid === 'wx_appid_placeholder') {
-      this.logger.warn('微信AppID未配置，使用模拟数据');
+      // 生产环境未配置微信参数时直接失败
+      if (isProduction) {
+        this.logger.error('生产环境微信AppID未配置，拒绝登录');
+        throw new UnauthorizedException('登录服务配置错误');
+      }
+      
+      // 非生产环境仅在显式开启mock时才允许
+      if (!allowMock) {
+        this.logger.error('微信AppID未配置且未开启mock模式，拒绝登录');
+        throw new UnauthorizedException('登录服务配置错误');
+      }
+      
+      this.logger.warn('微信AppID未配置，使用模拟数据（仅开发环境）');
       return {
         openid: `mock_openid_${code}`,
         session_key: 'mock_session_key',

@@ -28,13 +28,14 @@ export class UserService {
 
   /**
    * 获取用户信息
+   * 注意：出于隐私保护，不返回openid
    */
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
-        openid: true,
+        // openid: true, // 隐私字段不返回
         createdAt: true,
         selection: {
           select: {

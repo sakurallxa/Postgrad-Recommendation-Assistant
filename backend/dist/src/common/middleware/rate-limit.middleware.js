@@ -18,7 +18,8 @@ let RateLimitMiddleware = class RateLimitMiddleware {
         this.requestMap = new Map();
         this.windowMs = this.configService.get('RATE_LIMIT_WINDOW', 60000);
         this.maxRequests = this.configService.get('RATE_LIMIT_MAX', 100);
-        setInterval(() => this.cleanup(), this.windowMs);
+        this.cleanupTimer = setInterval(() => this.cleanup(), this.windowMs);
+        this.cleanupTimer.unref();
     }
     use(req, res, next) {
         const clientIp = this.getClientIp(req);

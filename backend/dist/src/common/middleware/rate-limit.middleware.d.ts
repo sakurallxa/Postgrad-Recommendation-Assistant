@@ -6,6 +6,7 @@ export declare class RateLimitMiddleware implements NestMiddleware {
     private readonly requestMap;
     private readonly windowMs;
     private readonly maxRequests;
+    private readonly cleanupTimer;
     constructor(configService: ConfigService);
     use(req: Request, res: Response, next: NextFunction): void;
     private getClientIp;

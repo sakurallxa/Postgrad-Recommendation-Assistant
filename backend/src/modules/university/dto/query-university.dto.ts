@@ -1,5 +1,11 @@
-import { IsOptional, IsString, IsNumber, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsNumber, Min, Max, IsIn } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+
+/**
+ * 允许的排序字段白名单
+ */
+export const ALLOWED_SORT_FIELDS = ['name', 'priority', 'createdAt', 'updatedAt'] as const;
+export type SortField = typeof ALLOWED_SORT_FIELDS[number];
 
 /**
  * 查询院校列表DTO
@@ -33,13 +39,13 @@ export class QueryUniversityDto {
   @IsString()
   keyword?: string;
 
-  @ApiProperty({ description: '排序字段', required: false, default: 'priority' })
+  @ApiProperty({ description: '排序字段', required: false, default: 'priority', enum: ALLOWED_SORT_FIELDS })
   @IsOptional()
-  @IsString()
-  sortBy?: string = 'priority';
+  @IsIn(ALLOWED_SORT_FIELDS)
+  sortBy?: SortField = 'priority';
 
-  @ApiProperty({ description: '排序方向', required: false, default: 'asc' })
+  @ApiProperty({ description: '排序方向', required: false, default: 'asc', enum: ['asc', 'desc'] })
   @IsOptional()
-  @IsString()
+  @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc' = 'asc';
 }

@@ -21,8 +21,17 @@ let RedisService = RedisService_1 = class RedisService {
     constructor(configService) {
         this.configService = configService;
         this.logger = new common_1.Logger(RedisService_1.name);
+        this.client = null;
+        this.enabled = true;
     }
     async onModuleInit() {
+        const nodeEnv = this.configService.get('NODE_ENV', 'development');
+        const redisEnabled = this.configService.get('REDIS_ENABLED', 'true');
+        this.enabled = redisEnabled !== 'false' && nodeEnv !== 'test';
+        if (!this.enabled) {
+            this.logger.log('Redis已禁用，使用无缓存模式');
+            return;
+        }
         const host = this.configService.get('REDIS_HOST', 'localhost');
         const port = this.configService.get('REDIS_PORT', 6379);
         const password = this.configService.get('REDIS_PASSWORD', '');
@@ -46,10 +55,16 @@ let RedisService = RedisService_1 = class RedisService {
         });
     }
     async onModuleDestroy() {
+        if (!this.client) {
+            return;
+        }
         await this.client.quit();
         this.logger.log('Redis连接已关闭');
     }
     async get(key) {
+        if (!this.client) {
+            return null;
+        }
         try {
             const value = await this.client.get(key);
             if (value) {
@@ -63,6 +78,9 @@ let RedisService = RedisService_1 = class RedisService {
         }
     }
     async set(key, value, ttl) {
+        if (!this.client) {
+            return;
+        }
         try {
             const serialized = JSON.stringify(value);
             await this.client.setex(key, ttl, serialized);
@@ -72,6 +90,9 @@ let RedisService = RedisService_1 = class RedisService {
         }
     }
     async del(key) {
+        if (!this.client) {
+            return;
+        }
         try {
             await this.client.del(key);
         }
@@ -80,6 +101,9 @@ let RedisService = RedisService_1 = class RedisService {
         }
     }
     async delPattern(pattern) {
+        if (!this.client) {
+            return;
+        }
         try {
             const keys = await this.client.keys(pattern);
             if (keys.length > 0) {
@@ -91,6 +115,9 @@ let RedisService = RedisService_1 = class RedisService {
         }
     }
     async exists(key) {
+        if (!this.client) {
+            return false;
+        }
         try {
             const result = await this.client.exists(key);
             return result === 1;
@@ -101,6 +128,12 @@ let RedisService = RedisService_1 = class RedisService {
         }
     }
     async getStats() {
+        if (!this.client) {
+            return {
+                connected: false,
+                dbSize: 0,
+            };
+        }
         try {
             const dbSize = await this.client.dbsize();
             return {

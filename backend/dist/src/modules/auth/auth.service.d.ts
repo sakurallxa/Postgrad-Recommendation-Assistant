@@ -16,7 +16,6 @@ export interface TokenResponse {
 export interface LoginResponse {
     user: {
         id: string;
-        openid: string;
     };
     accessToken: string;
     refreshToken: string;

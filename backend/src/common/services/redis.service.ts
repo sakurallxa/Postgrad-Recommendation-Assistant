@@ -9,11 +9,21 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-  private client: Redis;
+  private client: Redis | null = null;
+  private enabled = true;
 
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit() {
+    const nodeEnv = this.configService.get<string>('NODE_ENV', 'development');
+    const redisEnabled = this.configService.get<string>('REDIS_ENABLED', 'true');
+    this.enabled = redisEnabled !== 'false' && nodeEnv !== 'test';
+
+    if (!this.enabled) {
+      this.logger.log('Redis已禁用，使用无缓存模式');
+      return;
+    }
+
     const host = this.configService.get<string>('REDIS_HOST', 'localhost');
     const port = this.configService.get<number>('REDIS_PORT', 6379);
     const password = this.configService.get<string>('REDIS_PASSWORD', '');
@@ -41,6 +51,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    if (!this.client) {
+      return;
+    }
     await this.client.quit();
     this.logger.log('Redis连接已关闭');
   }
@@ -51,6 +64,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @returns 缓存值，不存在返回null
    */
   async get<T>(key: string): Promise<T | null> {
+    if (!this.client) {
+      return null;
+    }
     try {
       const value = await this.client.get(key);
       if (value) {
@@ -70,6 +86,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @param ttl 过期时间（秒）
    */
   async set(key: string, value: any, ttl: number): Promise<void> {
+    if (!this.client) {
+      return;
+    }
     try {
       const serialized = JSON.stringify(value);
       await this.client.setex(key, ttl, serialized);
@@ -83,6 +102,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @param key 缓存键
    */
   async del(key: string): Promise<void> {
+    if (!this.client) {
+      return;
+    }
     try {
       await this.client.del(key);
     } catch (error) {
@@ -95,6 +117,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @param pattern 匹配模式
    */
   async delPattern(pattern: string): Promise<void> {
+    if (!this.client) {
+      return;
+    }
     try {
       const keys = await this.client.keys(pattern);
       if (keys.length > 0) {
@@ -110,6 +135,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @param key 缓存键
    */
   async exists(key: string): Promise<boolean> {
+    if (!this.client) {
+      return false;
+    }
     try {
       const result = await this.client.exists(key);
       return result === 1;
@@ -126,6 +154,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     connected: boolean;
     dbSize: number;
   }> {
+    if (!this.client) {
+      return {
+        connected: false,
+        dbSize: 0,
+      };
+    }
     try {
       const dbSize = await this.client.dbsize();
       return {

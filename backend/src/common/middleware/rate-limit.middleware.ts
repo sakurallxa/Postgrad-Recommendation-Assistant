@@ -19,13 +19,15 @@ export class RateLimitMiddleware implements NestMiddleware {
   private readonly requestMap = new Map<string, RequestRecord>();
   private readonly windowMs: number;
   private readonly maxRequests: number;
+  private readonly cleanupTimer: NodeJS.Timeout;
 
   constructor(private readonly configService: ConfigService) {
     this.windowMs = this.configService.get<number>('RATE_LIMIT_WINDOW', 60000); // 默认1分钟
     this.maxRequests = this.configService.get<number>('RATE_LIMIT_MAX', 100); // 默认100请求
 
-    // 定期清理过期的请求记录
-    setInterval(() => this.cleanup(), this.windowMs);
+    // 定期清理过期的请求记录，unref避免阻塞进程退出
+    this.cleanupTimer = setInterval(() => this.cleanup(), this.windowMs);
+    this.cleanupTimer.unref();
   }
 
   use(req: Request, res: Response, next: NextFunction) {

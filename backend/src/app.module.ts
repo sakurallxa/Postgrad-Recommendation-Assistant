@@ -20,8 +20,8 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
       envFilePath: '.env',
     }),
 
-    // 定时任务模块
-    ScheduleModule.forRoot(),
+    // 测试环境禁用定时任务，避免Jest句柄泄漏
+    ...(process.env.NODE_ENV === 'test' ? [] : [ScheduleModule.forRoot()]),
 
     // 数据库模块
     PrismaModule,
