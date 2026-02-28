@@ -37,6 +37,106 @@ const PROVINCE_REGION_MAP = {
   黑龙江: '东北'
 }
 
+// 常见院校名称首字到拼音首字母的兜底映射（用于后端未提供 letter/initial 时）
+const FIRST_CHAR_INITIAL_MAP = {
+  安: 'A',
+  北: 'B',
+  材: 'C',
+  草: 'C',
+  长: 'C',
+  重: 'C',
+  大: 'D',
+  电: 'D',
+  东: 'D',
+  对: 'D',
+  法: 'F',
+  福: 'F',
+  复: 'F',
+  工: 'G',
+  公: 'G',
+  管: 'G',
+  广: 'G',
+  贵: 'G',
+  国: 'G',
+  哈: 'H',
+  海: 'H',
+  合: 'H',
+  河: 'H',
+  湖: 'H',
+  护: 'H',
+  华: 'H',
+  化: 'H',
+  机: 'J',
+  基: 'J',
+  吉: 'J',
+  计: 'J',
+  暨: 'J',
+  建: 'J',
+  江: 'J',
+  教: 'J',
+  空: 'K',
+  控: 'K',
+  口: 'K',
+  兰: 'L',
+  理: 'L',
+  历: 'L',
+  辽: 'L',
+  林: 'L',
+  临: 'L',
+  马: 'M',
+  美: 'M',
+  南: 'N',
+  内: 'N',
+  宁: 'N',
+  农: 'N',
+  青: 'Q',
+  清: 'Q',
+  软: 'R',
+  厦: 'X',
+  山: 'S',
+  陕: 'S',
+  上: 'S',
+  设: 'S',
+  社: 'S',
+  生: 'S',
+  石: 'S',
+  首: 'S',
+  兽: 'S',
+  数: 'S',
+  水: 'S',
+  四: 'S',
+  苏: 'S',
+  太: 'T',
+  体: 'T',
+  天: 'T',
+  通: 'T',
+  同: 'T',
+  统: 'T',
+  土: 'T',
+  外: 'W',
+  武: 'W',
+  物: 'W',
+  西: 'X',
+  戏: 'X',
+  心: 'X',
+  新: 'X',
+  畜: 'X',
+  延: 'Y',
+  药: 'Y',
+  艺: 'Y',
+  音: 'Y',
+  应: 'Y',
+  园: 'Y',
+  云: 'Y',
+  哲: 'Z',
+  浙: 'Z',
+  郑: 'Z',
+  政: 'Z',
+  植: 'Z',
+  中: 'Z',
+  作: 'Z'
+}
+
 Page({
   data: {
     // 筛选选项
@@ -289,6 +389,13 @@ Page({
   compareUniversityName(a, b) {
     const aName = (a.name || '').trim();
     const bName = (b.name || '').trim();
+
+    const aLetter = this.resolveLetter(a);
+    const bLetter = this.resolveLetter(b);
+    if (aLetter !== bLetter) {
+      return aLetter.localeCompare(bLetter);
+    }
+
     try {
       return aName.localeCompare(bName, 'zh-Hans-CN-u-co-pinyin');
     } catch (error) {
@@ -309,7 +416,15 @@ Page({
     }
 
     const firstChar = String(item.name || '').trim().charAt(0).toUpperCase();
-    return firstChar || '#';
+    if (/^[A-Z]$/.test(firstChar)) {
+      return firstChar;
+    }
+
+    if (firstChar && FIRST_CHAR_INITIAL_MAP[firstChar]) {
+      return FIRST_CHAR_INITIAL_MAP[firstChar];
+    }
+
+    return '#';
   },
 
   resolveProvince(item) {
