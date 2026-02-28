@@ -17,7 +17,7 @@
     <view class="filter-group">
       <view 
         wx:for="{{regionFilters}}" 
-        wx:key="{{item.value}}"
+        wx:key="value"
         class="filter-tag {{selectedRegion === item.value ? 'active' : ''}}"
         bindtap="onRegionFilterTap"
         data-value="{{item.value}}"
@@ -29,7 +29,7 @@
       <scroll-view class="province-scroll" scroll-x>
         <view 
           wx:for="{{provinceFilters}}" 
-          wx:key="{{item.value}}"
+          wx:key="value"
           class="filter-tag province-filter-tag {{selectedProvince === item.value ? 'active' : ''}}"
           bindtap="onProvinceFilterTap"
           data-value="{{item.value}}"
@@ -41,7 +41,7 @@
     <view class="filter-group">
       <view 
         wx:for="{{levelFilters}}" 
-        wx:key="{{item.value}}"
+        wx:key="value"
         class="filter-tag {{selectedLevel === item.value ? 'active' : ''}}"
         bindtap="onLevelFilterTap"
         data-value="{{item.value}}"
@@ -62,7 +62,7 @@
     <view class="selected-tags" wx:if="{{isSelectedSectionExpanded && selectedUniversities.length > 0}}">
       <view 
         wx:for="{{selectedUniversities}}" 
-        wx:key="{{item.id}}"
+        wx:key="id"
         class="selected-tag"
       >
         <text class="tag-text">{{item.name}}</text>
@@ -85,14 +85,14 @@
     <view wx:else class="university-list-content">
       <view 
         wx:for="{{groupedUniversities}}" 
-        wx:key="{{item.letter}}"
+        wx:key="letter"
         class="university-group"
       >
         <view class="group-letter">{{item.letter}}</view>
         <view class="university-list">
           <view 
             wx:for="{{item.universities}}" 
-            wx:key="{{item.id}}"
+            wx:key="id"
             class="university-item"
             bindtap="onUniversityTap"
             data-id="{{item.id}}"
