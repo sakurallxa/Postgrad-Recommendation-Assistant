@@ -2,6 +2,41 @@
 import { selectionStore } from '../../../store/selection'
 import { universityService } from '../../../services/university'
 
+const MACRO_REGIONS = ['华北', '华东', '华南', '华中', '西南', '西北', '东北']
+const PROVINCE_REGION_MAP = {
+  北京: '华北',
+  天津: '华北',
+  河北: '华北',
+  山西: '华北',
+  内蒙古: '华北',
+  上海: '华东',
+  江苏: '华东',
+  浙江: '华东',
+  安徽: '华东',
+  福建: '华东',
+  江西: '华东',
+  山东: '华东',
+  广东: '华南',
+  广西: '华南',
+  海南: '华南',
+  河南: '华中',
+  湖北: '华中',
+  湖南: '华中',
+  重庆: '西南',
+  四川: '西南',
+  贵州: '西南',
+  云南: '西南',
+  西藏: '西南',
+  陕西: '西北',
+  甘肃: '西北',
+  青海: '西北',
+  宁夏: '西北',
+  新疆: '西北',
+  辽宁: '东北',
+  吉林: '东北',
+  黑龙江: '东北'
+}
+
 Page({
   data: {
     // 筛选选项
@@ -22,10 +57,14 @@ Page({
       { label: '双一流', value: '双一流' },
       { label: '普通', value: '普通' }
     ],
+    provinceFilters: [
+      { label: '全部', value: '' }
+    ],
     
     // 选中的筛选条件
     selectedRegion: '',
     selectedLevel: '',
+    selectedProvince: '',
     searchKeyword: '',
     
     // 已选院校
@@ -57,9 +96,14 @@ Page({
       const result = await universityService.getUniversityList();
       const universities = result.list.map(item => ({
         ...item,
-        letter: item.name.charAt(0).toUpperCase()
+        province: this.resolveProvince(item),
+        region: this.resolveRegion(item),
+        letter: this.resolveLetter(item)
       }));
-      this.setData({ universities });
+      this.setData({
+        universities,
+        provinceFilters: this.buildProvinceFilters(universities)
+      });
       this.groupUniversities();
     } catch (error) {
       console.error('加载院校列表失败:', error);
@@ -71,7 +115,7 @@ Page({
 
   // 分组院校列表
   groupUniversities() {
-    const filtered = this.filterUniversities();
+    const filtered = this.getSortedUniversities(this.filterUniversities());
     const grouped = {};
     
     filtered.forEach(university => {
@@ -84,7 +128,7 @@ Page({
     
     // 转换为数组并按字母排序
     const groupedArray = Object.keys(grouped)
-      .sort()
+      .sort((a, b) => this.compareGroupLetter(a, b))
       .map(letter => ({
         letter,
         universities: grouped[letter]
@@ -97,11 +141,22 @@ Page({
 
   // 筛选院校
   filterUniversities() {
-    const { universities, selectedRegion, selectedLevel, searchKeyword } = this.data;
+    const {
+      universities,
+      selectedRegion,
+      selectedLevel,
+      selectedProvince,
+      searchKeyword
+    } = this.data;
     
     return universities.filter(university => {
       // 地区筛选
       if (selectedRegion && university.region !== selectedRegion) {
+        return false;
+      }
+
+      // 省份筛选
+      if (selectedProvince && university.province !== selectedProvince) {
         return false;
       }
       
@@ -139,6 +194,14 @@ Page({
   onLevelFilterTap(e) {
     this.setData({
       selectedLevel: e.currentTarget.dataset.value
+    });
+    this.groupUniversities();
+  },
+
+  // 省份筛选点击
+  onProvinceFilterTap(e) {
+    this.setData({
+      selectedProvince: e.currentTarget.dataset.value
     });
     this.groupUniversities();
   },
@@ -203,5 +266,73 @@ Page({
     setTimeout(() => {
       wx.navigateBack();
     }, 1000);
+  },
+
+  // 生成省份筛选项
+  buildProvinceFilters(universities) {
+    const provinces = universities
+      .map(university => university.province)
+      .filter(Boolean)
+      .filter((value, index, arr) => arr.indexOf(value) === index)
+      .sort((a, b) => this.compareUniversityName({ name: a }, { name: b }));
+
+    return [{ label: '全部', value: '' }].concat(
+      provinces.map(province => ({ label: province, value: province }))
+    );
+  },
+
+  // 统一院校排序（中文按拼音顺序）
+  getSortedUniversities(universities) {
+    return universities.slice().sort((a, b) => this.compareUniversityName(a, b));
+  },
+
+  compareUniversityName(a, b) {
+    const aName = (a.name || '').trim();
+    const bName = (b.name || '').trim();
+    try {
+      return aName.localeCompare(bName, 'zh-Hans-CN-u-co-pinyin');
+    } catch (error) {
+      return aName.localeCompare(bName, 'zh-Hans-CN');
+    }
+  },
+
+  compareGroupLetter(a, b) {
+    if (a === '#' && b !== '#') return 1;
+    if (a !== '#' && b === '#') return -1;
+    return this.compareUniversityName({ name: a }, { name: b });
+  },
+
+  resolveLetter(item) {
+    const rawLetter = String(item.letter || item.initial || '').trim().toUpperCase();
+    if (/^[A-Z]$/.test(rawLetter)) {
+      return rawLetter;
+    }
+
+    const firstChar = String(item.name || '').trim().charAt(0).toUpperCase();
+    return firstChar || '#';
+  },
+
+  resolveProvince(item) {
+    const province = String(item.province || '').trim();
+    if (province) {
+      return province;
+    }
+
+    const region = String(item.region || '').trim();
+    if (region && !MACRO_REGIONS.includes(region)) {
+      return region;
+    }
+
+    return '';
+  },
+
+  resolveRegion(item) {
+    const region = String(item.region || '').trim();
+    if (MACRO_REGIONS.includes(region)) {
+      return region;
+    }
+
+    const province = this.resolveProvince(item);
+    return PROVINCE_REGION_MAP[province] || '';
   }
 });

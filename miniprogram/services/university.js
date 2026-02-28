@@ -15,6 +15,7 @@ export const universityService = {
             shortName: '清华',
             logo: '',
             region: '华北',
+            province: '北京',
             level: '985'
           },
           {
@@ -23,6 +24,7 @@ export const universityService = {
             shortName: '北大',
             logo: '',
             region: '华北',
+            province: '北京',
             level: '985'
           },
           {
@@ -31,6 +33,7 @@ export const universityService = {
             shortName: '复旦',
             logo: '',
             region: '华东',
+            province: '上海',
             level: '985'
           }
         ],

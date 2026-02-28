@@ -52,6 +52,15 @@
   margin-bottom: 0;
 }
 
+.province-filter-group {
+  margin-right: -16px;
+}
+
+.province-scroll {
+  white-space: nowrap;
+  padding-right: 16px;
+}
+
 .filter-tag {
   padding: 6px 12px;
   border: 1px solid #DADCE0;
@@ -61,6 +70,11 @@
   margin-right: 8px;
   margin-bottom: 8px;
   background-color: #FFFFFF;
+}
+
+.province-filter-tag {
+  display: inline-block;
+  margin-bottom: 0;
 }
 
 .filter-tag.active {
@@ -277,6 +291,7 @@
   min-width: 90px;
   text-align: center;
   line-height: 1.4;
+  margin: 0 0 0 auto;
 }
 
 .confirm-btn::after {

@@ -25,6 +25,19 @@
         {{item.label}}
       </view>
     </view>
+    <view class="filter-group province-filter-group">
+      <scroll-view class="province-scroll" scroll-x>
+        <view 
+          wx:for="{{provinceFilters}}" 
+          wx:key="{{item.value}}"
+          class="filter-tag province-filter-tag {{selectedProvince === item.value ? 'active' : ''}}"
+          bindtap="onProvinceFilterTap"
+          data-value="{{item.value}}"
+        >
+          {{item.label}}
+        </view>
+      </scroll-view>
+    </view>
     <view class="filter-group">
       <view 
         wx:for="{{levelFilters}}" 
