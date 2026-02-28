@@ -24,11 +24,17 @@ App({
   },
   
   initGlobalData() {
+    const savedApiBaseUrl = wx.getStorageSync('apiBaseUrl')
+    const isLegacyInvalidDomain = typeof savedApiBaseUrl === 'string' && savedApiBaseUrl.indexOf('api.baoyan.com') > -1
+    const resolvedApiBaseUrl = (!savedApiBaseUrl || isLegacyInvalidDomain)
+      ? 'https://7072-prod-3gtxp94je7bc33d7-1407249275.tcb.qcloud.la/v1'
+      : savedApiBaseUrl
     this.globalData = {
       userInfo: null,
       token: '',
       isLoggedIn: false,
-      apiBaseUrl: 'https://api.baoyan.com/v1'
+      // 默认使用已在开发者工具配置的合法域名，可通过 wx.setStorageSync('apiBaseUrl', '...') 覆盖
+      apiBaseUrl: resolvedApiBaseUrl
     }
   },
   

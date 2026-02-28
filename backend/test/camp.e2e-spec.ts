@@ -92,6 +92,24 @@ describe('CampModule (integration)', () => {
     expect(result.data[0].id).toBe(publishedCampId);
   });
 
+  it('获取夏令营列表 - 支持年份筛选', async () => {
+    const result = await campService.findAll({
+      page: 1,
+      limit: 20,
+      year: 2026,
+    });
+
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].title).toContain('2026');
+  });
+
+  it('获取夏令营列表 - status=all 可返回非published记录', async () => {
+    const result = await campService.findAll({ page: 1, limit: 20, status: 'all' });
+
+    expect(result.data.length).toBeGreaterThanOrEqual(2);
+    expect(result.data.some(item => item.status === 'draft')).toBe(true);
+  });
+
   it('获取夏令营详情 - 成功', async () => {
     const result = await campService.findOne(publishedCampId);
 

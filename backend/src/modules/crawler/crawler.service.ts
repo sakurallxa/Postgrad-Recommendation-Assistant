@@ -10,6 +10,7 @@ interface CrawlerTask {
   status: 'pending' | 'running' | 'completed' | 'failed';
   universityId?: string;
   priority?: string;
+  yearSpan?: number;
   startTime?: Date;
   endTime?: Date;
   result?: any;
@@ -38,7 +39,7 @@ export class CrawlerService {
    * 触发爬虫任务
    * 支持全量爬取或指定院校
    */
-  async trigger(universityId?: string, priority?: string) {
+  async trigger(universityId?: string, priority?: string, yearSpan: number = 3) {
     // 检查是否已有运行中的任务
     const runningTasks = Array.from(this.activeTasks.values()).filter(
       task => task.status === 'running'
@@ -47,8 +48,6 @@ export class CrawlerService {
     if (runningTasks.length > 0) {
       throw new BadRequestException('已有爬虫任务正在运行，请等待完成后再触发');
     }
-
-    const taskId = this.generateTaskId();
 
     // 先创建数据库记录，获取logId
     const log = await this.prisma.crawlerLog.create({
@@ -59,6 +58,9 @@ export class CrawlerService {
       },
     });
 
+    // 统一任务ID语义：对外taskId恒等于数据库log.id
+    const taskId = log.id;
+
     // 创建任务记录
     const task: CrawlerTask = {
       id: taskId,
@@ -66,6 +68,7 @@ export class CrawlerService {
       status: 'pending',
       universityId,
       priority,
+      yearSpan,
     };
     this.activeTasks.set(taskId, task);
 
@@ -96,6 +99,7 @@ export class CrawlerService {
       if (task.priority) {
         args.push('-a', `priority=${task.priority}`);
       }
+      args.push('-a', `year_span=${task.yearSpan || 3}`);
 
       this.logger.log(`启动爬虫任务: ${task.id}, 参数: ${args.join(' ')}`);
 
@@ -276,23 +280,7 @@ export class CrawlerService {
       };
     }
 
-    // 内存中没有找到，尝试按taskId查找对应的logId映射
-    // 遍历所有活跃任务查找是否有匹配的logId
-    for (const [, activeTask] of this.activeTasks) {
-      if (activeTask.logId === taskId) {
-        return {
-          taskId: activeTask.id,
-          logId: activeTask.logId,
-          status: activeTask.status,
-          startTime: activeTask.startTime,
-          endTime: activeTask.endTime,
-          result: activeTask.result,
-          error: activeTask.error,
-        };
-      }
-    }
-
-    // 从数据库查询历史任务（支持按logId查询）
+    // 从数据库查询历史任务
     const log = await this.prisma.crawlerLog.findFirst({
       where: { id: taskId },
     });
@@ -310,12 +298,5 @@ export class CrawlerService {
       startTime: log.startTime,
       endTime: log.endTime,
     };
-  }
-
-  /**
-   * 生成任务ID
-   */
-  private generateTaskId(): string {
-    return `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 }

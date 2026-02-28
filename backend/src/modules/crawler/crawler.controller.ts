@@ -14,11 +14,18 @@ export class CrawlerController {
   @ApiOperation({ summary: '手动触发爬虫', description: '触发爬虫任务，支持全量爬取或指定院校' })
   @ApiQuery({ name: 'universityId', required: false, description: '指定院校ID' })
   @ApiQuery({ name: 'priority', required: false, description: '优先级筛选 (P0/P1/P2/P3)' })
+  @ApiQuery({ name: 'yearSpan', required: false, description: '抓取近N年数据，默认3年' })
   async trigger(
     @Query('universityId') universityId?: string,
     @Query('priority') priority?: string,
+    @Query('yearSpan') yearSpan?: string,
   ) {
-    return this.crawlerService.trigger(universityId, priority);
+    const parsedYearSpan = yearSpan ? Number(yearSpan) : 3;
+    return this.crawlerService.trigger(
+      universityId,
+      priority,
+      Number.isFinite(parsedYearSpan) && parsedYearSpan > 0 ? parsedYearSpan : 3,
+    );
   }
 
   @Get('logs')

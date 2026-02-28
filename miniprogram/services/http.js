@@ -5,6 +5,24 @@ class HttpClient {
     this.requestQueue = new Map()
   }
 
+  getBaseUrl() {
+    const app = getApp()
+    const configured = app?.globalData?.apiBaseUrl
+    if (configured) {
+      return configured
+    }
+    // 兜底值，保证调试环境不触发非法域名
+    return 'https://7072-prod-3gtxp94je7bc33d7-1407249275.tcb.qcloud.la/v1'
+  }
+
+  getFallbackBaseUrl(baseUrl) {
+    if (typeof baseUrl !== 'string') return ''
+    if (baseUrl.endsWith('/v1')) {
+      return baseUrl.slice(0, -3)
+    }
+    return ''
+  }
+
   async request(config) {
     const { url, method = 'GET', data, header = {}, showLoading = true, showError = true } = config
 
@@ -27,14 +45,42 @@ class HttpClient {
       }
 
       const response = await new Promise((resolve, reject) => {
+        const baseUrl = this.getBaseUrl()
+        const requestUrl = `${baseUrl}${url}`
         wx.request({
-          url: `https://api.baoyan.com/v1${url}`,
+          url: requestUrl,
           method,
           data,
           header: headers,
           success: (res) => {
             if (res.statusCode === 200) {
               resolve(res.data)
+            } else if (res.statusCode === 404 && method === 'GET') {
+              const fallbackBaseUrl = this.getFallbackBaseUrl(baseUrl)
+              if (!fallbackBaseUrl) {
+                reject(new Error(`请求失败: ${res.statusCode}`))
+                return
+              }
+
+              wx.request({
+                url: `${fallbackBaseUrl}${url}`,
+                method,
+                data,
+                header: headers,
+                success: (fallbackRes) => {
+                  if (fallbackRes.statusCode === 200) {
+                    resolve(fallbackRes.data)
+                  } else if (fallbackRes.statusCode === 401) {
+                    this.handleUnauthorized()
+                    reject(new Error('登录已过期'))
+                  } else {
+                    reject(new Error(`请求失败: ${fallbackRes.statusCode}`))
+                  }
+                },
+                fail: (fallbackErr) => {
+                  reject(new Error(fallbackErr.errMsg || '网络请求失败'))
+                }
+              })
             } else if (res.statusCode === 401) {
               this.handleUnauthorized()
               reject(new Error('登录已过期'))

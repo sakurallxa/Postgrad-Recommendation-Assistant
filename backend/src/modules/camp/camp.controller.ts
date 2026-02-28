@@ -13,9 +13,24 @@ export class CampController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
     @Query('universityId') universityId?: string,
+    @Query('universityIds') universityIds?: string,
     @Query('majorId') majorId?: string,
+    @Query('status') status?: string,
+    @Query('year') year?: string,
   ) {
-    return this.campService.findAll({ page, limit, universityId, majorId });
+    const parsedUniversityIds = universityIds
+      ? universityIds.split(',').map(id => id.trim()).filter(Boolean)
+      : undefined;
+    const parsedYear = year ? Number(year) : undefined;
+    return this.campService.findAll({
+      page,
+      limit,
+      universityId,
+      universityIds: parsedUniversityIds,
+      majorId,
+      status,
+      year: Number.isFinite(parsedYear) ? parsedYear : undefined,
+    });
   }
 
   @Get(':id')

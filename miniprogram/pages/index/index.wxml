@@ -18,8 +18,8 @@
     </view>
     
     <view wx:if="{{urgentCamps.length > 0}}" class="urgent-camps">
-      <scroll-view scroll-x="true" class="urgent-scroll">
-        <view wx:for="{{urgentCamps}}" wx:key="id" class="urgent-card">
+      <scroll-view scroll-x="true" enable-flex="true" class="urgent-scroll">
+        <view wx:for="{{urgentCamps}}" wx:key="id" class="urgent-card" bindtap="handleUrgentCampTap" data-id="{{item.id}}">
           <view class="countdown {{item.statusClass}}">
             <text class="countdown-number">{{item.daysRemaining}}</text>
             <text class="countdown-unit">天</text>
@@ -41,18 +41,53 @@
     <view class="section-header-vertical">
       <text class="section-title">我的夏令营</text>
       <view class="filter-bar">
-        <view 
-          wx:for="{{filterOptions}}" 
-          wx:key="value"
-          class="filter-item {{activeFilter === item.value ? 'active' : ''}}"
-          bindtap="handleFilterChange" 
-          data-value="{{item.value}}"
-        >
-          {{item.label}}
+        <view class="filter-row">
+          <text class="filter-label">状态</text>
+          <scroll-view scroll-x enable-flex="true" class="filter-scroll">
+            <view
+              wx:for="{{statusFilterOptions}}"
+              wx:key="value"
+              class="filter-item {{activeStatusFilter === item.value ? 'active' : ''}}"
+              bindtap="handleFilterChange"
+              data-value="{{item.value}}"
+            >
+              {{item.label}}
+            </view>
+          </scroll-view>
         </view>
-        <navigator url="/packageSelector/pages/selector/index" class="filter-btn">
-          筛选 ▼
-        </navigator>
+        <view class="filter-row">
+          <text class="filter-label">年份</text>
+          <scroll-view scroll-x enable-flex="true" class="filter-scroll">
+            <view
+              wx:for="{{yearFilterOptions}}"
+              wx:key="value"
+              class="filter-item {{activeYearFilter === item.value ? 'active' : ''}}"
+              bindtap="handleYearFilterChange"
+              data-value="{{item.value}}"
+            >
+              {{item.label}}
+            </view>
+          </scroll-view>
+        </view>
+        <view class="filter-row">
+          <text class="filter-label">院校</text>
+          <scroll-view scroll-x enable-flex="true" class="filter-scroll">
+            <view
+              wx:for="{{universityFilterOptions}}"
+              wx:key="value"
+              class="filter-item {{activeUniversityFilter === item.value ? 'active' : ''}}"
+              bindtap="handleUniversityFilterChange"
+              data-value="{{item.value}}"
+            >
+              {{item.label}}
+            </view>
+          </scroll-view>
+        </view>
+        <view class="filter-actions">
+          <navigator url="/packageSelector/pages/selector/index" class="filter-btn">
+            筛选院校 ▼
+          </navigator>
+        </view>
       </view>
     </view>
     

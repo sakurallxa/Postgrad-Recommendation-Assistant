@@ -22,7 +22,7 @@ class UniversitySpider(scrapy.Spider):
         'RETRY_HTTP_CODES': [500, 502, 503, 504, 408, 429],
     }
     
-    def __init__(self, university_id=None, priority=None, **kwargs):
+    def __init__(self, university_id=None, priority=None, year_span=3, **kwargs):
         """
         初始化爬虫
         :param university_id: 指定院校ID
@@ -31,6 +31,13 @@ class UniversitySpider(scrapy.Spider):
         super().__init__(**kwargs)
         self.university_id = university_id
         self.priority = priority
+        try:
+            parsed_span = int(year_span)
+        except (TypeError, ValueError):
+            parsed_span = 3
+        self.year_span = max(1, min(parsed_span, 5))
+        current_year = datetime.now().year
+        self.target_years = [current_year - i for i in range(self.year_span)]
         
     def start_requests(self):
         """生成初始请求"""
@@ -143,20 +150,28 @@ class UniversitySpider(scrapy.Spider):
         
         # 使用多种选择器策略
         selectors = [
-            '//a[contains(@href, "camp") or contains(@title, "夏令营")]/@href',
-            '//a[contains(text(), "夏令营")]/@href',
-            '//a[contains(text(), "暑期学校")]/@href',
-            '//a[contains(text(), "推免")]/@href',
+            '//a[contains(@href, "camp") or contains(@title, "夏令营")]',
+            '//a[contains(text(), "夏令营")]',
+            '//a[contains(text(), "暑期学校")]',
+            '//a[contains(text(), "推免")]',
         ]
         
         for selector in selectors:
-            for href in response.xpath(selector).getall():
+            nodes = response.xpath(selector)
+            for node in nodes:
+                href = node.xpath('./@href').get()
+                if not href:
+                    continue
+                title = ''.join(node.xpath('.//text()').getall()).strip()
+                title_attr = node.xpath('./@title').get()
+                if title_attr:
+                    title = f"{title} {title_attr}".strip()
                 url = urljoin(response.url, href)
                 # 过滤无效链接
-                if self.is_valid_url(url):
+                if self.is_valid_url(url) and self.is_target_year_text(f'{title} {url}'):
                     links.append({
                         'url': url,
-                        'title': '',  # 后续提取
+                        'title': title,
                     })
         
         # 去重
@@ -212,7 +227,7 @@ class UniversitySpider(scrapy.Spider):
         # 使用AI提取结构化信息
         camp_info = self.extract_with_ai(content, university)
         
-        if camp_info:
+        if camp_info and self.is_within_target_year(camp_info, content, response):
             item = CampInfoItem()
             item['title'] = camp_info.get('title', '')
             item['university_id'] = university['id']
@@ -227,6 +242,47 @@ class UniversitySpider(scrapy.Spider):
             item['content'] = content
             
             yield item
+
+    def is_target_year_text(self, text):
+        """快速判断文本是否落在目标年份窗口"""
+        normalized = (text or '').strip()
+        if not normalized:
+            return False
+
+        for year in self.target_years:
+            short_year = str(year)[-2:]
+            if str(year) in normalized or f'{short_year}年' in normalized:
+                return True
+
+        # 未识别年份但具备目标关键词时保留，详情页再做二次过滤
+        keywords = ['夏令营', '暑期学校', '推免']
+        return any(keyword in normalized for keyword in keywords)
+
+    def is_within_target_year(self, camp_info, content, response):
+        """详情页二次年份过滤：优先结构化日期，其次正文/标题关键词"""
+        date_fields = [
+            camp_info.get('publish_date'),
+            camp_info.get('deadline'),
+            camp_info.get('start_date'),
+            camp_info.get('end_date'),
+        ]
+
+        for value in date_fields:
+            if not value:
+                continue
+            try:
+                year = datetime.fromisoformat(value).year
+                if year in self.target_years:
+                    return True
+            except Exception:
+                continue
+
+        merged_text = ' '.join([
+            camp_info.get('title', ''),
+            response.url,
+            content[:500] if content else '',
+        ])
+        return self.is_target_year_text(merged_text)
     
     def extract_content(self, response):
         """提取页面正文内容"""

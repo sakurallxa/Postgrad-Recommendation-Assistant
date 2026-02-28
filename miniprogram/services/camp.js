@@ -11,19 +11,34 @@ class CampService {
    * @param {number} params.page - 页码，默认1
    * @param {number} params.limit - 每页数量，默认20
    * @param {string} params.universityId - 院校ID筛选
+   * @param {string|string[]} params.universityIds - 院校ID列表筛选
    * @param {string} params.majorId - 专业ID筛选
+   * @param {string} params.status - 状态筛选(all/published/expired/draft)
+   * @param {number|string} params.year - 年份筛选
    * @param {string} params.keyword - 关键词搜索
    * @returns {Promise} 夏令营列表数据
    */
-  async getCamps(params = {}) {
-    const { page = 1, limit = 20, universityId, majorId, keyword } = params
+  async getCamps(params = {}, config = {}) {
+    const {
+      page = 1,
+      limit = 20,
+      universityId,
+      universityIds,
+      majorId,
+      status,
+      year,
+      keyword
+    } = params
     const queryParams = { page, limit }
     
     if (universityId) queryParams.universityId = universityId
+    if (universityIds && universityIds.length > 0) queryParams.universityIds = universityIds
     if (majorId) queryParams.majorId = majorId
+    if (status && status !== 'all') queryParams.status = status
+    if (year && year !== 'all') queryParams.year = year
     if (keyword) queryParams.keyword = keyword
     
-    return http.get('/camps', queryParams)
+    return http.get('/camps', queryParams, config)
   }
 
   /**
