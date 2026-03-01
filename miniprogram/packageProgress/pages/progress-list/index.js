@@ -39,8 +39,34 @@ Page({
     this.loadData().finally(() => wx.stopPullDownRefresh())
   },
 
+  shouldUseRemoteProgressApi() {
+    const app = getApp()
+    const baseUrl = app?.globalData?.apiBaseUrl || ''
+    const forceRemote = wx.getStorageSync('forceRemoteProgressApi')
+    if (forceRemote === true) return true
+    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
+      return false
+    }
+    return Boolean(baseUrl)
+  },
+
+  loadFallbackData() {
+    const fallbackList = wx.getStorageSync('progressFallbackList') || []
+    this.setData({
+      progressList: fallbackList,
+      alertList: [],
+      loading: false,
+      useFallback: true
+    })
+  },
+
   async loadData() {
     this.setData({ loading: true })
+
+    if (!this.shouldUseRemoteProgressApi()) {
+      this.loadFallbackData()
+      return
+    }
 
     try {
       const [progressResult, alertResult] = await Promise.all([
@@ -48,11 +74,17 @@ Page({
           page: 1,
           limit: 50,
           status: this.data.activeStatus
+        }, {
+          showLoading: false,
+          showError: false
         }),
         progressService.getAlerts({
           page: 1,
           limit: 20,
           status: 'pending'
+        }, {
+          showLoading: false,
+          showError: false
         })
       ])
 
@@ -67,13 +99,7 @@ Page({
       })
       wx.setStorageSync('progressFallbackList', progressList)
     } catch (error) {
-      const fallbackList = wx.getStorageSync('progressFallbackList') || []
-      this.setData({
-        progressList: fallbackList,
-        alertList: [],
-        loading: false,
-        useFallback: true
-      })
+      this.loadFallbackData()
     }
   },
 

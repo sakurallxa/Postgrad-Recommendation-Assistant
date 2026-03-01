@@ -176,7 +176,10 @@ Page({
 
     try {
       if (this.shouldUseRemoteProgressApi()) {
-        const progress = await progressService.createProgress({ campId })
+        const progress = await progressService.createProgress({ campId }, {
+          showLoading: false,
+          showError: false
+        })
         this.setData({
           campDetail: {
             ...this.data.campDetail,

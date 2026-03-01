@@ -52,13 +52,72 @@ Page({
     this.loadData().finally(() => wx.stopPullDownRefresh())
   },
 
+  shouldUseRemoteProgressApi() {
+    const app = getApp()
+    const baseUrl = app?.globalData?.apiBaseUrl || ''
+    const forceRemote = wx.getStorageSync('forceRemoteProgressApi')
+    if (forceRemote === true) return true
+    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
+      return false
+    }
+    return Boolean(baseUrl)
+  },
+
+  loadFallbackDetail() {
+    const fallback = (wx.getStorageSync('progressFallbackList') || []).find(
+      item => item.id === this.data.progressId
+    )
+    if (fallback) {
+      this.setData({
+        progress: {
+          id: fallback.id,
+          status: fallback.status,
+          statusText: fallback.statusText,
+          nextAction: fallback.nextAction,
+          camp: {
+            title: fallback.campTitle,
+            university: { name: fallback.universityName },
+            deadline: fallback.deadlineText
+          },
+          statusLogs: []
+        },
+        nextStatusOptions: this.getNextStatusOptions(fallback.status),
+        statusLogs: [],
+        alerts: [],
+        loading: false,
+        useFallback: true
+      })
+      return true
+    }
+    return false
+  },
+
   async loadData() {
     this.setData({ loading: true })
+
+    if (!this.shouldUseRemoteProgressApi()) {
+      const loaded = this.loadFallbackDetail()
+      if (!loaded) {
+        this.setData({ loading: false })
+        wx.showToast({ title: '暂无本地进展数据', icon: 'none' })
+      }
+      return
+    }
+
     try {
       const [progressDetail, subscriptionResult, alertsResult] = await Promise.all([
-        progressService.getProgressDetail(this.data.progressId),
-        progressService.getSubscription(this.data.progressId),
-        progressService.getAlerts({ page: 1, limit: 50, status: 'pending' })
+        progressService.getProgressDetail(this.data.progressId, {
+          showLoading: false,
+          showError: false
+        }),
+        progressService.getSubscription(this.data.progressId, {
+          showLoading: false,
+          showError: false
+        }),
+        progressService.getAlerts({ page: 1, limit: 50, status: 'pending' }, {
+          showLoading: false,
+          showError: false
+        })
       ])
 
       const progress = this.normalizeProgress(progressDetail)
@@ -76,30 +135,8 @@ Page({
         useFallback: false
       })
     } catch (error) {
-      const fallback = (wx.getStorageSync('progressFallbackList') || []).find(
-        item => item.id === this.data.progressId
-      )
-      if (fallback) {
-        this.setData({
-          progress: {
-            id: fallback.id,
-            status: fallback.status,
-            statusText: fallback.statusText,
-            nextAction: fallback.nextAction,
-            camp: {
-              title: fallback.campTitle,
-              university: { name: fallback.universityName },
-              deadline: fallback.deadlineText
-            },
-            statusLogs: []
-          },
-          nextStatusOptions: this.getNextStatusOptions(fallback.status),
-          statusLogs: [],
-          alerts: [],
-          loading: false,
-          useFallback: true
-        })
-      } else {
+      const loaded = this.loadFallbackDetail()
+      if (!loaded) {
         this.setData({ loading: false })
         wx.showToast({ title: '加载失败', icon: 'none' })
       }
@@ -170,7 +207,9 @@ Page({
     }
     wx.showLoading({ title: '更新中...' })
     try {
-      await progressService.updateProgressStatus(this.data.progressId, { status })
+      await progressService.updateProgressStatus(this.data.progressId, { status }, {
+        showLoading: false
+      })
       await this.loadData()
       wx.showToast({ title: '状态已更新', icon: 'success' })
     } catch (error) {
@@ -198,7 +237,9 @@ Page({
     }
     wx.showLoading({ title: '保存中...' })
     try {
-      await progressService.updateSubscription(this.data.progressId, this.data.subscription)
+      await progressService.updateSubscription(this.data.progressId, this.data.subscription, {
+        showLoading: false
+      })
       wx.showToast({ title: '订阅已更新', icon: 'success' })
     } catch (error) {
       wx.showToast({ title: '保存失败', icon: 'none' })
@@ -211,7 +252,9 @@ Page({
     if (this.data.useFallback) return
     const alertId = e.currentTarget.dataset.id
     try {
-      await progressService.handleAlert(alertId)
+      await progressService.handleAlert(alertId, {
+        showLoading: false
+      })
       await this.loadData()
       wx.showToast({ title: '已处理', icon: 'success' })
     } catch (error) {
@@ -223,7 +266,9 @@ Page({
     if (this.data.useFallback) return
     const alertId = e.currentTarget.dataset.id
     try {
-      await progressService.snoozeAlert(alertId, { hours: 24 })
+      await progressService.snoozeAlert(alertId, { hours: 24 }, {
+        showLoading: false
+      })
       await this.loadData()
       wx.showToast({ title: '已延后24小时', icon: 'success' })
     } catch (error) {
