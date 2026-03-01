@@ -1,6 +1,6 @@
 // 提醒创建页
-import { reminderService } from '../../services/reminder'
-import { campService } from '../../services/camp'
+import { reminderService } from '../../../services/reminder'
+import { campService } from '../../../services/camp'
 
 Page({
   data: {

@@ -1,5 +1,5 @@
 // 我的提醒页
-import { reminderService } from '../../services/reminder'
+import { reminderService } from '../../../services/reminder'
 
 Page({
   data: {
