@@ -8,13 +8,13 @@ export declare class UniversityController {
             majorCount: number;
             campInfoCount: number;
             _count: any;
-            name: string;
-            priority: string;
             id: string;
+            name: string;
             logo: string;
             region: string;
             level: string;
             website: string;
+            priority: string;
         }[];
         meta: {
             page: number;
@@ -25,33 +25,33 @@ export declare class UniversityController {
     }>;
     findOne(id: string): Promise<{
         majors: {
-            name: string;
             id: string;
+            name: string;
             category: string;
         }[];
         campInfos: {
             id: string;
+            status: string;
             title: string;
             deadline: Date;
-            status: string;
         }[];
     } & {
-        name: string;
-        priority: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
-        id: string;
+        name: string;
         logo: string | null;
         region: string | null;
         level: string | null;
         website: string | null;
+        priority: string;
     }>;
     findMajors(id: string): Promise<{
         universityId: string;
         universityName: string;
         majors: {
-            name: string;
             id: string;
+            name: string;
             category: string;
         }[];
         total: number;

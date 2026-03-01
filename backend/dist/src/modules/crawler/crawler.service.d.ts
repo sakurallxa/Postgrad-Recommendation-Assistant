@@ -7,7 +7,7 @@ export declare class CrawlerService {
     private readonly crawlerPath;
     private activeTasks;
     constructor(prisma: PrismaService, configService: ConfigService);
-    trigger(universityId?: string, priority?: string): Promise<{
+    trigger(universityId?: string, priority?: string, yearSpan?: number): Promise<{
         message: string;
         taskId: string;
         logId: string;
@@ -19,9 +19,9 @@ export declare class CrawlerService {
     private parseCrawlerOutput;
     getLogs(): Promise<{
         id: string;
+        status: string;
         createdAt: Date;
         universityId: string;
-        status: string;
         errorMsg: string | null;
         startTime: Date;
         endTime: Date | null;
@@ -29,17 +29,7 @@ export declare class CrawlerService {
     }[]>;
     getTaskStatus(taskId: string): Promise<{
         taskId: string;
-        status: string;
-        universityId: string;
-        itemsCount: number;
-        errorMsg: string;
-        createdAt: Date;
-        startTime: Date;
-        endTime: Date;
-        result?: undefined;
-        error?: undefined;
-    } | {
-        taskId: string;
+        logId: string;
         status: "pending" | "failed" | "running" | "completed";
         startTime: Date;
         endTime: Date;
@@ -49,6 +39,17 @@ export declare class CrawlerService {
         itemsCount?: undefined;
         errorMsg?: undefined;
         createdAt?: undefined;
+    } | {
+        taskId: string;
+        logId: string;
+        status: string;
+        universityId: string;
+        itemsCount: number;
+        errorMsg: string;
+        createdAt: Date;
+        startTime: Date;
+        endTime: Date;
+        result?: undefined;
+        error?: undefined;
     }>;
-    private generateTaskId;
 }

@@ -38,7 +38,6 @@ describe('UserService', () => {
             const userId = 'user_123';
             const mockUser = {
                 id: userId,
-                openid: 'openid_123',
                 createdAt: new Date('2026-01-01'),
                 selection: {
                     universityIds: '["uni_1", "uni_2"]',
@@ -49,7 +48,6 @@ describe('UserService', () => {
             const result = await service.getProfile(userId);
             expect(result).toEqual({
                 id: userId,
-                openid: 'openid_123',
                 createdAt: mockUser.createdAt,
                 selection: {
                     universityIds: '["uni_1", "uni_2"]',
@@ -60,7 +58,6 @@ describe('UserService', () => {
                 where: { id: userId },
                 select: {
                     id: true,
-                    openid: true,
                     createdAt: true,
                     selection: {
                         select: {
@@ -81,7 +78,6 @@ describe('UserService', () => {
             const userId = 'user_no_selection';
             const mockUser = {
                 id: userId,
-                openid: 'openid_123',
                 createdAt: new Date('2026-01-01'),
                 selection: null,
             };

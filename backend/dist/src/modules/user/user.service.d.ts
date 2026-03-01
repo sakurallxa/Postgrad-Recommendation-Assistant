@@ -12,7 +12,6 @@ export declare class UserService {
         };
         id: string;
         createdAt: Date;
-        openid: string;
     }>;
     getSelection(userId: string): Promise<{
         universityIds: any[];
@@ -30,11 +29,11 @@ export declare class UserService {
         }[];
         majors: {
             id: string;
-            name: string;
             university: {
                 id: string;
                 name: string;
             };
+            name: string;
             category: string;
         }[];
         totalUniversities: number;

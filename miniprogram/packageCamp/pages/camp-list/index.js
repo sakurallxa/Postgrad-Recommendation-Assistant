@@ -101,10 +101,11 @@ Page({
             universityId: '3',
             universityName: '复旦大学',
             universityLogo: '',
-            title: 'AI研究院2024年夏令营',
-            deadline: '2024-03-30',
-            startDate: '2024-05-20',
-            endDate: '2024-05-25',
+            title: 'AI研究院2024年预推免通知',
+            announcementType: 'pre_recommendation',
+            deadline: '2026-03-12',
+            startDate: '2026-04-18',
+            endDate: '2026-04-22',
             location: '上海市',
             status: 'published',
             hasReminder: false
@@ -127,13 +128,14 @@ Page({
             universityId: '5',
             universityName: '浙江大学',
             universityLogo: '',
-            title: '计算机科学与技术学院2024年夏令营',
-            deadline: '2024-04-10',
-            startDate: '2024-06-01',
-            endDate: '2024-06-05',
+            title: '计算机科学与技术学院2024年预推免工作通知',
+            announcementType: 'pre_recommendation',
+            deadline: '2026-04-10',
+            startDate: '2026-06-01',
+            endDate: '2026-06-05',
             location: '杭州市',
             status: 'published',
-            hasReminder: false
+            hasReminder: true
           }
         ]
 
@@ -178,9 +180,15 @@ Page({
 
   handleRemindTap(e) {
     // 处理设置提醒
-    const campId = e.detail.campId
+    const { campId, title = '', deadline = '', universityName = '' } = e.detail || {}
+    const query = [
+      `campId=${encodeURIComponent(campId || '')}`,
+      `title=${encodeURIComponent(title)}`,
+      `deadline=${encodeURIComponent(deadline)}`,
+      `universityName=${encodeURIComponent(universityName)}`
+    ].join('&')
     wx.navigateTo({
-      url: `/packageReminder/pages/reminder-create/index?campId=${campId}`
+      url: `/packageReminder/pages/reminder-create/index?${query}`
     })
   }
 })

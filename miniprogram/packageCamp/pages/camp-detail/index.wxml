@@ -15,7 +15,12 @@
           src="{{campDetail.universityLogo || '/assets/images/icons/user.png'}}" 
           mode="aspectFit"
         />
-        <view class="university-tag">{{campDetail.universityName}}</view>
+        <view class="header-tags">
+          <view class="university-tag">{{campDetail.universityName}}</view>
+          <view class="announcement-tag {{campDetail.announcementType === 'pre_recommendation' ? 'pre-recommendation' : 'summer-camp'}}">
+            {{campDetail.announcementTypeLabel || '夏令营公告'}}
+          </view>
+        </view>
       </view>
     </view>
 
@@ -87,7 +92,7 @@
 
     <!-- 夏令营流程 -->
     <view class="section" wx:if="{{campDetail.process && campDetail.process.length > 0}}">
-      <text class="section-title">夏令营流程</text>
+      <text class="section-title">夏令营/预推免流程</text>
       <view class="info-card">
         <view class="timeline">
           <view class="timeline-item" wx:for="{{campDetail.process}}" wx:key="index">
@@ -145,7 +150,7 @@
     <!-- 底部操作区 -->
     <view class="bottom-action">
       <button class="progress-btn" bindtap="handleAddToProgress">
-        {{campDetail.hasProgress ? '已加入申请进展' : '加入申请进展'}}
+        {{campDetail.hasProgress ? '已关注' : '加入关注'}}
       </button>
       <button class="remind-btn" bindtap="handleSetReminder">
         {{campDetail.hasReminder ? '已设置提醒' : '设置提醒'}}

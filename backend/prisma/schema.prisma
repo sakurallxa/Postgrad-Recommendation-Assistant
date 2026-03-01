@@ -80,6 +80,7 @@ model Major {
 model CampInfo {
   id          String   @id @default(uuid())
   title       String
+  announcementType String @default("summer_camp") // summer_camp/pre_recommendation
   sourceUrl   String
   
   universityId String
@@ -113,6 +114,7 @@ model CampInfo {
   @@index([deadline])
   @@index([status])
   @@index([publishDate])
+  @@index([announcementType])
   @@map("camp_infos")
 }
 

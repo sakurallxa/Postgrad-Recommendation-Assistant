@@ -22,11 +22,10 @@ __decorate([
     __metadata("design:type", String)
 ], CreateReminderDto.prototype, "campId", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)({ description: '提醒时间', example: '2024-06-01T09:00:00Z' }),
-    (0, class_validator_1.IsOptional)(),
+    (0, swagger_1.ApiProperty)({ description: '提醒时间', example: '2024-06-01T09:00:00Z' }),
     (0, class_validator_1.IsDateString)(),
     __metadata("design:type", String)
-], CreateReminderDto.prototype, "remindAt", void 0);
+], CreateReminderDto.prototype, "remindTime", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({ description: '提醒内容', example: '夏令营报名截止提醒' }),
     (0, class_validator_1.IsOptional)(),

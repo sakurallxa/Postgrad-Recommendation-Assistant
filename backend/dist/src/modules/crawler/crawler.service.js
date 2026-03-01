@@ -57,12 +57,11 @@ let CrawlerService = CrawlerService_1 = class CrawlerService {
         this.activeTasks = new Map();
         this.crawlerPath = path.resolve(process.cwd(), '..', 'crawler');
     }
-    async trigger(universityId, priority) {
+    async trigger(universityId, priority, yearSpan = 3) {
         const runningTasks = Array.from(this.activeTasks.values()).filter(task => task.status === 'running');
         if (runningTasks.length > 0) {
             throw new common_1.BadRequestException('已有爬虫任务正在运行，请等待完成后再触发');
         }
-        const taskId = this.generateTaskId();
         const log = await this.prisma.crawlerLog.create({
             data: {
                 universityId: universityId || 'all',
@@ -70,12 +69,14 @@ let CrawlerService = CrawlerService_1 = class CrawlerService {
                 startTime: new Date(),
             },
         });
+        const taskId = log.id;
         const task = {
             id: taskId,
             logId: log.id,
             status: 'pending',
             universityId,
             priority,
+            yearSpan,
         };
         this.activeTasks.set(taskId, task);
         this.executeCrawler(task);
@@ -97,6 +98,7 @@ let CrawlerService = CrawlerService_1 = class CrawlerService {
             if (task.priority) {
                 args.push('-a', `priority=${task.priority}`);
             }
+            args.push('-a', `year_span=${task.yearSpan || 3}`);
             this.logger.log(`启动爬虫任务: ${task.id}, 参数: ${args.join(' ')}`);
             const result = await this.runScrapyCommand(args);
             task.status = 'completed';
@@ -212,35 +214,34 @@ let CrawlerService = CrawlerService_1 = class CrawlerService {
     }
     async getTaskStatus(taskId) {
         const task = this.activeTasks.get(taskId);
-        if (!task) {
-            const log = await this.prisma.crawlerLog.findFirst({
-                where: { id: taskId },
-            });
-            if (!log) {
-                throw new common_1.BadRequestException('任务不存在');
-            }
+        if (task) {
             return {
-                taskId: log.id,
-                status: log.status,
-                universityId: log.universityId,
-                itemsCount: log.itemsCount,
-                errorMsg: log.errorMsg,
-                createdAt: log.createdAt,
-                startTime: log.startTime,
-                endTime: log.endTime,
+                taskId: task.id,
+                logId: task.logId,
+                status: task.status,
+                startTime: task.startTime,
+                endTime: task.endTime,
+                result: task.result,
+                error: task.error,
             };
         }
+        const log = await this.prisma.crawlerLog.findFirst({
+            where: { id: taskId },
+        });
+        if (!log) {
+            throw new common_1.BadRequestException('任务不存在');
+        }
         return {
-            taskId: task.id,
-            status: task.status,
-            startTime: task.startTime,
-            endTime: task.endTime,
-            result: task.result,
-            error: task.error,
+            taskId: log.id,
+            logId: log.id,
+            status: log.status,
+            universityId: log.universityId,
+            itemsCount: log.itemsCount,
+            errorMsg: log.errorMsg,
+            createdAt: log.createdAt,
+            startTime: log.startTime,
+            endTime: log.endTime,
         };
-    }
-    generateTaskId() {
-        return `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
 };
 exports.CrawlerService = CrawlerService;

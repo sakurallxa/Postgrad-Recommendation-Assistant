@@ -185,7 +185,7 @@ Page({
   // 初始化已选院校
   initSelectedUniversities() {
     this.setData({
-      selectedUniversities: selectionStore.selectedUniversities
+      selectedUniversities: selectionStore.selectedUniversities || []
     });
   },
 
@@ -315,18 +315,19 @@ Page({
 
   // 检查院校是否已选
   isUniversitySelected(id) {
-    return this.data.selectedUniversities.some(u => u.id === id);
+    const targetId = String(id)
+    return this.data.selectedUniversities.some(u => String(u.id) === targetId);
   },
 
   // 院校点击
   onUniversityTap(e) {
-    const universityId = e.currentTarget.dataset.id;
-    const university = this.data.universities.find(u => u.id === universityId);
+    const universityId = String(e.currentTarget.dataset.id);
+    const university = this.data.universities.find(u => String(u.id) === universityId);
     
     if (!university) return;
     
     let selectedUniversities = [...this.data.selectedUniversities];
-    const index = selectedUniversities.findIndex(u => u.id === universityId);
+    const index = selectedUniversities.findIndex(u => String(u.id) === universityId);
     
     if (index > -1) {
       // 取消选择
@@ -343,12 +344,26 @@ Page({
 
   // 移除已选院校
   onRemoveSelectedUniversity(e) {
-    const universityId = e.currentTarget.dataset.id;
-    const selectedUniversities = this.data.selectedUniversities.filter(u => u.id !== universityId);
+    const universityId = String(e.currentTarget.dataset.id);
+    const selectedUniversities = this.data.selectedUniversities.filter(
+      u => String(u.id) !== universityId
+    );
     
     this.setData({
       selectedUniversities
     });
+  },
+
+  onClearSelectedUniversities() {
+    if (this.data.selectedUniversities.length === 0) return
+    wx.showModal({
+      title: '清空已选院校',
+      content: '确认清空当前已选院校吗？',
+      success: (res) => {
+        if (!res.confirm) return
+        this.setData({ selectedUniversities: [] })
+      }
+    })
   },
 
   // 确认选择

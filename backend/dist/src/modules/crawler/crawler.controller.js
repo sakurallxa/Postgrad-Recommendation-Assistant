@@ -21,8 +21,9 @@ let CrawlerController = class CrawlerController {
     constructor(crawlerService) {
         this.crawlerService = crawlerService;
     }
-    async trigger(universityId, priority) {
-        return this.crawlerService.trigger(universityId, priority);
+    async trigger(universityId, priority, yearSpan) {
+        const parsedYearSpan = yearSpan ? Number(yearSpan) : 3;
+        return this.crawlerService.trigger(universityId, priority, Number.isFinite(parsedYearSpan) && parsedYearSpan > 0 ? parsedYearSpan : 3);
     }
     async getLogs() {
         return this.crawlerService.getLogs();
@@ -37,10 +38,12 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: '手动触发爬虫', description: '触发爬虫任务，支持全量爬取或指定院校' }),
     (0, swagger_1.ApiQuery)({ name: 'universityId', required: false, description: '指定院校ID' }),
     (0, swagger_1.ApiQuery)({ name: 'priority', required: false, description: '优先级筛选 (P0/P1/P2/P3)' }),
+    (0, swagger_1.ApiQuery)({ name: 'yearSpan', required: false, description: '抓取近N年数据，默认3年' }),
     __param(0, (0, common_1.Query)('universityId')),
     __param(1, (0, common_1.Query)('priority')),
+    __param(2, (0, common_1.Query)('yearSpan')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], CrawlerController.prototype, "trigger", null);
 __decorate([

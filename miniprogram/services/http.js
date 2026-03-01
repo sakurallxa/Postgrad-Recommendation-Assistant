@@ -52,7 +52,8 @@ class HttpClient {
       header = {},
       showLoading = true,
       showError = true,
-      allow404Fallback = true
+      allow404Fallback = true,
+      allow405Fallback = false
     } = config
 
     const requestKey = `${method}-${url}`
@@ -84,7 +85,12 @@ class HttpClient {
           success: (res) => {
             if (res.statusCode === 200) {
               resolve(res.data)
-            } else if (res.statusCode === 404 && method === 'GET' && allow404Fallback) {
+            } else if (this.shouldUseFallbackRequest({
+              statusCode: res.statusCode,
+              method,
+              allow404Fallback,
+              allow405Fallback
+            })) {
               const fallbackBaseUrl = this.getFallbackBaseUrl(baseUrl)
               if (!fallbackBaseUrl) {
                 reject(new Error(`请求失败: ${res.statusCode}`))
@@ -143,6 +149,16 @@ class HttpClient {
         this.hideLoadingSafely()
       }
     }
+  }
+
+  shouldUseFallbackRequest({ statusCode, method, allow404Fallback, allow405Fallback }) {
+    if (statusCode === 404 && allow404Fallback) {
+      return method === 'GET'
+    }
+    if (statusCode === 405 && allow405Fallback) {
+      return true
+    }
+    return false
   }
 
   handleUnauthorized() {

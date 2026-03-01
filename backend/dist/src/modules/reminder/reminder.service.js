@@ -57,12 +57,27 @@ let ReminderService = class ReminderService {
             },
         };
     }
-    async create(dto) {
-        return this.prisma.reminder.create({
-            data: dto,
-        });
+    async create(userId, dto) {
+        const data = {
+            userId,
+            campId: dto.campId,
+            remindTime: new Date(dto.remindTime),
+        };
+        if (dto.content) {
+            data.content = dto.content;
+        }
+        return this.prisma.reminder.create({ data });
     }
-    async remove(id) {
+    async remove(userId, id) {
+        const reminder = await this.prisma.reminder.findUnique({
+            where: { id },
+        });
+        if (!reminder) {
+            throw new common_1.NotFoundException('提醒不存在');
+        }
+        if (reminder.userId !== userId) {
+            throw new common_1.ForbiddenException('无权删除此提醒');
+        }
         return this.prisma.reminder.delete({
             where: { id },
         });

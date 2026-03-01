@@ -19,11 +19,13 @@ const config_1 = require("@nestjs/config");
 const jwt_1 = require("@nestjs/jwt");
 const axios_1 = __importDefault(require("axios"));
 const prisma_service_1 = require("../prisma/prisma.service");
+const openid_crypto_service_1 = require("../../common/services/openid-crypto.service");
 let AuthService = AuthService_1 = class AuthService {
-    constructor(prisma, jwtService, configService) {
+    constructor(prisma, jwtService, configService, openidCryptoService) {
         this.prisma = prisma;
         this.jwtService = jwtService;
         this.configService = configService;
+        this.openidCryptoService = openidCryptoService;
         this.logger = new common_1.Logger(AuthService_1.name);
     }
     async wxLogin(code) {
@@ -37,16 +39,34 @@ let AuthService = AuthService_1 = class AuthService {
                 throw new common_1.UnauthorizedException(`微信登录失败: ${wxResponse.errmsg}`);
             }
             const { openid } = wxResponse;
-            let user = await this.prisma.user.findUnique({
-                where: { openid },
+            const openidHash = this.openidCryptoService.hash(openid);
+            const openidCipher = this.openidCryptoService.encrypt(openid);
+            let user = await this.prisma.user.findFirst({
+                where: {
+                    OR: [{ openidHash }, { openid }],
+                },
             });
             if (!user) {
                 user = await this.prisma.user.create({
-                    data: { openid },
+                    data: {
+                        openidHash,
+                        openidCipher,
+                        openid: null,
+                    },
                 });
                 this.logger.log(`新用户创建成功: ${user.id}`);
             }
-            const tokens = await this.generateTokens(user.id, user.openid);
+            else if (user.openidHash !== openidHash || !user.openidCipher || user.openid) {
+                user = await this.prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                        openidHash,
+                        openidCipher,
+                        openid: null,
+                    },
+                });
+            }
+            const tokens = await this.generateTokens(user.id);
             this.logger.log(`用户登录成功: ${user.id}`);
             return {
                 user: {
@@ -77,7 +97,7 @@ let AuthService = AuthService_1 = class AuthService {
             if (!user) {
                 throw new common_1.UnauthorizedException('用户不存在');
             }
-            return this.generateTokens(user.id, user.openid);
+            return this.generateTokens(user.id);
         }
         catch (error) {
             if (error instanceof common_1.UnauthorizedException) {
@@ -124,8 +144,8 @@ let AuthService = AuthService_1 = class AuthService {
             throw new common_1.UnauthorizedException('微信服务暂时不可用');
         }
     }
-    async generateTokens(userId, openid) {
-        const payload = { sub: userId, openid };
+    async generateTokens(userId) {
+        const payload = { sub: userId };
         const expiresIn = this.configService.get('JWT_EXPIRES_IN', '7d');
         const refreshExpiresIn = this.configService.get('JWT_REFRESH_EXPIRES_IN', '30d');
         const [accessToken, refreshToken] = await Promise.all([
@@ -144,6 +164,7 @@ exports.AuthService = AuthService = AuthService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         jwt_1.JwtService,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        openid_crypto_service_1.OpenidCryptoService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

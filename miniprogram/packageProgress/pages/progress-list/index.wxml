@@ -31,8 +31,8 @@
 
   <view class="section-title">我的申请进展</view>
   <view class="empty" wx:if="{{progressList.length === 0}}">
-    <text>还没有申请进展，先去夏令营详情页点击“加入申请进展”。</text>
-    <button class="primary-btn" bindtap="onOpenCampList">去看夏令营</button>
+    <text>还没有申请进展，先去夏令营/预推免详情页点击“加入关注”。</text>
+    <button class="primary-btn" bindtap="onOpenCampList">去看夏令营/预推免</button>
   </view>
 
   <view class="progress-list" wx:else>

@@ -8,7 +8,7 @@ from ..items import CampInfoItem
 
 class UniversitySpider(scrapy.Spider):
     """
-    院校夏令营信息爬虫
+    院校招生公告爬虫（夏令营/预推免）
     支持366所保研院校的研究生院网站爬取
     """
     
@@ -95,9 +95,10 @@ class UniversitySpider(scrapy.Spider):
         urls = []
         base_url = university.get('grad_website', university['website'])
         
-        # 常见的夏令营信息页面路径
+        # 常见的招生公告页面路径
         common_paths = [
             '/zsxx/ssszs/camp/',
+            '/zsxx/ssszs/tuimian/',
             '/admission/',
             '/zsxx/',
             '/info/',
@@ -118,7 +119,7 @@ class UniversitySpider(scrapy.Spider):
         
         self.logger.info(f"解析列表页: {response.url} - {university['name']}")
         
-        # 提取夏令营信息链接
+        # 提取招生公告链接（夏令营/预推免）
         camp_links = self.extract_camp_links(response)
         
         for link in camp_links:
@@ -128,6 +129,7 @@ class UniversitySpider(scrapy.Spider):
                 meta={
                     'university': university,
                     'title': link['title'],
+                    'announcement_type': link.get('announcement_type'),
                 },
             )
         
@@ -145,7 +147,7 @@ class UniversitySpider(scrapy.Spider):
                 )
     
     def extract_camp_links(self, response):
-        """提取夏令营信息链接"""
+        """提取招生公告链接"""
         links = []
         
         # 使用多种选择器策略
@@ -153,7 +155,10 @@ class UniversitySpider(scrapy.Spider):
             '//a[contains(@href, "camp") or contains(@title, "夏令营")]',
             '//a[contains(text(), "夏令营")]',
             '//a[contains(text(), "暑期学校")]',
+            '//a[contains(text(), "预推免")]',
             '//a[contains(text(), "推免")]',
+            '//a[contains(@href, "tuimian")]',
+            '//a[contains(@href, "recommend")]',
         ]
         
         for selector in selectors:
@@ -169,9 +174,11 @@ class UniversitySpider(scrapy.Spider):
                 url = urljoin(response.url, href)
                 # 过滤无效链接
                 if self.is_valid_url(url) and self.is_target_year_text(f'{title} {url}'):
+                    announcement_type = self.detect_announcement_type(title, url, '')
                     links.append({
                         'url': url,
                         'title': title,
+                        'announcement_type': announcement_type,
                     })
         
         # 去重
@@ -218,6 +225,8 @@ class UniversitySpider(scrapy.Spider):
     def parse_detail(self, response):
         """解析详情页"""
         university = response.meta['university']
+        link_title = response.meta.get('title', '').strip()
+        meta_type = response.meta.get('announcement_type')
         
         self.logger.info(f"解析详情页: {response.url} - {university['name']}")
         
@@ -228,8 +237,11 @@ class UniversitySpider(scrapy.Spider):
         camp_info = self.extract_with_ai(content, university)
         
         if camp_info and self.is_within_target_year(camp_info, content, response):
+            title = camp_info.get('title', '').strip() or link_title or response.xpath('//title/text()').get(default='').strip()
+            announcement_type = camp_info.get('announcement_type') or meta_type or self.detect_announcement_type(title, response.url, content)
             item = CampInfoItem()
-            item['title'] = camp_info.get('title', '')
+            item['title'] = title
+            item['announcement_type'] = announcement_type
             item['university_id'] = university['id']
             item['source_url'] = response.url
             item['publish_date'] = camp_info.get('publish_date')
@@ -255,8 +267,25 @@ class UniversitySpider(scrapy.Spider):
                 return True
 
         # 未识别年份但具备目标关键词时保留，详情页再做二次过滤
-        keywords = ['夏令营', '暑期学校', '推免']
+        keywords = ['夏令营', '暑期学校', '预推免', '推免', '推荐免试']
         return any(keyword in normalized for keyword in keywords)
+
+    def detect_announcement_type(self, title='', url='', content=''):
+        """识别公告类型：summer_camp/pre_recommendation"""
+        merged_text = ' '.join([title or '', url or '', content[:500] if content else ''])
+
+        pre_patterns = [
+            r'预推免',
+            r'推免生',
+            r'推荐免试',
+            r'推免(?!夏令营)',
+            r'tuimian',
+        ]
+        for pattern in pre_patterns:
+            if re.search(pattern, merged_text, re.IGNORECASE):
+                return 'pre_recommendation'
+
+        return 'summer_camp'
 
     def is_within_target_year(self, camp_info, content, response):
         """详情页二次年份过滤：优先结构化日期，其次正文/标题关键词"""
@@ -313,6 +342,7 @@ class UniversitySpider(scrapy.Spider):
         
         camp_info = {
             'title': self.extract_title(content),
+            'announcement_type': self.detect_announcement_type('', '', content),
             'publish_date': self.extract_date(content, '发布'),
             'deadline': self.extract_date(content, '截止'),
             'start_date': self.extract_date(content, '开始'),
@@ -326,11 +356,14 @@ class UniversitySpider(scrapy.Spider):
     
     def extract_title(self, content):
         """提取标题"""
-        # 查找包含"夏令营"的句子
-        pattern = r'[^。\n]*夏令营[^。\n]*'
-        matches = re.findall(pattern, content)
-        if matches:
-            return matches[0][:100]  # 限制长度
+        patterns = [
+            r'[^。\n]*(?:夏令营|暑期学校)[^。\n]*',
+            r'[^。\n]*(?:预推免|推免生|推荐免试|推免)[^。\n]*',
+        ]
+        for pattern in patterns:
+            matches = re.findall(pattern, content)
+            if matches:
+                return matches[0][:100]  # 限制长度
         return ''
     
     def extract_date(self, content, keyword):

@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "夏令营列表",
+  "navigationBarTitleText": "夏令营/预推免列表",
   "usingComponents": {
     "camp-card": "../../../components/business/camp-card/index",
     "empty-state": "../../../components/base/empty/index"

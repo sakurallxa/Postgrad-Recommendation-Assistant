@@ -20,8 +20,20 @@ let CampController = class CampController {
     constructor(campService) {
         this.campService = campService;
     }
-    async findAll(page = 1, limit = 20, universityId, majorId) {
-        return this.campService.findAll({ page, limit, universityId, majorId });
+    async findAll(page = 1, limit = 20, universityId, universityIds, majorId, status, year) {
+        const parsedUniversityIds = universityIds
+            ? universityIds.split(',').map(id => id.trim()).filter(Boolean)
+            : undefined;
+        const parsedYear = year ? Number(year) : undefined;
+        return this.campService.findAll({
+            page,
+            limit,
+            universityId,
+            universityIds: parsedUniversityIds,
+            majorId,
+            status,
+            year: Number.isFinite(parsedYear) ? parsedYear : undefined,
+        });
     }
     async findOne(id) {
         return this.campService.findOne(id);
@@ -34,9 +46,12 @@ __decorate([
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
     __param(2, (0, common_1.Query)('universityId')),
-    __param(3, (0, common_1.Query)('majorId')),
+    __param(3, (0, common_1.Query)('universityIds')),
+    __param(4, (0, common_1.Query)('majorId')),
+    __param(5, (0, common_1.Query)('status')),
+    __param(6, (0, common_1.Query)('year')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Number, String, String]),
+    __metadata("design:paramtypes", [Number, Number, String, String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], CampController.prototype, "findAll", null);
 __decorate([

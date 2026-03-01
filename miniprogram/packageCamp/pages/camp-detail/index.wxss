@@ -18,6 +18,13 @@
   gap: var(--spacing-md);
 }
 
+.header-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .university-logo {
   width: 48px;
   height: 48px;
@@ -36,6 +43,28 @@
   padding: 8px 16px;
   border-radius: var(--border-radius-md);
   border: 1px solid rgba(74, 144, 226, 0.2);
+}
+
+.announcement-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid transparent;
+}
+
+.announcement-tag.summer-camp {
+  color: #2d6cdf;
+  background: rgba(45, 108, 223, 0.12);
+  border-color: rgba(45, 108, 223, 0.2);
+}
+
+.announcement-tag.pre-recommendation {
+  color: #c15a1d;
+  background: rgba(193, 90, 29, 0.12);
+  border-color: rgba(193, 90, 29, 0.2);
 }
 
 /* 夏令营标题 */

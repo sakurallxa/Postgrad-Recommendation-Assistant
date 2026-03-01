@@ -72,7 +72,7 @@
   <!-- 免责声明 -->
   <view class="disclaimer">
     <text class="disclaimer-text">
-      免责声明：本小程序提供的夏令营信息仅供参考，具体信息以院校官网为准。
+      免责声明：本小程序提供的夏令营/预推免信息仅供参考，具体信息以院校官网为准。
     </text>
   </view>
 </view>

@@ -9,6 +9,7 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
 const common_1 = require("@nestjs/common");
+const openid_crypto_service_1 = require("../../common/services/openid-crypto.service");
 jest.mock('axios');
 const axios_1 = __importDefault(require("axios"));
 const mockedAxios = axios_1.default;
@@ -18,8 +19,10 @@ describe('AuthService', () => {
     let jwtService;
     const mockPrismaService = {
         user: {
+            findFirst: jest.fn(),
             findUnique: jest.fn(),
             create: jest.fn(),
+            update: jest.fn(),
         },
     };
     const mockJwtService = {
@@ -38,6 +41,11 @@ describe('AuthService', () => {
             return config[key];
         }),
     };
+    const mockOpenidCryptoService = {
+        hash: jest.fn((openid) => `hash_${openid}`),
+        encrypt: jest.fn((openid) => `cipher_${openid}`),
+        decrypt: jest.fn(),
+    };
     beforeEach(async () => {
         const module = await testing_1.Test.createTestingModule({
             providers: [
@@ -45,18 +53,29 @@ describe('AuthService', () => {
                 { provide: prisma_service_1.PrismaService, useValue: mockPrismaService },
                 { provide: jwt_1.JwtService, useValue: mockJwtService },
                 { provide: config_1.ConfigService, useValue: mockConfigService },
+                { provide: openid_crypto_service_1.OpenidCryptoService, useValue: mockOpenidCryptoService },
             ],
         }).compile();
         service = module.get(auth_service_1.AuthService);
         prismaService = module.get(prisma_service_1.PrismaService);
         jwtService = module.get(jwt_1.JwtService);
         jest.clearAllMocks();
+        mockConfigService.get.mockImplementation((key) => {
+            const config = {
+                WECHAT_APPID: 'test_appid',
+                WECHAT_SECRET: 'test_secret',
+                JWT_SECRET: 'test_secret',
+                JWT_EXPIRES_IN: '7d',
+                JWT_REFRESH_EXPIRES_IN: '30d',
+            };
+            return config[key];
+        });
     });
     describe('微信登录', () => {
         it('TC-AUTH-001: 微信登录 - 成功场景（新用户）', async () => {
             const code = 'valid_wechat_code';
             const mockOpenid = 'mock_openid_123';
-            const mockUser = { id: 'user_123', openid: mockOpenid };
+            const mockUser = { id: 'user_123', openidHash: `hash_${mockOpenid}`, openidCipher: `cipher_${mockOpenid}` };
             const mockTokens = {
                 accessToken: 'access_token_123',
                 refreshToken: 'refresh_token_123',
@@ -68,25 +87,29 @@ describe('AuthService', () => {
                     session_key: 'mock_session_key',
                 },
             });
-            mockPrismaService.user.findUnique.mockResolvedValue(null);
+            mockPrismaService.user.findFirst.mockResolvedValue(null);
             mockPrismaService.user.create.mockResolvedValue(mockUser);
             mockJwtService.signAsync
                 .mockResolvedValueOnce(mockTokens.accessToken)
                 .mockResolvedValueOnce(mockTokens.refreshToken);
             const result = await service.wxLogin(code);
             expect(result).toHaveProperty('user');
-            expect(result.user).toEqual({ id: mockUser.id, openid: mockUser.openid });
+            expect(result.user).toEqual({ id: mockUser.id });
             expect(result).toHaveProperty('accessToken', mockTokens.accessToken);
             expect(result).toHaveProperty('refreshToken', mockTokens.refreshToken);
             expect(result).toHaveProperty('expiresIn');
             expect(mockPrismaService.user.create).toHaveBeenCalledWith({
-                data: { openid: expect.any(String) },
+                data: {
+                    openidHash: `hash_${mockOpenid}`,
+                    openidCipher: `cipher_${mockOpenid}`,
+                    openid: null,
+                },
             });
         });
         it('TC-AUTH-001: 微信登录 - 成功场景（已存在用户）', async () => {
             const code = 'valid_wechat_code';
             const mockOpenid = 'mock_openid_123';
-            const mockUser = { id: 'user_123', openid: mockOpenid };
+            const mockUser = { id: 'user_123', openidHash: `hash_${mockOpenid}`, openidCipher: `cipher_${mockOpenid}` };
             const mockTokens = {
                 accessToken: 'access_token_123',
                 refreshToken: 'refresh_token_123',
@@ -98,12 +121,12 @@ describe('AuthService', () => {
                     session_key: 'mock_session_key',
                 },
             });
-            mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+            mockPrismaService.user.findFirst.mockResolvedValue(mockUser);
             mockJwtService.signAsync
                 .mockResolvedValueOnce(mockTokens.accessToken)
                 .mockResolvedValueOnce(mockTokens.refreshToken);
             const result = await service.wxLogin(code);
-            expect(result.user).toEqual({ id: mockUser.id, openid: mockUser.openid });
+            expect(result.user).toEqual({ id: mockUser.id });
             expect(mockPrismaService.user.create).not.toHaveBeenCalled();
         });
         it('TC-AUTH-002: 微信登录 - 空code', async () => {
@@ -123,12 +146,52 @@ describe('AuthService', () => {
             });
             await expect(service.wxLogin(invalidCode)).rejects.toThrow('微信登录失败');
         });
+        it('安全回归: 未配置微信参数且未开启mock时应拒绝登录', async () => {
+            mockConfigService.get.mockImplementation((key) => {
+                const config = {
+                    WECHAT_APPID: '',
+                    WECHAT_SECRET: '',
+                    ALLOW_MOCK_WECHAT_LOGIN: 'false',
+                    NODE_ENV: 'development',
+                    JWT_SECRET: 'test_secret',
+                    JWT_EXPIRES_IN: '7d',
+                    JWT_REFRESH_EXPIRES_IN: '30d',
+                };
+                return config[key];
+            });
+            await expect(service.wxLogin('test_code')).rejects.toThrow('登录服务配置错误');
+        });
+        it('安全回归: 非生产环境显式开启mock时允许登录', async () => {
+            mockConfigService.get.mockImplementation((key) => {
+                const config = {
+                    WECHAT_APPID: '',
+                    WECHAT_SECRET: '',
+                    ALLOW_MOCK_WECHAT_LOGIN: 'true',
+                    NODE_ENV: 'development',
+                    JWT_SECRET: 'test_secret',
+                    JWT_EXPIRES_IN: '7d',
+                    JWT_REFRESH_EXPIRES_IN: '30d',
+                };
+                return config[key];
+            });
+            mockPrismaService.user.findFirst.mockResolvedValue(null);
+            mockPrismaService.user.create.mockResolvedValue({
+                id: 'user_123',
+                openidHash: 'hash_mock_openid_test_code',
+                openidCipher: 'cipher_mock_openid_test_code',
+            });
+            mockJwtService.signAsync
+                .mockResolvedValueOnce('access_token_123')
+                .mockResolvedValueOnce('refresh_token_123');
+            const result = await service.wxLogin('test_code');
+            expect(result.user.id).toBe('user_123');
+        });
     });
     describe('Token刷新', () => {
         it('TC-AUTH-004: Token刷新 - 成功场景', async () => {
             const validToken = 'valid_refresh_token';
-            const mockPayload = { sub: 'user_123', openid: 'openid_123' };
-            const mockUser = { id: 'user_123', openid: 'openid_123' };
+            const mockPayload = { sub: 'user_123' };
+            const mockUser = { id: 'user_123' };
             const mockNewTokens = {
                 accessToken: 'new_access_token',
                 refreshToken: 'new_refresh_token',
@@ -160,7 +223,7 @@ describe('AuthService', () => {
         });
         it('TC-AUTH-005: Token刷新 - Token有效但用户不存在', async () => {
             const validToken = 'valid_token';
-            const mockPayload = { sub: 'nonexistent_user', openid: 'openid_123' };
+            const mockPayload = { sub: 'nonexistent_user' };
             mockJwtService.verify.mockReturnValue(mockPayload);
             mockPrismaService.user.findUnique.mockResolvedValue(null);
             await expect(service.refreshToken(validToken)).rejects.toThrow(common_1.UnauthorizedException);
@@ -191,10 +254,14 @@ describe('AuthService', () => {
             mockJwtService.signAsync
                 .mockResolvedValueOnce(mockAccessToken)
                 .mockResolvedValueOnce(mockRefreshToken);
-            mockPrismaService.user.findUnique.mockResolvedValue({ id: userId, openid });
+            mockPrismaService.user.findFirst.mockResolvedValue({
+                id: userId,
+                openidHash: `hash_${openid}`,
+                openidCipher: `cipher_${openid}`,
+            });
             await service.wxLogin('test_code');
-            expect(mockJwtService.signAsync).toHaveBeenCalledWith({ sub: userId, openid }, { expiresIn: '7d' });
-            expect(mockJwtService.signAsync).toHaveBeenCalledWith({ sub: userId, openid }, { expiresIn: '30d' });
+            expect(mockJwtService.signAsync).toHaveBeenCalledWith({ sub: userId }, { expiresIn: '7d' });
+            expect(mockJwtService.signAsync).toHaveBeenCalledWith({ sub: userId }, { expiresIn: '30d' });
         });
     });
     describe('错误处理和日志', () => {
@@ -206,12 +273,12 @@ describe('AuthService', () => {
                     session_key: 'mock_session_key',
                 },
             });
-            mockPrismaService.user.findUnique.mockRejectedValue(new Error('Database error'));
+            mockPrismaService.user.findFirst.mockRejectedValue(new Error('Database error'));
             await expect(service.wxLogin(code)).rejects.toThrow();
         });
         it('Token刷新异常时应该记录错误日志', async () => {
             const token = 'valid_token';
-            const mockPayload = { sub: 'user_123', openid: 'openid_123' };
+            const mockPayload = { sub: 'user_123' };
             mockJwtService.verify.mockReturnValue(mockPayload);
             mockPrismaService.user.findUnique.mockRejectedValue(new Error('Database error'));
             await expect(service.refreshToken(token)).rejects.toThrow();

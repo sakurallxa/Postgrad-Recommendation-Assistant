@@ -3,12 +3,13 @@ import scrapy
 
 class CampInfoItem(scrapy.Item):
     """
-    夏令营信息Item
-    用于存储爬取的夏令营信息
+    招生公告Item（夏令营/预推免）
+    用于存储爬取的公告信息
     """
     
     # 基本信息
     title = scrapy.Field()          # 标题
+    announcement_type = scrapy.Field()  # 公告类型 summer_camp/pre_recommendation
     university_id = scrapy.Field()  # 院校ID
     source_url = scrapy.Field()     # 原文链接
     

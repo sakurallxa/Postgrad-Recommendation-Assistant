@@ -231,6 +231,45 @@ describe('CampService', () => {
             expect(result.data).toEqual([]);
             expect(result.meta.total).toBe(0);
         });
+        it('应该支持按年份筛选', async () => {
+            mockPrismaService.campInfo.findMany.mockResolvedValue([]);
+            mockPrismaService.campInfo.count.mockResolvedValue(0);
+            await service.findAll({ page: 1, limit: 20, year: 2026 });
+            expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith(expect.objectContaining({
+                where: expect.objectContaining({
+                    status: 'published',
+                    AND: [
+                        {
+                            OR: [
+                                { publishDate: { gte: new Date(2026, 0, 1), lt: new Date(2027, 0, 1) } },
+                                { deadline: { gte: new Date(2026, 0, 1), lt: new Date(2027, 0, 1) } },
+                                { startDate: { gte: new Date(2026, 0, 1), lt: new Date(2027, 0, 1) } },
+                                { endDate: { gte: new Date(2026, 0, 1), lt: new Date(2027, 0, 1) } },
+                            ],
+                        },
+                    ],
+                }),
+            }));
+        });
+        it('status=all 时不应强制过滤状态', async () => {
+            mockPrismaService.campInfo.findMany.mockResolvedValue([]);
+            mockPrismaService.campInfo.count.mockResolvedValue(0);
+            await service.findAll({ page: 1, limit: 20, status: 'all' });
+            expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith(expect.objectContaining({
+                where: {},
+            }));
+        });
+        it('应支持按院校ID列表筛选', async () => {
+            mockPrismaService.campInfo.findMany.mockResolvedValue([]);
+            mockPrismaService.campInfo.count.mockResolvedValue(0);
+            await service.findAll({ page: 1, limit: 20, universityIds: ['u1', 'u2'] });
+            expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith(expect.objectContaining({
+                where: {
+                    status: 'published',
+                    universityId: { in: ['u1', 'u2'] },
+                },
+            }));
+        });
         it('应该正确处理分页计算', async () => {
             const mockCamps = Array(5).fill(null).map((_, i) => ({
                 id: `${i + 1}`,

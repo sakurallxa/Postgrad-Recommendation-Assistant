@@ -1,66 +1,259 @@
 <view class="reminders-page">
-  <!-- 筛选栏 -->
-  <view class="filter-section">
-    <view 
-      wx:for="{{filterOptions}}" 
-      wx:key="value"
-      class="filter-tag {{selectedFilter === item.value ? 'active' : ''}}"
-      bindtap="onFilterTap"
-      data-value="{{item.value}}"
-    >
-      {{item.label}}
+  <view class="summary-card">
+    <view class="summary-item urgent">
+      <text class="summary-value">{{summary.todayDueSchools}}</text>
+      <text class="summary-title">今日截止申请学校</text>
+      <text class="summary-desc">最高优先处理</text>
+    </view>
+    <view class="summary-item recent">
+      <text class="summary-value">{{summary.threeDaysDueSchools}}</text>
+      <text class="summary-title">3天内截止申请学校</text>
+      <text class="summary-desc">建议尽快完成申请</text>
+    </view>
+    <view class="summary-item changed">
+      <text class="summary-value">{{summary.changedSchools}}</text>
+      <text class="summary-title">夏令营/预推免信息有变更学校</text>
+      <text class="summary-desc">建议尽快人工核实</text>
     </view>
   </view>
 
-  <!-- 提醒列表 -->
-  <view class="reminder-list-section">
-    <view 
-      wx:for="{{filteredReminders}}" 
-      wx:key="id"
-      class="reminder-item"
-    >
-      <view class="reminder-header">
-        <text class="camp-title">{{item.campTitle}}</text>
-        <text class="reminder-status {{item.status}}">{{item.statusText}}</text>
-      </view>
-      
-      <view class="reminder-info">
-        <view class="university-tag">{{item.universityName}}</view>
-        <view class="info-row">
-          <icon class="info-icon" type="calendar" size="16" color="#80868B" />
-          <text class="info-text">截止日期: {{item.deadline}}</text>
-        </view>
-        <view class="info-row">
-          <icon class="info-icon" type="clock" size="16" color="#80868B" />
-          <text class="info-text">提醒时间: {{item.remindTime}}</text>
-        </view>
-      </view>
-      
-      <view class="reminder-actions">
-        <button 
-          class="action-btn secondary" 
-          size="mini" 
-          bindtap="onViewCamp"
-          data-camp-id="{{item.campId}}"
-        >
-          查看详情
-        </button>
-        <button 
-          class="action-btn danger" 
-          size="mini" 
-          bindtap="onDeleteReminder"
-          data-reminder-id="{{item.id}}"
-        >
-          删除
-        </button>
+  <view class="control-card">
+    <view class="view-mode-switch">
+      <view
+        wx:for="{{viewModes}}"
+        wx:key="value"
+        class="view-mode-item {{selectedViewMode === item.value ? 'active' : ''}}"
+        bindtap="onViewModeTap"
+        data-value="{{item.value}}"
+      >
+        {{item.label}}
       </view>
     </view>
 
-    <!-- 空状态 -->
-    <view class="empty-state" wx:if="{{filteredReminders.length === 0}}">
-      <icon type="info-circle" size="64" color="#DADCE0" />
-      <text class="empty-text">暂无提醒</text>
-      <text class="empty-subtext">在夏令营详情页设置提醒</text>
+    <view wx:if="{{selectedViewMode === 'school'}}">
+      <view class="focus-filter-title">学校筛选</view>
+      <view class="focus-filters">
+        <view
+          wx:for="{{schoolFilterOptions}}"
+          wx:key="value"
+          class="focus-filter-item {{selectedSchoolFilter === item.value ? 'active' : ''}}"
+          bindtap="onSchoolFilterTap"
+          data-value="{{item.value}}"
+        >
+          {{item.label}}
+        </view>
+      </view>
+      <text class="focus-filter-hint">{{schoolFilterHint}}</text>
+    </view>
+
+    <view wx:if="{{selectedViewMode === 'task'}}">
+      <view class="focus-filter-title">聚焦筛选</view>
+      <view class="focus-filters">
+        <view
+          wx:for="{{focusFilters}}"
+          wx:key="value"
+          class="focus-filter-item {{selectedFocusFilter === item.value ? 'active' : ''}}"
+          bindtap="onFocusFilterTap"
+          data-value="{{item.value}}"
+        >
+          {{item.label}}
+        </view>
+      </view>
+      <text class="focus-filter-hint">{{focusFilterHint}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{selectedViewMode === 'school'}}" class="school-view">
+    <view wx:if="{{groupedSchools.length > 0}}">
+      <view wx:for="{{groupedSchools}}" wx:key="key" wx:for-item="school" class="school-card">
+        <view class="school-header">
+          <text class="school-name">{{school.schoolName}}</text>
+          <text class="school-count">{{school.unHandledCount}} 个待处理</text>
+        </view>
+
+        <view class="school-scope-switch">
+          <view
+            class="school-scope-item {{school.activeScope === 'all' ? 'active' : ''}}"
+            bindtap="onSchoolScopeTap"
+            data-school-key="{{school.key}}"
+            data-scope="all"
+          >
+            全部 {{school.unHandledCount}}
+          </view>
+          <view
+            class="school-scope-item {{school.activeScope === 'today' ? 'active urgent' : ''}}"
+            bindtap="onSchoolScopeTap"
+            data-school-key="{{school.key}}"
+            data-scope="today"
+          >
+            今日截止申请 {{school.todayCount}}
+          </view>
+          <view
+            class="school-scope-item {{school.activeScope === 'three_days' ? 'active recent' : ''}}"
+            bindtap="onSchoolScopeTap"
+            data-school-key="{{school.key}}"
+            data-scope="three_days"
+          >
+            近3天截止申请 {{school.threeDaysCount}}
+          </view>
+          <view
+            class="school-scope-item {{school.activeScope === 'changed' ? 'active changed' : ''}}"
+            bindtap="onSchoolScopeTap"
+            data-school-key="{{school.key}}"
+            data-scope="changed"
+          >
+            夏令营/预推免信息有变更 {{school.changedCount}}
+          </view>
+        </view>
+
+        <view wx:if="{{school.scopedPendingCount > 0}}" class="school-pending-list">
+          <view wx:for="{{school.visiblePendingReminders}}" wx:key="id" wx:for-item="task" class="school-task-item">
+            <view class="school-task-head">
+              <text class="school-task-title">{{task.campTitle}}</text>
+              <text class="task-tag {{task.displayTag.type}}">{{task.displayTag.text}}</text>
+            </view>
+
+            <view class="school-task-meta">
+              <text class="preview-deadline {{task.urgencyBucket}}">{{task.deadlineHintText}}</text>
+              <text wx:if="{{task.hasChange}}" class="preview-change">有变更</text>
+            </view>
+
+            <text class="school-task-reminder">{{task.reminderHintText}}</text>
+
+            <view class="school-task-text-actions">
+              <view
+                class="text-action secondary"
+                bindtap="onViewCamp"
+                data-camp-id="{{task.campId}}"
+              >
+                查看详情
+              </view>
+              <view class="text-action-divider"></view>
+              <view
+                class="text-action secondary"
+                bindtap="onSnoozeReminder"
+                data-reminder-id="{{task.id}}"
+              >
+                稍后提醒
+              </view>
+              <view class="text-action-divider"></view>
+              <view
+                class="text-action {{task.isHandled ? 'warning' : 'primary'}}"
+                bindtap="onToggleHandled"
+                data-reminder-id="{{task.id}}"
+              >
+                {{task.isHandled ? '取消已处理' : '标记已处理'}}
+              </view>
+            </view>
+          </view>
+
+          <view
+            wx:if="{{!school.expanded && school.morePendingCount > 0}}"
+            class="school-expand-hint"
+            bindtap="onToggleSchoolExpand"
+            data-school-key="{{school.key}}"
+          >
+            还有 {{school.morePendingCount}} 条待处理，点击展开
+          </view>
+
+          <view
+            wx:if="{{school.expanded && school.scopedPendingCount > 3}}"
+            class="school-expand-hint collapse"
+            bindtap="onToggleSchoolExpand"
+            data-school-key="{{school.key}}"
+          >
+            收起任务列表
+          </view>
+        </view>
+
+        <view wx:else class="school-empty-inline">
+          当前筛选下该学校暂无待处理任务，可切换标签查看
+        </view>
+      </view>
+    </view>
+
+    <view wx:else class="empty-state">
+      <text class="empty-text">{{emptyState.title}}</text>
+      <text class="empty-subtext">{{emptyState.desc}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{selectedViewMode === 'task'}}" class="task-view">
+    <view wx:if="{{taskSections.length > 0}}">
+      <view wx:for="{{taskSections}}" wx:key="key" class="task-section">
+        <view class="task-section-header">
+          <text class="task-section-title">{{item.title}}</text>
+          <text class="task-section-count">{{item.list.length}} 条</text>
+        </view>
+
+        <view wx:for="{{item.list}}" wx:key="id" wx:for-item="task" class="task-card">
+          <view class="task-card-header">
+            <text class="task-school">{{task.universityName}}</text>
+            <text class="task-tag {{task.displayTag.type}}">{{task.displayTag.text}}</text>
+          </view>
+
+          <text class="task-title">{{task.campTitle}}</text>
+          <text class="task-deadline {{task.urgencyBucket}}">{{task.deadlineHintText}}</text>
+
+          <view class="task-info">
+            <view class="task-info-row">
+              <text class="task-info-label">{{task.eventTimeLabel}}</text>
+              <text class="task-info-value">{{task.eventTime || '--'}}</text>
+            </view>
+            <view class="task-info-row">
+              <text class="task-info-label">提醒发送时间</text>
+              <text class="task-info-value">{{task.remindTime || '--'}}</text>
+            </view>
+          </view>
+
+          <view class="task-reminder-hint">
+            <text class="task-reminder-hint-label">提醒信息</text>
+            <text class="task-reminder-hint-value">{{task.reminderHintText}}</text>
+          </view>
+
+          <view wx:if="{{task.hasChange}}" class="task-change-block">
+            <text class="task-change-title">信息变更</text>
+            <text class="task-change-summary">{{task.changeSummary || '关注信息有更新，建议尽快复核'}}</text>
+          </view>
+
+          <view wx:if="{{task.attentionMessages.length > 0}}" class="task-attention-block">
+            <text class="task-attention-title">需要处理</text>
+            <text wx:for="{{task.attentionMessages}}" wx:key="*this" class="task-attention-item">{{item}}</text>
+          </view>
+
+          <view class="task-actions">
+            <button
+              class="action-btn secondary"
+              size="mini"
+              bindtap="onViewCamp"
+              data-camp-id="{{task.campId}}"
+            >
+              查看详情
+            </button>
+            <button
+              class="action-btn secondary"
+              size="mini"
+              bindtap="onSnoozeReminder"
+              data-reminder-id="{{task.id}}"
+            >
+              稍后提醒
+            </button>
+            <button
+              class="action-btn {{task.isHandled ? 'warning' : 'primary'}}"
+              size="mini"
+              bindtap="onToggleHandled"
+              data-reminder-id="{{task.id}}"
+            >
+              {{task.isHandled ? '取消已处理' : '标记已处理'}}
+            </button>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:else class="empty-state">
+      <text class="empty-text">{{emptyState.title}}</text>
+      <text class="empty-subtext">{{emptyState.desc}}</text>
     </view>
   </view>
 </view>
