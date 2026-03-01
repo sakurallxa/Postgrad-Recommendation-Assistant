@@ -38,41 +38,114 @@ Page({
     const now = new Date();
     const minDateTime = now.toISOString().slice(0, 16);
     this.setData({ minDateTime });
-    
-    // 获取页面参数
-    if (options.campId) {
-      await this.loadCampInfo(options.campId);
-    } else {
+
+    // 获取页面参数（优先使用跳转携带的展示数据，避免不必要请求）
+    if (!options.campId) {
       wx.showToast({
         title: '缺少夏令营信息',
         icon: 'none'
       });
       setTimeout(() => wx.navigateBack(), 1500);
+      return
+    }
+
+    const decodeValue = (value) => {
+      if (!value) return ''
+      try {
+        return decodeURIComponent(value)
+      } catch (error) {
+        return value
+      }
+    }
+
+    const prefilledInfo = {
+      id: options.campId,
+      title: decodeValue(options.title),
+      deadline: options.deadline || '',
+      universityName: decodeValue(options.universityName)
+    }
+
+    const hasPrefilledDisplay = Boolean(
+      prefilledInfo.title || prefilledInfo.deadline || prefilledInfo.universityName
+    )
+
+    if (hasPrefilledDisplay) {
+      this.setData({ campInfo: prefilledInfo })
+      this.initDefaultRemindTime(prefilledInfo.deadline)
+    }
+
+    // 仅在后端可用环境下请求详情，避免云开发默认域名触发404噪音
+    if (!hasPrefilledDisplay || this.shouldUseRemoteCampApi()) {
+      await this.loadCampInfo(options.campId, hasPrefilledDisplay)
     }
   },
 
+  shouldUseRemoteCampApi() {
+    const app = getApp()
+    const baseUrl = app?.globalData?.apiBaseUrl || ''
+    const forceRemote = wx.getStorageSync('forceRemoteCampApi')
+    if (forceRemote === true) return true
+    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
+      return false
+    }
+    return Boolean(baseUrl)
+  },
+
+  initDefaultRemindTime(deadlineValue) {
+    const deadline = deadlineValue ? new Date(deadlineValue) : null
+    const hasValidDeadline = deadline && !Number.isNaN(deadline.getTime())
+    if (hasValidDeadline) {
+      this.updateRemindTime(3)
+      return
+    }
+
+    // 截止日期未知时，默认设置为次日09:00
+    const defaultDate = new Date()
+    defaultDate.setDate(defaultDate.getDate() + 1)
+    defaultDate.setHours(9, 0, 0, 0)
+    const customDateTime = defaultDate.toISOString().slice(0, 16)
+    this.setData({
+      customDateTime,
+      formattedCustomDateTime: this.formatDateTime(customDateTime)
+    })
+  },
+
   // 加载夏令营信息
-  async loadCampInfo(campId) {
+  async loadCampInfo(campId, silent = false) {
+    if (!this.shouldUseRemoteCampApi()) {
+      if (!silent) {
+        this.initDefaultRemindTime(this.data.campInfo.deadline)
+      }
+      return
+    }
+
     try {
-      const camp = await campService.getCampDetail(campId);
+      const camp = await campService.getCampDetail(campId, {
+        showLoading: false,
+        showError: false,
+        allow404Fallback: false
+      });
       
       this.setData({
         campInfo: {
           id: camp.id,
-          title: camp.title,
-          deadline: camp.deadline,
-          universityName: camp.university?.name || ''
+          title: camp.title || this.data.campInfo.title,
+          deadline: camp.deadline || this.data.campInfo.deadline,
+          universityName: camp.university?.name || this.data.campInfo.universityName || ''
         }
       });
       
       // 设置默认提醒时间（截止前3天）
-      this.updateRemindTime(3);
+      this.initDefaultRemindTime(camp.deadline || this.data.campInfo.deadline);
     } catch (error) {
       console.error('加载夏令营信息失败:', error);
-      wx.showToast({
-        title: '加载夏令营信息失败',
-        icon: 'none'
-      });
+      this.initDefaultRemindTime(this.data.campInfo.deadline)
+      if (!silent) {
+        wx.showToast({
+          title: '未获取到最新详情，已使用当前信息',
+          icon: 'none'
+        });
+      }
     }
   },
 
@@ -90,6 +163,10 @@ Page({
   // 更新提醒时间
   updateRemindTime(daysBefore) {
     const deadline = new Date(this.data.campInfo.deadline);
+    if (Number.isNaN(deadline.getTime())) {
+      this.initDefaultRemindTime('')
+      return
+    }
     const remindTime = new Date(deadline.getTime() - daysBefore * 24 * 60 * 60 * 1000);
     const customDateTime = remindTime.toISOString().slice(0, 16);
     
