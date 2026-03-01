@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { OpenidCryptoService } from '../../common/services/openid-crypto.service';
 
 /**
  * 微信订阅消息模板数据
@@ -30,6 +31,7 @@ export class ReminderScheduler {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly openidCryptoService: OpenidCryptoService,
   ) {}
 
   /**
@@ -120,9 +122,11 @@ export class ReminderScheduler {
     const { id, user, camp, templateId } = reminder;
 
     try {
+      const touser = this.resolveUserOpenid(user);
+
       // 构建微信订阅消息
       const message: WxSubscribeMessage = {
-        touser: user.openid,
+        touser,
         template_id: templateId || this.configService.get('WX_SUBSCRIBE_TEMPLATE_ID'),
         page: `/pages/camp/detail?id=${camp.id}`,
         data: {
@@ -166,6 +170,19 @@ export class ReminderScheduler {
 
       return { success: false, error: error.message };
     }
+  }
+
+  private resolveUserOpenid(user: any): string {
+    if (user?.openidCipher) {
+      return this.openidCryptoService.decrypt(user.openidCipher);
+    }
+
+    // 兼容旧数据
+    if (user?.openid) {
+      return user.openid;
+    }
+
+    throw new Error('用户openid不可用');
   }
 
   /**

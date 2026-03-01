@@ -13,16 +13,18 @@ datasource db {
 
 // 用户表
 model User {
-  id        String   @id @default(uuid())
-  openid    String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid())
+  openid       String?  @unique
+  openidHash   String?  @unique
+  openidCipher String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // 关联
   selection UserSelection?
   reminders Reminder[]
 
-  @@index([openid])
+  @@index([openidHash])
   @@map("users")
 }
 

@@ -12,6 +12,7 @@ describe('AuthModule (integration)', () => {
 
   beforeAll(async () => {
     process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key';
+    process.env.ALLOW_MOCK_WECHAT_LOGIN = 'true';
     delete process.env.WECHAT_APPID;
     delete process.env.WECHAT_SECRET;
 

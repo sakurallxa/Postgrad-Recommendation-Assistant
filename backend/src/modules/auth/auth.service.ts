@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
+import { OpenidCryptoService } from '../../common/services/openid-crypto.service';
 
 /**
  * 微信登录响应接口
@@ -46,6 +47,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly openidCryptoService: OpenidCryptoService,
   ) {}
 
   /**
@@ -69,21 +71,39 @@ export class AuthService {
       }
 
       const { openid } = wxResponse;
+      const openidHash = this.openidCryptoService.hash(openid);
+      const openidCipher = this.openidCryptoService.encrypt(openid);
 
-      // 查找或创建用户
-      let user = await this.prisma.user.findUnique({
-        where: { openid },
+      // 查找或创建用户（优先按openidHash）
+      let user = await this.prisma.user.findFirst({
+        where: {
+          OR: [{ openidHash }, { openid }],
+        },
       });
 
       if (!user) {
         user = await this.prisma.user.create({
-          data: { openid },
+          data: {
+            openidHash,
+            openidCipher,
+            openid: null,
+          },
         });
         this.logger.log(`新用户创建成功: ${user.id}`);
+      } else if (user.openidHash !== openidHash || !user.openidCipher || user.openid) {
+        // 兼容旧数据：登录时自动迁移到新字段并清理明文openid
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            openidHash,
+            openidCipher,
+            openid: null,
+          },
+        });
       }
 
       // 生成Token
-      const tokens = await this.generateTokens(user.id, user.openid);
+      const tokens = await this.generateTokens(user.id);
 
       this.logger.log(`用户登录成功: ${user.id}`);
 
@@ -127,7 +147,7 @@ export class AuthService {
         throw new UnauthorizedException('用户不存在');
       }
 
-      return this.generateTokens(user.id, user.openid);
+      return this.generateTokens(user.id);
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         throw error;
@@ -193,11 +213,10 @@ export class AuthService {
   /**
    * 生成访问令牌和刷新令牌
    * @param userId 用户ID
-   * @param openid 微信openid
    * @returns Token响应
    */
-  private async generateTokens(userId: string, openid: string): Promise<TokenResponse> {
-    const payload = { sub: userId, openid };
+  private async generateTokens(userId: string): Promise<TokenResponse> {
+    const payload = { sub: userId };
     const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN', '7d') as `${number}${'s' | 'm' | 'h' | 'd'}`;
     const refreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '30d') as `${number}${'s' | 'm' | 'h' | 'd'}`;
 

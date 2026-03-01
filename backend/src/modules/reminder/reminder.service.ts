@@ -76,12 +76,9 @@ export class ReminderService {
     const data: any = {
       userId,
       campId: dto.campId,
+      remindTime: new Date(dto.remindTime),
     };
-    
-    if (dto.remindTime) {
-      data.remindTime = new Date(dto.remindTime);
-    }
-    
+
     if (dto.content) {
       data.content = dto.content;
     }

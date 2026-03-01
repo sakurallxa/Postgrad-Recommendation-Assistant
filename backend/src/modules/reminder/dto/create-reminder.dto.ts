@@ -11,10 +11,9 @@ export class CreateReminderDto {
   @IsNotEmpty()
   campId: string;
 
-  @ApiPropertyOptional({ description: '提醒时间', example: '2024-06-01T09:00:00Z' })
-  @IsOptional()
+  @ApiProperty({ description: '提醒时间', example: '2024-06-01T09:00:00Z' })
   @IsDateString()
-  remindTime?: string;
+  remindTime: string;
 
   @ApiPropertyOptional({ description: '提醒内容', example: '夏令营报名截止提醒' })
   @IsOptional()

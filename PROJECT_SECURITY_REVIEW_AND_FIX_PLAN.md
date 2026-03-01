@@ -132,3 +132,117 @@
 3. 保留两套测试策略:
    - 当前集成测试（受限环境稳定执行）。
    - 真实 HTTP e2e（仅在本机/CI 允许监听端口时执行）。
+
+## 8. 最终闭环记录（2026-02-26）
+
+### 8.1 高风险问题修复状态
+- P0-1 提醒越权: **已修复**
+  - 创建提醒改为从 JWT 注入 `userId`，不再信任客户端传参。
+  - 删除提醒增加归属校验，非本人删除返回 `ForbiddenException`。
+  - `DELETE /reminders/:id` 增加 `ParseUUIDPipe` 参数校验。
+  - 关键文件:
+    - `backend/src/modules/reminder/reminder.controller.ts`
+    - `backend/src/modules/reminder/reminder.service.ts`
+    - `backend/src/modules/reminder/dto/create-reminder.dto.ts`
+
+- P0-2 微信未配置导致 mock 登录后门: **已修复**
+  - 未配置微信参数时默认拒绝登录。
+  - 仅在非生产环境且显式开启 `ALLOW_MOCK_WECHAT_LOGIN=true` 时允许 mock。
+  - 登录响应不再返回 `openid`。
+  - 关键文件:
+    - `backend/src/modules/auth/auth.service.ts`
+    - `backend/src/modules/auth/auth.service.spec.ts`
+    - `backend/test/auth.e2e-spec.ts`
+    - `backend/.env`
+    - `backend/.env.example`
+
+- P1-2 CORS 过宽: **已修复**
+  - 改为白名单策略，支持 `CORS_ALLOWED_ORIGINS` 配置。
+  - 关键文件:
+    - `backend/src/main.ts`
+    - `backend/.env`
+    - `backend/.env.example`
+
+- P1-3 院校排序字段未白名单: **已修复**
+  - `sortBy`、`sortOrder` 增加 `IsIn` 白名单约束。
+  - 关键文件:
+    - `backend/src/modules/university/dto/query-university.dto.ts`
+
+- P1-4 爬虫任务ID语义不一致: **已修复**
+  - 统一 `taskId === logId`（数据库 `crawler_logs.id`），消除运行中与历史查询语义差异。
+  - 关键文件:
+    - `backend/src/modules/crawler/crawler.service.ts`
+
+### 8.2 本轮新增修复（针对复审剩余问题）
+- 修复 `CreateReminderDto.remindTime` 可选导致潜在 500 问题:
+  - `remindTime` 改为必填字段，服务层创建时强制赋值。
+  - 关键文件:
+    - `backend/src/modules/reminder/dto/create-reminder.dto.ts`
+    - `backend/src/modules/reminder/reminder.service.ts`
+
+- 修复测试与安全策略不同步导致的 auth 回归失败:
+  - e2e 测试显式开启 `ALLOW_MOCK_WECHAT_LOGIN=true`。
+  - 关键文件:
+    - `backend/test/auth.e2e-spec.ts`
+
+### 8.3 回归测试补充与结果
+- 新增回归测试:
+  - `backend/src/modules/crawler/crawler.service.spec.ts`
+    - 校验 `trigger` 返回 `taskId === logId`
+    - 校验历史任务按统一 taskId 可查询
+  - `backend/src/modules/reminder/dto/create-reminder.dto.spec.ts`
+    - 校验 `remindTime` 缺失时校验失败
+  - `backend/src/modules/auth/auth.service.spec.ts` 补充安全策略回归:
+    - 未配置且未开启 mock 时拒绝登录
+    - 非生产且显式开启 mock 时允许登录
+
+- 实际执行结果（本地）:
+  - `npm run build` ✅
+  - `npm test -- --runInBand` ✅（7 suites, 83 tests）
+  - `npm run test:e2e -- --runInBand` ✅（5 suites, 22 tests）
+
+### 8.4 未完全闭环项（后续建议）
+- `openid` 数据库存储仍为明文（当前已做到“接口不返回”，但未完成“加密/摘要存储”的数据层改造）。
+- 生产上线前建议增加启动期配置校验（对 `CORS_ALLOWED_ORIGINS`、`WECHAT_APPID/SECRET`、`JWT_SECRET` 做强校验并 fail-fast）。
+
+### 8.5 openid 数据层改造闭环（新增）
+- 状态: **已完成**
+- 目标:
+  - 避免 `openid` 明文持久化；
+  - 保持可检索（去重）与可发送微信消息（可逆解密）能力。
+- 方案落地:
+  1. 数据模型新增 `openidHash`（HMAC-SHA256）与 `openidCipher`（AES-256-GCM），`openid` 改为可空以支持平滑迁移。
+  2. 登录链路改造为按 `openidHash` 查找用户；首次登录或命中旧数据时自动迁移并清空明文 `openid`。
+  3. 提醒发送链路改为优先解密 `openidCipher`，并保留旧字段兼容回退。
+  4. 增加数据回填脚本，对历史用户执行批量迁移与明文清理。
+
+- 关键改动文件:
+  - `backend/prisma/schema.prisma`
+  - `backend/prisma/migrations/20260226233000_add_openid_hash_cipher/migration.sql`
+  - `backend/src/common/services/openid-crypto.service.ts`
+  - `backend/src/common/common.module.ts`
+  - `backend/src/modules/auth/auth.service.ts`
+  - `backend/src/modules/reminder/reminder.scheduler.ts`
+  - `backend/scripts/migrate-openid.ts`
+  - `backend/package.json`
+  - `backend/.env`
+  - `backend/.env.example`
+
+- 新增回归测试:
+  - `backend/src/common/services/openid-crypto.service.spec.ts`
+  - `backend/src/modules/auth/auth.service.spec.ts`（同步断言：JWT payload 不含 openid）
+  - `backend/test/auth.e2e-spec.ts`
+
+- 执行验证结果:
+  - `npx prisma migrate deploy` ✅
+  - `npx prisma generate` ✅
+  - `npm run db:migrate:openid-data` ✅
+  - `npm run build` ✅
+  - `npm test -- --runInBand` ✅（8 suites, 85 tests）
+  - `npm run test:e2e -- --runInBand` ✅（5 suites, 22 tests）
+
+### 8.6 流程约定（文档自动同步）
+- 约定生效时间: 2026-02-26
+- 约定内容:
+  - 每次完成安全修复、架构级改造或测试基线变更后，自动更新本审查文档“最终闭环记录”章节；
+  - 不再等待额外提醒。
