@@ -144,6 +144,9 @@
 
     <!-- 底部操作区 -->
     <view class="bottom-action">
+      <button class="progress-btn" bindtap="handleAddToProgress">
+        {{campDetail.hasProgress ? '已加入申请进展' : '加入申请进展'}}
+      </button>
       <button class="remind-btn" bindtap="handleSetReminder">
         {{campDetail.hasReminder ? '已设置提醒' : '设置提醒'}}
       </button>

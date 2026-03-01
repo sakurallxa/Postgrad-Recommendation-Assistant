@@ -28,6 +28,14 @@
       "pages": [
         "pages/reminder-create/index"
       ]
+    },
+    {
+      "root": "packageProgress",
+      "name": "progress",
+      "pages": [
+        "pages/progress-list/index",
+        "pages/progress-detail/index"
+      ]
     }
   ],
   "preloadRule": {

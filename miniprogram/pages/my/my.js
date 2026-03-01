@@ -93,6 +93,13 @@ Page({
     })
   },
 
+  // 跳转到申请进展中心
+  navigateToProgress() {
+    wx.navigateTo({
+      url: '/packageProgress/pages/progress-list/index'
+    })
+  },
+
   // 处理意见反馈
   handleFeedback() {
     wx.showModal({

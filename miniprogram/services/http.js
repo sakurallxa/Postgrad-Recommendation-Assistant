@@ -156,6 +156,15 @@ class HttpClient {
     })
   }
 
+  patch(url, data, config) {
+    return this.request({
+      url,
+      method: 'PATCH',
+      data,
+      ...config
+    })
+  }
+
   buildQueryString(params) {
     return Object.entries(params)
       .filter(([_, value]) => value !== undefined && value !== null && value !== '')

@@ -1,0 +1,85 @@
+<view class="page">
+  <view class="tips" wx:if="{{useFallback}}">当前处于离线预览模式，无法提交更新。</view>
+
+  <view class="loading" wx:if="{{loading}}">加载中...</view>
+
+  <view wx:else>
+    <view class="card">
+      <text class="title">{{progress.camp.title}}</text>
+      <text class="meta">{{progress.camp.university.name}}</text>
+      <text class="meta">截止：{{progress.camp.deadline || '待定'}}</text>
+      <view class="status-row">
+        <text class="status-label">当前状态</text>
+        <text class="status-value">{{progress.statusText}}</text>
+      </view>
+      <text class="next-action">下一步：{{progress.nextAction}}</text>
+    </view>
+
+    <view class="section">
+      <text class="section-title">状态切换</text>
+      <view class="chip-row">
+        <view
+          wx:for="{{nextStatusOptions}}"
+          wx:key="value"
+          class="chip"
+          data-status="{{item.value}}"
+          bindtap="onSwitchStatus"
+        >
+          切到{{item.label}}
+        </view>
+      </view>
+    </view>
+
+    <view class="section">
+      <text class="section-title">变更订阅</text>
+      <view class="switch-row">
+        <text>开启订阅</text>
+        <switch checked="{{subscription.enabled}}" data-key="enabled" bindchange="onSubscriptionChange" />
+      </view>
+      <view class="switch-row">
+        <text>截止时间变更</text>
+        <switch checked="{{subscription.deadlineChanged}}" data-key="deadlineChanged" bindchange="onSubscriptionChange" />
+      </view>
+      <view class="switch-row">
+        <text>材料要求变更</text>
+        <switch checked="{{subscription.materialsChanged}}" data-key="materialsChanged" bindchange="onSubscriptionChange" />
+      </view>
+      <view class="switch-row">
+        <text>入营名单变更</text>
+        <switch checked="{{subscription.admissionResultChanged}}" data-key="admissionResultChanged" bindchange="onSubscriptionChange" />
+      </view>
+      <view class="switch-row">
+        <text>优秀营员结果变更</text>
+        <switch checked="{{subscription.outstandingResultChanged}}" data-key="outstandingResultChanged" bindchange="onSubscriptionChange" />
+      </view>
+      <button class="primary-btn" bindtap="onSaveSubscription">保存订阅设置</button>
+    </view>
+
+    <view class="section">
+      <text class="section-title">提醒事项</text>
+      <view class="empty" wx:if="{{alerts.length === 0}}">暂无待处理提醒</view>
+      <view class="alert-item" wx:for="{{alerts}}" wx:key="id">
+        <view class="alert-title-row">
+          <text class="alert-title">{{item.title}}</text>
+          <text class="confidence {{item.confidenceLabel}}">{{item.confidenceLabel || 'medium'}}</text>
+        </view>
+        <text class="alert-content">{{item.content}}</text>
+        <text class="alert-time">{{item.scheduledAtText}}</text>
+        <view class="action-row">
+          <button class="line-btn" data-id="{{item.id}}" bindtap="onSnoozeAlert">明天提醒</button>
+          <button class="fill-btn" data-id="{{item.id}}" bindtap="onHandleAlert">已处理</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="section">
+      <text class="section-title">状态记录</text>
+      <view class="empty" wx:if="{{statusLogs.length === 0}}">暂无状态变更记录</view>
+      <view class="log-item" wx:for="{{statusLogs}}" wx:key="id">
+        <text class="log-status">{{item.fromStatusText}} → {{item.toStatusText}}</text>
+        <text class="log-time">{{item.changedAtText}}</text>
+        <text class="log-note" wx:if="{{item.note}}">{{item.note}}</text>
+      </view>
+    </view>
+  </view>
+</view>

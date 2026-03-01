@@ -1,5 +1,6 @@
 // 夏令营详情页
 import { campService } from '../../../services/camp'
+import { progressService } from '../../../services/progress'
 
 Page({
   data: {
@@ -21,7 +22,8 @@ Page({
       process: [],
       contact: {},
       status: '',
-      hasReminder: false
+      hasReminder: false,
+      hasProgress: false
     },
     loading: true,
     showCopySuccess: false
@@ -46,7 +48,7 @@ Page({
         })
         const normalized = this.normalizeCampDetail(detail)
         this.setData({
-          campDetail: normalized,
+          campDetail: this.withProgressFlag(normalized),
           loading: false
         })
         return
@@ -57,9 +59,18 @@ Page({
 
     const mockDetail = this.getMockDetail()
     this.setData({
-      campDetail: mockDetail,
+      campDetail: this.withProgressFlag(mockDetail),
       loading: false
     })
+  },
+
+  withProgressFlag(detail) {
+    const list = wx.getStorageSync('progressFallbackList') || []
+    const exists = list.some(item => item.campId === detail.id)
+    return {
+      ...detail,
+      hasProgress: detail.hasProgress || exists
+    }
   },
 
   normalizeCampDetail(detail) {
@@ -131,7 +142,8 @@ Page({
         address: '北京市海淀区清华大学计算机科学与技术系'
       },
       status: 'published',
-      hasReminder: false
+      hasReminder: false,
+      hasProgress: false
     }
   },
 
@@ -144,12 +156,75 @@ Page({
     return Boolean(baseUrl)
   },
 
+  shouldUseRemoteProgressApi() {
+    return this.shouldUseRemoteCampApi()
+  },
+
   handleSetReminder() {
     // 设置提醒
     const { campDetail } = this.data;
     wx.navigateTo({
       url: `/packageReminder/pages/reminder-create/index?campId=${campDetail.id}&title=${encodeURIComponent(campDetail.title)}&deadline=${campDetail.deadline}&universityName=${encodeURIComponent(campDetail.universityName)}`
     });
+  },
+
+  async handleAddToProgress() {
+    const campId = this.data.campDetail.id
+    if (!campId) return
+
+    wx.showLoading({ title: '处理中...' })
+
+    try {
+      if (this.shouldUseRemoteProgressApi()) {
+        const progress = await progressService.createProgress({ campId })
+        this.setData({
+          campDetail: {
+            ...this.data.campDetail,
+            hasProgress: true
+          }
+        })
+        wx.showToast({ title: '已加入进展', icon: 'success' })
+        if (progress?.id) {
+          setTimeout(() => {
+            wx.navigateTo({
+              url: `/packageProgress/pages/progress-detail/index?id=${progress.id}`
+            })
+          }, 500)
+        }
+        return
+      }
+    } catch (error) {
+      // 远端失败时走本地兜底
+    } finally {
+      wx.hideLoading()
+    }
+
+    const fallbackList = wx.getStorageSync('progressFallbackList') || []
+    const existed = fallbackList.find(item => item.campId === campId)
+
+    if (!existed) {
+      fallbackList.unshift({
+        id: `local_${Date.now()}`,
+        campId,
+        status: 'followed',
+        statusText: '已关注',
+        nextAction: '开始整理报名材料',
+        campTitle: this.data.campDetail.title,
+        universityName: this.data.campDetail.universityName,
+        deadlineText: this.data.campDetail.deadline || '待定',
+        updatedAtText: new Date().toLocaleString(),
+        subscriptionEnabled: true
+      })
+      wx.setStorageSync('progressFallbackList', fallbackList)
+    }
+
+    this.setData({
+      campDetail: {
+        ...this.data.campDetail,
+        hasProgress: true
+      }
+    })
+    wx.showToast({ title: '已加入进展', icon: 'success' })
   },
 
   handleCopyMaterials() {

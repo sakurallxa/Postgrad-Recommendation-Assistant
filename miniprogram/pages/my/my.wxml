@@ -35,6 +35,15 @@
       </view>
       <view class="menu-arrow">→</view>
     </view>
+
+    <view class="menu-item" bindtap="navigateToProgress">
+      <view class="menu-icon">📌</view>
+      <view class="menu-content">
+        <text class="menu-title">申请进展中心</text>
+        <text class="menu-desc">跟踪提交、名单和结果阶段</text>
+      </view>
+      <view class="menu-arrow">→</view>
+    </view>
     
     <view class="menu-item" bindtap="handleFeedback">
       <view class="menu-icon">💬</view>
