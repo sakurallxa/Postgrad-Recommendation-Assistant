@@ -1,5 +1,5 @@
 export declare class CreateReminderDto {
     campId: string;
-    remindAt?: string;
+    remindTime: string;
     content?: string;
 }

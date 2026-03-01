@@ -63,7 +63,7 @@
     <view class="empty-state" wx:if="{{filteredReminders.length === 0}}">
       <icon type="info-circle" size="64" color="#DADCE0" />
       <text class="empty-text">暂无提醒</text>
-      <text class="empty-subtext">在夏令营详情页设置提醒</text>
+      <text class="empty-subtext">在夏令营/预推免详情页设置提醒</text>
     </view>
   </view>
 </view>

@@ -6,8 +6,8 @@
         <text class="camp-title">{{campInfo.title}}</text>
         <text class="camp-deadline">截止日期: {{campInfo.deadline}}</text>
       </view>
-      <view class="camp-university" wx:if="campInfo.universityName">
-        <icon type="location" size="16" color="#80868B" />
+      <view class="camp-university" wx:if="{{campInfo.universityName}}">
+        <text class="university-label">院校</text>
         <text class="university-name">{{campInfo.universityName}}</text>
       </view>
     </view>
@@ -18,35 +18,63 @@
     <view class="section-title">提醒时间</view>
     
     <!-- 快捷时间选择 -->
-    <view class="quick-time-section">
-      <view 
-        wx:for="{{quickTimeOptions}}" 
-        wx:key="{{item.value}}"
-        class="quick-time-item {{selectedQuickTime === item.value ? 'active' : ''}}"
-        bindtap="onQuickTimeTap"
-        data-value="{{item.value}}"
-      >
-        {{item.label}}
+    <view class="time-block quick-time-block">
+      <view class="section-subtitle">方式一：快捷时间</view>
+      <text class="section-tip">点击后会自动计算提醒时刻</text>
+      <view class="quick-time-section">
+        <view 
+          wx:for="{{quickTimeOptions}}" 
+          wx:key="value"
+          class="quick-time-item {{selectedQuickTime === item.value ? 'active' : ''}}"
+          bindtap="onQuickTimeTap"
+          data-value="{{item.value}}"
+        >
+          {{item.label}}
+        </view>
       </view>
+    </view>
+
+    <view class="mode-hint {{selectedQuickTime === null ? 'custom' : 'quick'}}">
+      <text wx:if="{{selectedQuickTime !== null}}">当前为快捷时间，修改下方日期/时间将切换为自定义</text>
+      <text wx:else>当前为自定义时间，可随时点击上方快捷项覆盖</text>
     </view>
     
     <!-- 自定义时间选择 -->
-    <view class="custom-time-section">
-      <view class="section-subtitle">自定义时间</view>
-      <picker 
-        mode="datetime" 
-        value="{{customDateTime}}"
-        start="{{minDateTime}}"
-        end="{{campInfo.deadline}}"
-        bindchange="onCustomTimeChange"
-        class="time-picker"
-      >
-        <view class="picker-view">
+    <view class="time-block custom-time-section">
+      <view class="section-subtitle">方式二：自定义时间</view>
+      <text class="section-tip">可自由选择任意日期与时刻</text>
+      <view class="picker-group">
+        <picker
+          mode="date"
+          value="{{customDate}}"
+          start="{{minDate}}"
+          end="{{maxDate}}"
+          bindchange="onCustomDateChange"
+          class="time-picker"
+        >
+          <view class="picker-view">
+            <text class="picker-label">日期:</text>
+            <text class="picker-value">{{customDate || '请选择日期'}}</text>
+            <icon type="arrowright" size="20" color="#9AA0A6" />
+          </view>
+        </picker>
+        <picker
+          mode="time"
+          value="{{customTime}}"
+          bindchange="onCustomTimeChange"
+          class="time-picker"
+        >
+          <view class="picker-view">
+            <text class="picker-label">时间:</text>
+            <text class="picker-value">{{customTime || '请选择时间'}}</text>
+            <icon type="arrowright" size="20" color="#9AA0A6" />
+          </view>
+        </picker>
+        <view class="picker-view preview">
           <text class="picker-label">提醒时间:</text>
           <text class="picker-value">{{formattedCustomDateTime}}</text>
-          <icon type="arrowright" size="20" color="#9AA0A6" />
         </view>
-      </picker>
+      </view>
     </view>
   </view>
 

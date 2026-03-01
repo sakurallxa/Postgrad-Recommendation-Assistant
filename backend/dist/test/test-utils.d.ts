@@ -14,15 +14,17 @@ export declare function createTestUser(openid?: string): Promise<{
     id: string;
     createdAt: Date;
     updatedAt: Date;
-    openid: string;
+    openid: string | null;
+    openidHash: string | null;
+    openidCipher: string | null;
 }>;
 export declare function createTestReminder(userId: string, campId: string): Promise<{
     id: string;
-    createdAt: Date;
-    updatedAt: Date;
-    status: string;
     userId: string;
     campId: string;
+    status: string;
+    createdAt: Date;
+    updatedAt: Date;
     remindTime: Date;
     templateId: string | null;
     sentAt: Date | null;

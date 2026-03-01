@@ -93,6 +93,13 @@ Page({
     })
   },
 
+  // 跳转到申请进展中心
+  navigateToProgress() {
+    wx.navigateTo({
+      url: '/packageProgress/pages/progress-list/index'
+    })
+  },
+
   // 处理意见反馈
   handleFeedback() {
     wx.showModal({
@@ -107,7 +114,7 @@ Page({
   handleAbout() {
     wx.showModal({
       title: '关于我们',
-      content: '保研信息助手 v1.0.0\n\n专注于为保研学生提供目标院校夏令营信息的精准聚合与截止日期智能提醒服务。\n\n让保研学生不再错过任何一个夏令营报名截止日期。',
+      content: '保研信息助手 v1.0.0\n\n专注于为保研学生提供目标院校夏令营/预推免信息的精准聚合与截止日期智能提醒服务。\n\n让保研学生不再错过任何一个夏令营/预推免报名截止日期。',
       showCancel: false,
       confirmText: '确定'
     })

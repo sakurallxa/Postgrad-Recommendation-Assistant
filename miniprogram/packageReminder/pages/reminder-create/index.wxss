@@ -37,15 +37,26 @@
 
 .camp-university {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  justify-content: flex-start;
+  width: 100%;
+  text-align: left;
   padding-top: 12px;
   border-top: 1px solid #F0F0F0;
+}
+
+.university-label {
+  font-size: 13px;
+  color: #80868B;
+  margin-right: 8px;
+  flex-shrink: 0;
 }
 
 .university-name {
   font-size: 14px;
   color: #5F6368;
-  margin-left: 8px;
+  text-align: left;
+  flex: 1;
 }
 
 /* 提醒设置 */
@@ -62,12 +73,22 @@
   margin-bottom: 16px;
 }
 
+.time-block {
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.quick-time-block {
+  background: #F8FAFF;
+  border: 1px solid #E1E8FA;
+}
+
 /* 快捷时间选择 */
 .quick-time-section {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-top: 10px;
 }
 
 .quick-time-item {
@@ -87,18 +108,56 @@
 
 /* 自定义时间选择 */
 .custom-time-section {
-  border-top: 1px solid #F0F0F0;
-  padding-top: 16px;
+  margin-top: 12px;
+  background: #FFFFFF;
+  border: 1px solid #F0F2F5;
 }
 
 .section-subtitle {
   font-size: 14px;
-  color: #5F6368;
-  margin-bottom: 12px;
+  color: #202124;
+  font-weight: 500;
+}
+
+.section-tip {
+  display: block;
+  font-size: 12px;
+  color: #80868B;
+  margin-top: 4px;
+}
+
+.mode-hint {
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.mode-hint.quick {
+  color: #1A73E8;
+  background: #ECF3FF;
+}
+
+.mode-hint.custom {
+  color: #0B8043;
+  background: #EAF7EF;
 }
 
 .time-picker {
   width: 100%;
+}
+
+.picker-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.picker-view.preview {
+  background-color: #F8F9FA;
+  border-radius: 8px;
+  border-bottom: none;
+  margin-top: 8px;
+  padding: 12px;
 }
 
 .picker-view {

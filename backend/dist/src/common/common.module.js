@@ -12,6 +12,7 @@ const config_1 = require("@nestjs/config");
 const jwt_1 = require("@nestjs/jwt");
 const redis_service_1 = require("./services/redis.service");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
+const openid_crypto_service_1 = require("./services/openid-crypto.service");
 let CommonModule = class CommonModule {
 };
 exports.CommonModule = CommonModule;
@@ -31,8 +32,8 @@ exports.CommonModule = CommonModule = __decorate([
                 inject: [config_1.ConfigService],
             }),
         ],
-        providers: [redis_service_1.RedisService, jwt_auth_guard_1.JwtAuthGuard],
-        exports: [redis_service_1.RedisService, jwt_auth_guard_1.JwtAuthGuard, jwt_1.JwtModule],
+        providers: [redis_service_1.RedisService, jwt_auth_guard_1.JwtAuthGuard, openid_crypto_service_1.OpenidCryptoService],
+        exports: [redis_service_1.RedisService, jwt_auth_guard_1.JwtAuthGuard, jwt_1.JwtModule, openid_crypto_service_1.OpenidCryptoService],
     })
 ], CommonModule);
 //# sourceMappingURL=common.module.js.map

@@ -18,6 +18,13 @@
   gap: var(--spacing-md);
 }
 
+.header-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .university-logo {
   width: 48px;
   height: 48px;
@@ -36,6 +43,28 @@
   padding: 8px 16px;
   border-radius: var(--border-radius-md);
   border: 1px solid rgba(74, 144, 226, 0.2);
+}
+
+.announcement-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid transparent;
+}
+
+.announcement-tag.summer-camp {
+  color: #2d6cdf;
+  background: rgba(45, 108, 223, 0.12);
+  border-color: rgba(45, 108, 223, 0.2);
+}
+
+.announcement-tag.pre-recommendation {
+  color: #c15a1d;
+  background: rgba(193, 90, 29, 0.12);
+  border-color: rgba(193, 90, 29, 0.2);
 }
 
 /* 夏令营标题 */
@@ -356,14 +385,17 @@
   bottom: 0;
   left: 0;
   right: 0;
+  display: flex;
+  gap: var(--spacing-sm);
   background-color: var(--background-white);
   padding: var(--spacing-md) var(--spacing-lg);
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
   border-top: 1px solid var(--border-color);
 }
 
+.progress-btn,
 .remind-btn {
-  width: 100%;
+  flex: 1;
   background: linear-gradient(135deg, var(--primary-color) 0%, #4285F4 100%);
   color: white;
   border: none;
@@ -378,6 +410,21 @@
 .remind-btn::after {
   border-radius: var(--border-radius-lg);
   border: none;
+}
+
+.progress-btn {
+  background: #eef3fb;
+  color: #2e4e8c;
+  box-shadow: none;
+}
+
+.progress-btn::after {
+  border-radius: var(--border-radius-lg);
+  border: 1px solid #c9d6ef;
+}
+
+.progress-btn:active {
+  background: #dce7fa;
 }
 
 .remind-btn:active {
@@ -489,6 +536,7 @@
     padding: var(--spacing-md);
   }
   
+  .progress-btn,
   .remind-btn {
     font-size: 15px;
     padding: var(--spacing-sm);

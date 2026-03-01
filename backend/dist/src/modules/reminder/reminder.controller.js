@@ -18,6 +18,7 @@ const swagger_1 = require("@nestjs/swagger");
 const reminder_service_1 = require("./reminder.service");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
+const create_reminder_dto_1 = require("./dto/create-reminder.dto");
 let ReminderController = class ReminderController {
     constructor(reminderService) {
         this.reminderService = reminderService;
@@ -25,11 +26,11 @@ let ReminderController = class ReminderController {
     async findAll(userId, page, limit, status) {
         return this.reminderService.findAll(userId, page, limit, status);
     }
-    async create(dto) {
-        return this.reminderService.create(dto);
+    async create(userId, dto) {
+        return this.reminderService.create(userId, dto);
     }
-    async remove(id) {
-        return this.reminderService.remove(id);
+    async remove(userId, id) {
+        return this.reminderService.remove(userId, id);
     }
 };
 exports.ReminderController = ReminderController;
@@ -50,17 +51,19 @@ __decorate([
 __decorate([
     (0, common_1.Post)(),
     (0, swagger_1.ApiOperation)({ summary: '创建提醒' }),
-    __param(0, (0, common_1.Body)()),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('sub')),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [String, create_reminder_dto_1.CreateReminderDto]),
     __metadata("design:returntype", Promise)
 ], ReminderController.prototype, "create", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     (0, swagger_1.ApiOperation)({ summary: '删除提醒' }),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('sub')),
+    __param(1, (0, common_1.Param)('id', common_1.ParseUUIDPipe)),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", Promise)
 ], ReminderController.prototype, "remove", null);
 exports.ReminderController = ReminderController = __decorate([

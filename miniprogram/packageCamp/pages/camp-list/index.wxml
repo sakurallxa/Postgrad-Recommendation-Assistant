@@ -1,17 +1,21 @@
 <view class="container">
   <!-- 筛选栏 -->
   <view class="filter-bar">
-    <view 
-      wx:for="{{filterOptions}}" 
-      wx:key="{{item.value}}"
-      class="filter-item {{activeFilter === item.value ? 'active' : ''}}"
-      bindtap="handleFilterChange" 
-      data-value="{{item.value}}"
-    >
-      {{item.label}}
-    </view>
+    <scroll-view class="filter-scroll" scroll-x enable-flex="true">
+      <view class="filter-list">
+        <view 
+          wx:for="{{filterOptions}}" 
+          wx:key="{{item.value}}"
+          class="filter-item {{activeFilter === item.value ? 'active' : ''}}"
+          bindtap="handleFilterChange" 
+          data-value="{{item.value}}"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </scroll-view>
     <navigator url="/packageSelector/pages/selector/index" class="filter-btn">
-      筛选 ▼
+      关注目标院校
     </navigator>
   </view>
 
@@ -36,5 +40,5 @@
     </view>
   </view>
   
-  <empty-state wx:else text="暂无夏令营信息" />
+  <empty-state wx:else text="暂无夏令营/预推免信息" />
 </view>

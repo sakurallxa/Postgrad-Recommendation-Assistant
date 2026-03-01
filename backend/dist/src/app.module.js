@@ -17,6 +17,7 @@ const camp_module_1 = require("./modules/camp/camp.module");
 const reminder_module_1 = require("./modules/reminder/reminder.module");
 const crawler_module_1 = require("./modules/crawler/crawler.module");
 const user_module_1 = require("./modules/user/user.module");
+const progress_module_1 = require("./modules/progress/progress.module");
 const common_module_1 = require("./common/common.module");
 const rate_limit_middleware_1 = require("./common/middleware/rate-limit.middleware");
 const logger_middleware_1 = require("./common/middleware/logger.middleware");
@@ -44,6 +45,7 @@ exports.AppModule = AppModule = __decorate([
             reminder_module_1.ReminderModule,
             crawler_module_1.CrawlerModule,
             user_module_1.UserModule,
+            progress_module_1.ProgressModule,
         ],
     })
 ], AppModule);

@@ -1,3 +1,5 @@
+const { normalizeAnnouncementType, ANNOUNCEMENT_TYPES } = require('../../../services/announcement')
+
 // 夏令营卡片组件
 Component({
   properties: {
@@ -5,6 +7,10 @@ Component({
       type: Object,
       value: {},
       observer: function(newVal) {
+        if (!newVal || typeof newVal !== 'object') {
+          return
+        }
+        this.updateAnnouncementType(newVal)
         if (newVal.deadline) {
           this.calculateDeadlineStatus(newVal.deadline)
         }
@@ -14,9 +20,20 @@ Component({
   data: {
     daysRemaining: 0,
     deadlineText: '',
-    statusClass: ''
+    statusClass: '',
+    announcementTypeLabel: '夏令营公告',
+    announcementTypeClass: 'summer-camp'
   },
   methods: {
+    updateAnnouncementType(camp) {
+      const normalized = normalizeAnnouncementType(camp || {})
+      const isPreRecommendation = normalized.announcementType === ANNOUNCEMENT_TYPES.PRE_RECOMMENDATION
+      this.setData({
+        announcementTypeLabel: normalized.announcementTypeLabel,
+        announcementTypeClass: isPreRecommendation ? 'pre-recommendation' : 'summer-camp'
+      })
+    },
+
     // 计算截止日期状态
     calculateDeadlineStatus(deadline) {
       const now = new Date()
@@ -70,16 +87,25 @@ Component({
     // 处理设置提醒
     handleRemindTap() {
       // catchtap 已自动阻止事件冒泡，无需额外处理
-      this.triggerEvent('remind', { campId: this.properties.camp.id })
+      const camp = this.properties.camp || {}
+      this.triggerEvent('remind', {
+        campId: camp.id,
+        title: camp.title || '',
+        deadline: camp.deadline || '',
+        universityName: camp.universityName || '',
+        announcementType: camp.announcementType || ''
+      })
     }
   },
 
   lifetimes: {
     attached() {
       // 组件挂载时计算截止日期状态
-      if (this.properties.camp.deadline) {
-        this.calculateDeadlineStatus(this.properties.camp.deadline)
+      const camp = this.properties.camp
+      if (camp && typeof camp === 'object' && camp.deadline) {
+        this.calculateDeadlineStatus(camp.deadline)
       }
+      this.updateAnnouncementType(camp || {})
     }
   }
 })

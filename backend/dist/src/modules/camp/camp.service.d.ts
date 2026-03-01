@@ -6,35 +6,40 @@ export declare class CampService {
         page: number;
         limit: number;
         universityId?: string;
+        universityIds?: string[];
         majorId?: string;
+        status?: string;
+        year?: number;
     }): Promise<{
         data: ({
             university: {
                 id: string;
+                createdAt: Date;
+                updatedAt: Date;
                 name: string;
                 logo: string | null;
                 region: string | null;
                 level: string | null;
                 website: string | null;
                 priority: string;
-                createdAt: Date;
-                updatedAt: Date;
             };
             major: {
                 id: string;
-                name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                category: string | null;
                 universityId: string;
+                name: string;
+                category: string | null;
             };
         } & {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            universityId: string;
             title: string;
             sourceUrl: string;
+            universityId: string;
+            majorId: string | null;
             publishDate: Date | null;
             deadline: Date | null;
             startDate: Date | null;
@@ -42,9 +47,7 @@ export declare class CampService {
             requirements: string | null;
             materials: string | null;
             process: string | null;
-            status: string;
             confidence: number;
-            majorId: string | null;
         })[];
         meta: {
             page: number;
@@ -68,11 +71,13 @@ export declare class CampService {
         };
     } & {
         id: string;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
-        universityId: string;
         title: string;
         sourceUrl: string;
+        universityId: string;
+        majorId: string | null;
         publishDate: Date | null;
         deadline: Date | null;
         startDate: Date | null;
@@ -80,8 +85,6 @@ export declare class CampService {
         requirements: string | null;
         materials: string | null;
         process: string | null;
-        status: string;
         confidence: number;
-        majorId: string | null;
     }>;
 }

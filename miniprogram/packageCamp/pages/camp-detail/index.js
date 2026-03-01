@@ -1,5 +1,7 @@
 // 夏令营详情页
 import { campService } from '../../../services/camp'
+import { progressService } from '../../../services/progress'
+import { normalizeAnnouncementType } from '../../../services/announcement'
 
 Page({
   data: {
@@ -10,6 +12,8 @@ Page({
       universityName: '',
       universityLogo: '',
       title: '',
+      announcementType: 'summer_camp',
+      announcementTypeLabel: '夏令营公告',
       sourceUrl: '',
       publishDate: '',
       deadline: '',
@@ -21,7 +25,8 @@ Page({
       process: [],
       contact: {},
       status: '',
-      hasReminder: false
+      hasReminder: false,
+      hasProgress: false
     },
     loading: true,
     showCopySuccess: false
@@ -46,7 +51,7 @@ Page({
         })
         const normalized = this.normalizeCampDetail(detail)
         this.setData({
-          campDetail: normalized,
+          campDetail: this.withProgressFlag(normalized),
           loading: false
         })
         return
@@ -57,18 +62,30 @@ Page({
 
     const mockDetail = this.getMockDetail()
     this.setData({
-      campDetail: mockDetail,
+      campDetail: this.withProgressFlag(mockDetail),
       loading: false
     })
   },
 
+  withProgressFlag(detail) {
+    const list = wx.getStorageSync('progressFallbackList') || []
+    const reminderCampIds = wx.getStorageSync('reminderCampIds') || []
+    const exists = list.some(item => item.campId === detail.id)
+    const hasReminder = reminderCampIds.includes(detail.id)
+    return {
+      ...detail,
+      hasProgress: detail.hasProgress || exists,
+      hasReminder: detail.hasReminder || hasReminder
+    }
+  },
+
   normalizeCampDetail(detail) {
-    const normalized = {
+    const normalized = normalizeAnnouncementType({
       ...detail,
       universityId: detail.universityId || detail.university?.id || '',
       universityName: detail.universityName || detail.university?.name || '',
       universityLogo: detail.universityLogo || detail.university?.logo || '',
-    }
+    })
     if (!normalized.universityLogo) {
       normalized.universityLogo = this.getUniversityLogo(normalized.universityId, normalized.universityName)
     }
@@ -88,20 +105,106 @@ Page({
     return matched?.logo || ''
   },
 
+  getMockCampDataset() {
+    return [
+      {
+        id: '1',
+        universityId: '1',
+        universityName: '清华大学',
+        title: '计算机学院2026年优秀大学生夏令营',
+        announcementType: 'summer_camp',
+        publishDate: '2026-02-20',
+        deadline: '2026-03-18',
+        startDate: '2026-05-10',
+        endDate: '2026-05-15',
+        location: '北京市海淀区清华大学'
+      },
+      {
+        id: '2',
+        universityId: '2',
+        universityName: '北京大学',
+        title: '软件与微电子学院2026年保研夏令营',
+        announcementType: 'summer_camp',
+        publishDate: '2026-02-18',
+        deadline: '2026-03-22',
+        startDate: '2026-05-15',
+        endDate: '2026-05-20',
+        location: '北京市海淀区燕园校区'
+      },
+      {
+        id: '3',
+        universityId: '3',
+        universityName: '复旦大学',
+        title: 'AI研究院2026年预推免通知',
+        announcementType: 'pre_recommendation',
+        publishDate: '2026-02-22',
+        deadline: '2026-03-12',
+        startDate: '',
+        endDate: '',
+        location: '上海市杨浦区邯郸路校区'
+      },
+      {
+        id: '4',
+        universityId: '4',
+        universityName: '上海交通大学',
+        title: '电子信息与电气工程学院2026年夏令营',
+        announcementType: 'summer_camp',
+        publishDate: '2026-02-20',
+        deadline: '2026-04-05',
+        startDate: '2026-05-25',
+        endDate: '2026-05-30',
+        location: '上海市闵行区东川路校区'
+      },
+      {
+        id: '5',
+        universityId: '5',
+        universityName: '浙江大学',
+        title: '计算机科学与技术学院2026年预推免工作通知',
+        announcementType: 'pre_recommendation',
+        publishDate: '2026-02-15',
+        deadline: '2026-04-10',
+        startDate: '',
+        endDate: '',
+        location: '浙江省杭州市浙大紫金港校区'
+      }
+    ]
+  },
+
   getMockDetail() {
-    const logo = this.getUniversityLogo('1', '清华大学')
+    const mockList = this.getMockCampDataset()
+    const currentCamp = mockList.find(item => String(item.id) === String(this.data.campId)) || mockList[0]
+    const isPreRecommendation = currentCamp.announcementType === 'pre_recommendation'
+    const logo = this.getUniversityLogo(currentCamp.universityId, currentCamp.universityName)
+
+    const process = isPreRecommendation
+      ? [
+          { step: 1, action: '网上预报名', deadline: currentCamp.deadline },
+          { step: 2, action: '提交预推免材料', deadline: currentCamp.deadline },
+          { step: 3, action: '资格审核', note: '预计5个工作日' },
+          { step: 4, action: '复试/面试考核', note: '具体安排以学院通知为准' },
+          { step: 5, action: '拟录取结果公布', note: '请持续关注学校研究生院通知' }
+        ]
+      : [
+          { step: 1, action: '网上报名', deadline: currentCamp.deadline },
+          { step: 2, action: '提交材料', deadline: currentCamp.deadline },
+          { step: 3, action: '等待审核', note: '预计7个工作日' },
+          { step: 4, action: '夏令营活动', period: `${currentCamp.startDate || '待定'}至${currentCamp.endDate || '待定'}` },
+          { step: 5, action: '结果通知', note: '活动结束后一周内' }
+        ]
+
     return {
-      id: this.data.campId,
-      universityId: '1',
-      universityName: '清华大学',
+      id: currentCamp.id,
+      universityId: currentCamp.universityId,
+      universityName: currentCamp.universityName,
       universityLogo: logo,
-      title: '计算机学院2024年优秀大学生夏令营',
-      sourceUrl: 'https://example.com/camp/1',
-      publishDate: '2024-03-01',
-      deadline: '2024-03-18',
-      startDate: '2024-05-10',
-      endDate: '2024-05-15',
-      location: '北京市海淀区清华大学',
+      title: currentCamp.title,
+      announcementType: currentCamp.announcementType,
+      sourceUrl: `https://example.com/camp/${currentCamp.id}`,
+      publishDate: currentCamp.publishDate,
+      deadline: currentCamp.deadline,
+      startDate: currentCamp.startDate,
+      endDate: currentCamp.endDate,
+      location: currentCamp.location,
       requirements: {
         education: '本科在读',
         gpa: '前30%',
@@ -118,20 +221,15 @@ Page({
         '个人陈述',
         '研究计划'
       ]),
-      process: [
-        { step: 1, action: '网上报名', deadline: '2024-03-18' },
-        { step: 2, action: '提交材料', deadline: '2024-03-20' },
-        { step: 3, action: '等待审核', note: '预计7个工作日' },
-        { step: 4, action: '夏令营活动', period: '2024-05-10至2024-05-15' },
-        { step: 5, action: '结果通知', note: '活动结束后一周内' }
-      ],
+      process,
       contact: {
         email: 'admission@cs.tsinghua.edu.cn',
         phone: '010-12345678',
         address: '北京市海淀区清华大学计算机科学与技术系'
       },
       status: 'published',
-      hasReminder: false
+      hasReminder: false,
+      hasProgress: false
     }
   },
 
@@ -144,12 +242,80 @@ Page({
     return Boolean(baseUrl)
   },
 
+  shouldUseRemoteProgressApi() {
+    return this.shouldUseRemoteCampApi()
+  },
+
   handleSetReminder() {
     // 设置提醒
     const { campDetail } = this.data;
     wx.navigateTo({
       url: `/packageReminder/pages/reminder-create/index?campId=${campDetail.id}&title=${encodeURIComponent(campDetail.title)}&deadline=${campDetail.deadline}&universityName=${encodeURIComponent(campDetail.universityName)}`
     });
+  },
+
+  async handleAddToProgress() {
+    const campId = this.data.campDetail.id
+    if (!campId) return
+
+    wx.showLoading({ title: '处理中...' })
+
+    try {
+      if (this.shouldUseRemoteProgressApi()) {
+        await progressService.createProgress({ campId }, {
+          showLoading: false,
+          showError: false
+        })
+        this.setData({
+          campDetail: {
+            ...this.data.campDetail,
+            hasProgress: true
+          }
+        })
+        this.showFollowAddedNotice()
+        return
+      }
+    } catch (error) {
+      // 远端失败时走本地兜底
+    } finally {
+      wx.hideLoading()
+    }
+
+    const fallbackList = wx.getStorageSync('progressFallbackList') || []
+    const existed = fallbackList.find(item => item.campId === campId)
+
+    if (!existed) {
+      fallbackList.unshift({
+        id: `local_${Date.now()}`,
+        campId,
+        status: 'followed',
+        statusText: '已关注',
+        nextAction: '开始整理报名材料',
+        campTitle: this.data.campDetail.title,
+        universityName: this.data.campDetail.universityName,
+        deadlineText: this.data.campDetail.deadline || '待定',
+        updatedAtText: new Date().toLocaleString(),
+        subscriptionEnabled: true
+      })
+      wx.setStorageSync('progressFallbackList', fallbackList)
+    }
+
+    this.setData({
+      campDetail: {
+        ...this.data.campDetail,
+        hasProgress: true
+      }
+    })
+    this.showFollowAddedNotice()
+  },
+
+  showFollowAddedNotice() {
+    wx.showModal({
+      title: '已添加关注',
+      content: '已添加关注，后续入营名单公布、优秀学员公布等信息将通过微信订阅消息实时提醒你',
+      showCancel: false,
+      confirmText: '我知道了'
+    })
   },
 
   handleCopyMaterials() {

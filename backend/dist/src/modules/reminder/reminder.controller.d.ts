@@ -1,4 +1,5 @@
 import { ReminderService } from './reminder.service';
+import { CreateReminderDto } from './dto/create-reminder.dto';
 export declare class ReminderController {
     private readonly reminderService;
     constructor(reminderService: ReminderService);
@@ -6,20 +7,20 @@ export declare class ReminderController {
         data: ({
             camp: {
                 id: string;
+                title: string;
+                deadline: Date;
                 university: {
                     id: string;
                     name: string;
                 };
-                title: string;
-                deadline: Date;
             };
         } & {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            status: string;
             userId: string;
             campId: string;
+            status: string;
+            createdAt: Date;
+            updatedAt: Date;
             remindTime: Date;
             templateId: string | null;
             sentAt: Date | null;
@@ -32,25 +33,25 @@ export declare class ReminderController {
             totalPages: number;
         };
     }>;
-    create(dto: any): Promise<{
+    create(userId: string, dto: CreateReminderDto): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
         userId: string;
         campId: string;
+        status: string;
+        createdAt: Date;
+        updatedAt: Date;
         remindTime: Date;
         templateId: string | null;
         sentAt: Date | null;
         errorMsg: string | null;
     }>;
-    remove(id: string): Promise<{
+    remove(userId: string, id: string): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
         userId: string;
         campId: string;
+        status: string;
+        createdAt: Date;
+        updatedAt: Date;
         remindTime: Date;
         templateId: string | null;
         sentAt: Date | null;

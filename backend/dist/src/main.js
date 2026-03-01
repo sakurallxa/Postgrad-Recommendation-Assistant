@@ -14,9 +14,27 @@ async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.use((0, helmet_1.default)());
     app.use((0, compression_1.default)());
+    const isProduction = process.env.NODE_ENV === 'production';
+    const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+        ? process.env.CORS_ALLOWED_ORIGINS.split(',')
+        : isProduction
+            ? []
+            : ['http://localhost:3000', 'http://localhost:8080'];
     app.enableCors({
-        origin: true,
+        origin: (origin, callback) => {
+            if (!origin) {
+                return callback(null, true);
+            }
+            if (allowedOrigins.includes(origin) || allowedOrigins.length === 0 && !isProduction) {
+                callback(null, true);
+            }
+            else {
+                callback(new Error(`CORS策略拒绝访问: ${origin}`), false);
+            }
+        },
         credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     });
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,

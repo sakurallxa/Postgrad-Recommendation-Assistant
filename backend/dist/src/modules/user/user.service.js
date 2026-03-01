@@ -35,7 +35,6 @@ let UserService = UserService_1 = class UserService {
             where: { id: userId },
             select: {
                 id: true,
-                openid: true,
                 createdAt: true,
                 selection: {
                     select: {

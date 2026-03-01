@@ -262,11 +262,13 @@ async function main() {
   });
 
   const campTitles = [
-    '2026年优秀大学生夏令营',
-    '全国优秀大学生暑期学术夏令营',
-    '研究生招生夏令营',
-    '暑期学校暨夏令营',
-    '优秀本科生夏令营',
+    { suffix: '2026年优秀大学生夏令营', type: 'summer_camp' },
+    { suffix: '全国优秀大学生暑期学术夏令营', type: 'summer_camp' },
+    { suffix: '研究生招生夏令营', type: 'summer_camp' },
+    { suffix: '暑期学校暨夏令营', type: 'summer_camp' },
+    { suffix: '优秀本科生夏令营', type: 'summer_camp' },
+    { suffix: '2026年预推免招生通知', type: 'pre_recommendation' },
+    { suffix: '推荐免试研究生接收工作办法', type: 'pre_recommendation' },
   ];
 
   for (const uni of topUniversities) {
@@ -276,13 +278,15 @@ async function main() {
     });
 
     for (const major of uniMajors) {
-      const title = `${uni.name}${major.name}${campTitles[Math.floor(Math.random() * campTitles.length)]}`;
+      const selectedCampTitle = campTitles[Math.floor(Math.random() * campTitles.length)];
+      const title = `${uni.name}${major.name}${selectedCampTitle.suffix}`;
       const deadline = new Date();
       deadline.setDate(deadline.getDate() + Math.floor(Math.random() * 60) + 30);
 
       await prisma.campInfo.create({
         data: {
           title,
+          announcementType: selectedCampTitle.type,
           sourceUrl: `${uni.website}/admission`,
           universityId: uni.id,
           majorId: major.id,

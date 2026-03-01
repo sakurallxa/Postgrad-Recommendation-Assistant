@@ -1,0 +1,167 @@
+.page {
+  padding: 24rpx;
+  background: #f6f8fb;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.tips {
+  background: #eef5ff;
+  color: #2f5fae;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  font-size: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.status-scroll {
+  white-space: nowrap;
+  margin-bottom: 20rpx;
+}
+
+.status-row {
+  display: flex;
+  gap: 16rpx;
+}
+
+.status-chip {
+  padding: 12rpx 24rpx;
+  border-radius: 999rpx;
+  background: #e9edf5;
+  color: #4f5b6f;
+  font-size: 24rpx;
+}
+
+.status-chip.active {
+  background: #1d5eea;
+  color: #fff;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #152033;
+  margin: 20rpx 0 12rpx;
+}
+
+.alert-section {
+  margin-bottom: 20rpx;
+}
+
+.alert-item {
+  background: #fff;
+  border-radius: 14rpx;
+  padding: 18rpx;
+  margin-bottom: 12rpx;
+}
+
+.alert-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.alert-title {
+  font-size: 28rpx;
+  color: #1c2a3f;
+  font-weight: 600;
+}
+
+.alert-content {
+  color: #4b5a73;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.alert-time {
+  margin-top: 10rpx;
+  color: #8a97ad;
+  font-size: 22rpx;
+}
+
+.confidence {
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  background: #f0f3f8;
+  color: #4b5a73;
+}
+
+.confidence.high {
+  background: #e8f8ef;
+  color: #198b4c;
+}
+
+.confidence.medium {
+  background: #fff4df;
+  color: #9a6a00;
+}
+
+.confidence.low {
+  background: #ffe8e8;
+  color: #b42318;
+}
+
+.progress-item {
+  background: #fff;
+  border-radius: 14rpx;
+  padding: 20rpx;
+  margin-bottom: 14rpx;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.title {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1c2a3f;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.status {
+  font-size: 22rpx;
+  color: #1d5eea;
+  background: #edf3ff;
+  border-radius: 999rpx;
+  padding: 6rpx 14rpx;
+}
+
+.meta-row {
+  margin-top: 10rpx;
+  display: flex;
+  justify-content: space-between;
+  color: #74829a;
+  font-size: 22rpx;
+  gap: 18rpx;
+}
+
+.next-action {
+  margin-top: 10rpx;
+  color: #23314a;
+  font-size: 24rpx;
+  display: block;
+}
+
+.empty {
+  background: #fff;
+  border-radius: 14rpx;
+  padding: 32rpx 24rpx;
+  text-align: center;
+  color: #52617b;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.primary-btn {
+  margin-top: 24rpx;
+  background: #1d5eea;
+  color: #fff;
+  border-radius: 12rpx;
+}

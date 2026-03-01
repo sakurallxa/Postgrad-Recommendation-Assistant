@@ -8,7 +8,10 @@
       lazy-load
     />
     <view class="header-info">
-      <view class="university-tag">{{camp.universityName}}</view>
+      <view class="header-tags">
+        <view class="university-tag">{{camp.universityName}}</view>
+        <view class="announcement-type-tag {{announcementTypeClass}}">{{announcementTypeLabel}}</view>
+      </view>
       <text class="camp-title">{{camp.title}}</text>
     </view>
   </view>

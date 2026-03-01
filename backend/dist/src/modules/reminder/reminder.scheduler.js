@@ -19,10 +19,12 @@ const schedule_1 = require("@nestjs/schedule");
 const prisma_service_1 = require("../prisma/prisma.service");
 const config_1 = require("@nestjs/config");
 const axios_1 = __importDefault(require("axios"));
+const openid_crypto_service_1 = require("../../common/services/openid-crypto.service");
 let ReminderScheduler = ReminderScheduler_1 = class ReminderScheduler {
-    constructor(prisma, configService) {
+    constructor(prisma, configService, openidCryptoService) {
         this.prisma = prisma;
         this.configService = configService;
+        this.openidCryptoService = openidCryptoService;
         this.logger = new common_1.Logger(ReminderScheduler_1.name);
     }
     async scanAndSendReminders() {
@@ -81,8 +83,9 @@ let ReminderScheduler = ReminderScheduler_1 = class ReminderScheduler {
     async sendReminder(reminder) {
         const { id, user, camp, templateId } = reminder;
         try {
+            const touser = this.resolveUserOpenid(user);
             const message = {
-                touser: user.openid,
+                touser,
                 template_id: templateId || this.configService.get('WX_SUBSCRIBE_TEMPLATE_ID'),
                 page: `/pages/camp/detail?id=${camp.id}`,
                 data: {
@@ -119,6 +122,15 @@ let ReminderScheduler = ReminderScheduler_1 = class ReminderScheduler {
             });
             return { success: false, error: error.message };
         }
+    }
+    resolveUserOpenid(user) {
+        if (user?.openidCipher) {
+            return this.openidCryptoService.decrypt(user.openidCipher);
+        }
+        if (user?.openid) {
+            return user.openid;
+        }
+        throw new Error('用户openid不可用');
     }
     async callWxSubscribeApi(message) {
         const appid = this.configService.get('WECHAT_APPID');
@@ -186,6 +198,7 @@ __decorate([
 exports.ReminderScheduler = ReminderScheduler = ReminderScheduler_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        openid_crypto_service_1.OpenidCryptoService])
 ], ReminderScheduler);
 //# sourceMappingURL=reminder.scheduler.js.map

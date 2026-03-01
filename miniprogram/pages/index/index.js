@@ -2,6 +2,7 @@
 import { selectionStore } from '../../store/selection'
 import { campService } from '../../services/camp'
 import { http } from '../../services/http'
+import { normalizeAnnouncementType } from '../../services/announcement'
 
 Page({
   data: {
@@ -16,6 +17,7 @@ Page({
     // 夏令营列表
     campList: [],
     allCampList: [],
+    opportunityPoolCamps: [],
     // 状态筛选选项
     statusFilterOptions: [
       { label: '全部', value: 'all' },
@@ -24,7 +26,9 @@ Page({
     ],
     yearFilterOptions: [{ label: '全部年份', value: 'all' }],
     universityFilterOptions: [{ label: '全部', value: 'all' }],
-    showFollowGuide: false,
+    followedUniversitiesPreview: [],
+    followedUniversitiesOverflow: 0,
+    myCampsEmptyText: '暂无关注结果',
     // 当前激活的筛选
     activeStatusFilter: 'all',
     activeYearFilter: 'all',
@@ -80,7 +84,8 @@ Page({
     Promise.all([
       this.loadStats(),
       this.loadUrgentCamps(),
-      this.loadCamps(true)
+      this.loadCamps(true),
+      this.loadOpportunityPool()
     ]).finally(() => {
       wx.hideLoading()
       wx.stopPullDownRefresh()
@@ -130,7 +135,9 @@ Page({
       { showLoading: false, showError: false }
     ).then(response => {
       const fetchedList = Array.isArray(response?.data) ? response.data : []
-      const normalizedList = fetchedList.map(item => this.normalizeCampItem(item))
+      const normalizedList = this.sanitizeCampList(
+        fetchedList.map(item => this.normalizeCampItem(item))
+      )
       const urgent = this.buildUrgentCamps(normalizedList)
       this.setData({ urgentCamps: urgent })
     }).catch(() => {
@@ -141,10 +148,29 @@ Page({
 
   async loadCamps(isRefresh = false) {
     const page = isRefresh ? 1 : this.data.page
+    const followedUniversities = this.getFollowedUniversities()
+    const shouldShowEmptyByDefault = this.data.activeUniversityFilter === 'all' && followedUniversities.length === 0
+
     if (isRefresh) {
       this.setData({ loading: true })
     } else {
       this.setData({ loadingMore: true })
+    }
+
+    if (shouldShowEmptyByDefault) {
+      this.setData({
+        allCampList: [],
+        campList: [],
+        hasMore: false,
+        stats: {
+          ...this.data.stats,
+          campCount: 0
+        },
+        loading: false,
+        loadingMore: false
+      })
+      this.updateUniversityFilterOptions()
+      return
     }
 
     try {
@@ -155,7 +181,9 @@ Page({
           showError: false
         })
         const fetchedList = Array.isArray(response?.data) ? response.data : []
-        const normalizedList = fetchedList.map(item => this.normalizeCampItem(item))
+        const normalizedList = this.sanitizeCampList(
+          fetchedList.map(item => this.normalizeCampItem(item))
+        )
         const mergedList = isRefresh ? normalizedList : this.data.allCampList.concat(normalizedList)
         const filteredList = this.applyCampFilters(mergedList)
         const meta = response?.meta || {}
@@ -206,6 +234,32 @@ Page({
       })
     }
 
+  },
+
+  loadOpportunityPool() {
+    if (!this.shouldUseRemoteCampApi()) {
+      this.setData({
+        opportunityPoolCamps: this.buildOpportunityPoolPreview(this.getMockCamps())
+      })
+      return Promise.resolve()
+    }
+
+    return campService.getCamps(
+      { page: 1, limit: 20, status: 'published' },
+      { showLoading: false, showError: false }
+    ).then(response => {
+      const fetchedList = Array.isArray(response?.data) ? response.data : []
+      const normalizedList = this.sanitizeCampList(
+        fetchedList.map(item => this.normalizeCampItem(item))
+      )
+      this.setData({
+        opportunityPoolCamps: this.buildOpportunityPoolPreview(normalizedList)
+      })
+    }).catch(() => {
+      this.setData({
+        opportunityPoolCamps: this.buildOpportunityPoolPreview(this.getMockCamps())
+      })
+    })
   },
 
   loadMoreCamps() {
@@ -267,9 +321,15 @@ Page({
 
   handleRemindTap(e) {
     // 处理设置提醒
-    const campId = e.detail.campId
+    const { campId, title = '', deadline = '', universityName = '' } = e.detail || {}
+    const query = [
+      `campId=${encodeURIComponent(campId || '')}`,
+      `title=${encodeURIComponent(title)}`,
+      `deadline=${encodeURIComponent(deadline)}`,
+      `universityName=${encodeURIComponent(universityName)}`
+    ].join('&')
     wx.navigateTo({
-      url: `/packageReminder/pages/reminder-create/index?campId=${campId}`
+      url: `/packageReminder/pages/reminder-create/index?${query}`
     })
   },
 
@@ -287,6 +347,7 @@ Page({
   updateUniversityFilterOptions() {
     const followed = this.getFollowedUniversities()
     const options = [{ label: '全部院校', value: 'all' }]
+    const preview = followed.slice(0, 4).map(uni => uni.name)
 
     if (followed.length > 0) {
       followed.forEach(uni => {
@@ -294,16 +355,28 @@ Page({
       })
     }
 
+    const currentActiveUniversity = this.data.activeUniversityFilter || 'all'
+    const activeUniversityExists = options.some(item => String(item.value) === String(currentActiveUniversity))
+    const nextActiveUniversityFilter = activeUniversityExists ? currentActiveUniversity : 'all'
+
     this.setData({
       universityFilterOptions: options,
-      activeUniversityFilter: this.data.activeUniversityFilter || 'all',
-      showFollowGuide: followed.length === 0
+      activeUniversityFilter: nextActiveUniversityFilter,
+      followedUniversitiesPreview: preview,
+      followedUniversitiesOverflow: Math.max(0, followed.length - preview.length),
+      myCampsEmptyText: followed.length === 0 ? '暂无关注结果，先关注目标院校' : '暂无匹配夏令营/预推免'
     })
   },
 
   handleOpenSelector() {
     wx.navigateTo({
       url: '/packageSelector/pages/selector/index'
+    })
+  },
+
+  handleOpenOpportunityPool() {
+    wx.navigateTo({
+      url: '/packageCamp/pages/camp-list/index?mode=opportunity'
     })
   },
 
@@ -387,6 +460,9 @@ Page({
     const followedIds = this.getFollowedUniversities().map(item => item.id)
 
     return sourceList.filter(camp => {
+      if (!camp || typeof camp !== 'object') {
+        return false
+      }
       if (activeStatusFilter !== 'all' && camp.status !== activeStatusFilter) {
         return false
       }
@@ -408,6 +484,9 @@ Page({
   },
 
   getCampYear(camp) {
+    if (!camp || typeof camp !== 'object') {
+      return new Date().getFullYear()
+    }
     const dateFields = [camp.publishDate, camp.deadline, camp.startDate, camp.endDate]
     for (let i = 0; i < dateFields.length; i += 1) {
       const value = dateFields[i]
@@ -427,16 +506,25 @@ Page({
   },
 
   normalizeCampItem(item) {
-    return {
+    if (!item || typeof item !== 'object') {
+      return null
+    }
+    return normalizeAnnouncementType({
       ...item,
       universityName: item.universityName || item.university?.name || '',
       universityLogo: item.universityLogo || item.university?.logo || '',
       universityId: item.universityId || item.university?.id || '',
-    }
+    })
+  },
+
+  sanitizeCampList(list) {
+    if (!Array.isArray(list)) return []
+    return list.filter(item => item && typeof item === 'object')
   },
 
   buildUrgentCamps(sourceList) {
     return sourceList
+      .filter(item => item && typeof item === 'object')
       .filter(item => item.status === 'published')
       .filter(item => item.deadline)
       .map(item => {
@@ -445,6 +533,8 @@ Page({
         return {
           id: item.id,
           universityName: item.universityName,
+          announcementType: item.announcementType,
+          announcementTypeLabel: item.announcementTypeLabel,
           title: item.title,
           deadline: item.deadline,
           daysRemaining,
@@ -457,6 +547,20 @@ Page({
       .slice(0, 5)
   },
 
+  buildOpportunityPoolPreview(sourceList) {
+    return sourceList
+      .filter(item => item && typeof item === 'object')
+      .filter(item => item.status === 'published')
+      .sort((a, b) => {
+        const aDate = new Date(a.deadline || '2999-12-31')
+        const bDate = new Date(b.deadline || '2999-12-31')
+        const aTime = Number.isNaN(aDate.getTime()) ? new Date('2999-12-31').getTime() : aDate.getTime()
+        const bTime = Number.isNaN(bDate.getTime()) ? new Date('2999-12-31').getTime() : bDate.getTime()
+        return aTime - bTime
+      })
+      .slice(0, 3)
+  },
+
   getMockCamps() {
     return [
       {
@@ -465,6 +569,7 @@ Page({
         universityName: '清华大学',
         universityLogo: '',
         title: '计算机学院2026年优秀大学生夏令营',
+        announcementType: 'summer_camp',
         publishDate: '2026-03-01',
         deadline: '2026-03-18',
         startDate: '2026-05-10',
@@ -479,6 +584,7 @@ Page({
         universityName: '北京大学',
         universityLogo: '',
         title: '软件与微电子学院2025年保研夏令营',
+        announcementType: 'summer_camp',
         publishDate: '2025-03-01',
         deadline: '2025-03-22',
         startDate: '2025-05-15',
@@ -492,13 +598,14 @@ Page({
         universityId: '3',
         universityName: '复旦大学',
         universityLogo: '',
-        title: 'AI研究院2024年夏令营',
-        publishDate: '2024-03-01',
-        deadline: '2024-03-30',
-        startDate: '2024-05-20',
-        endDate: '2024-05-25',
+        title: 'AI研究院2024年预推免通知',
+        announcementType: 'pre_recommendation',
+        publishDate: '2026-02-22',
+        deadline: '2026-03-12',
+        startDate: '2026-04-18',
+        endDate: '2026-04-22',
         location: '上海市',
-        status: 'expired',
+        status: 'published',
         hasReminder: false
       },
       {
@@ -507,6 +614,7 @@ Page({
         universityName: '上海交通大学',
         universityLogo: '',
         title: '电子信息与电气工程学院2026年夏令营',
+        announcementType: 'summer_camp',
         publishDate: '2026-02-20',
         deadline: '2026-04-05',
         startDate: '2026-05-25',
@@ -520,14 +628,15 @@ Page({
         universityId: '5',
         universityName: '浙江大学',
         universityLogo: '',
-        title: '计算机科学与技术学院2025年夏令营',
-        publishDate: '2025-02-15',
-        deadline: '2025-04-10',
-        startDate: '2025-06-01',
-        endDate: '2025-06-05',
+        title: '计算机科学与技术学院2025年预推免工作通知',
+        announcementType: 'pre_recommendation',
+        publishDate: '2026-02-15',
+        deadline: '2026-04-10',
+        startDate: '2026-06-01',
+        endDate: '2026-06-05',
         location: '杭州市',
-        status: 'expired',
-        hasReminder: false
+        status: 'published',
+        hasReminder: true
       }
     ]
   }

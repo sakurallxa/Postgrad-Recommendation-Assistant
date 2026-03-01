@@ -54,20 +54,34 @@
   <!-- 已选院校区 -->
   <view class="selected-section">
     <view class="selected-header">
-      <text class="selected-title">已选院校 ({{selectedUniversities.length}})</text>
-      <text class="toggle-btn" bindtap="toggleSelectedSection">
-        {{isSelectedSectionExpanded ? '收起 ▲' : '展开 ▼'}}
-      </text>
+      <view class="selected-title">已选院校 ({{selectedUniversities.length}})</view>
+      <view class="selected-actions">
+        <view
+          wx:if="{{selectedUniversities.length > 0}}"
+          class="clear-btn"
+          bindtap="onClearSelectedUniversities"
+        >
+          清空已选
+        </view>
+        <view class="toggle-btn" bindtap="toggleSelectedSection">
+          {{isSelectedSectionExpanded ? '收起 ▲' : '展开 ▼'}}
+        </view>
+      </view>
     </view>
     <view class="selected-tags" wx:if="{{isSelectedSectionExpanded && selectedUniversities.length > 0}}">
       <view 
         wx:for="{{selectedUniversities}}" 
         wx:key="id"
         class="selected-tag"
+        catchtap="onRemoveSelectedUniversity"
+        data-id="{{item.id}}"
       >
         <text class="tag-text">{{item.name}}</text>
-        <icon class="tag-close" type="close" size="16" color="#80868B" bindtap="onRemoveSelectedUniversity" data-id="{{item.id}}" />
+        <text class="tag-close">×</text>
       </view>
+    </view>
+    <view wx:if="{{isSelectedSectionExpanded && selectedUniversities.length === 0}}" class="selected-empty">
+      <text class="selected-empty-text">暂未选择院校，点击下方列表可添加</text>
     </view>
   </view>
 

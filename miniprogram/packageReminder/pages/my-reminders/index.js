@@ -1,5 +1,5 @@
 // 我的提醒页
-import { reminderService } from '../../services/reminder'
+import { reminderService } from '../../../services/reminder'
 
 Page({
   data: {
@@ -58,7 +58,7 @@ Page({
       const formattedReminders = result.data.map(item => ({
         id: item.id,
         campId: item.campId,
-        campTitle: item.camp?.title || '未知夏令营',
+        campTitle: item.camp?.title || '未知夏令营/预推免',
         universityName: item.camp?.university?.name || '未知院校',
         deadline: item.camp?.deadline || '',
         remindTime: item.remindTime,
