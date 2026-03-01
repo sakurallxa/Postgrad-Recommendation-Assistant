@@ -210,6 +210,7 @@
   font-weight: 500;
   min-width: 120px;
   text-align: center;
+  margin: 0;
 }
 
 .confirm-btn::after {
