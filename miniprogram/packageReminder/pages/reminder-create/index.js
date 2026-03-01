@@ -288,6 +288,9 @@ Page({
       };
       
       await reminderService.createReminder(data);
+
+      // 回写上一页详情态，保证返回后按钮立即更新
+      this.syncReminderStateToPreviousPage()
       
       wx.showToast({
         title: '提醒设置成功',
@@ -305,6 +308,33 @@ Page({
         icon: 'none'
       });
       this.setData({ submitting: false });
+    }
+  },
+
+  syncReminderStateToPreviousPage() {
+    const campId = this.data.campInfo.id
+    if (!campId) return
+
+    // 本地兜底缓存：用于离线展示或接口不可用场景
+    const reminderCampIds = wx.getStorageSync('reminderCampIds') || []
+    if (!reminderCampIds.includes(campId)) {
+      reminderCampIds.push(campId)
+      wx.setStorageSync('reminderCampIds', reminderCampIds)
+    }
+
+    const pages = getCurrentPages()
+    const previousPage = pages.length > 1 ? pages[pages.length - 2] : null
+    if (!previousPage || !previousPage.data || !previousPage.data.campDetail) {
+      return
+    }
+
+    if (previousPage.data.campDetail.id === campId) {
+      previousPage.setData({
+        campDetail: {
+          ...previousPage.data.campDetail,
+          hasReminder: true
+        }
+      })
     }
   }
 });

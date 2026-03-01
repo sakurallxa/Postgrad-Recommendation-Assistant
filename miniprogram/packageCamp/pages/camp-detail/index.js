@@ -66,10 +66,13 @@ Page({
 
   withProgressFlag(detail) {
     const list = wx.getStorageSync('progressFallbackList') || []
+    const reminderCampIds = wx.getStorageSync('reminderCampIds') || []
     const exists = list.some(item => item.campId === detail.id)
+    const hasReminder = reminderCampIds.includes(detail.id)
     return {
       ...detail,
-      hasProgress: detail.hasProgress || exists
+      hasProgress: detail.hasProgress || exists,
+      hasReminder: detail.hasReminder || hasReminder
     }
   },
 
