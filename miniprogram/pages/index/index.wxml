@@ -18,19 +18,23 @@
     </view>
     
     <view wx:if="{{urgentCamps.length > 0}}" class="urgent-camps">
-      <scroll-view scroll-x="true" enable-flex="true" class="urgent-scroll">
-        <view wx:for="{{urgentCamps}}" wx:key="id" class="urgent-card" bindtap="handleUrgentCampTap" data-id="{{item.id}}">
-          <view class="countdown {{item.statusClass}}">
-            <text class="countdown-number">{{item.daysRemaining}}</text>
-            <text class="countdown-unit">天</text>
-          </view>
-          <view class="urgent-info">
-            <text class="university-name">{{item.universityName}}</text>
-            <text class="camp-title">{{item.title}}</text>
-            <text class="deadline">{{item.deadlineText}}</text>
-          </view>
+      <view
+        wx:for="{{urgentCamps}}"
+        wx:key="id"
+        class="urgent-card"
+        bindtap="handleUrgentCampTap"
+        data-id="{{item.id}}"
+      >
+        <view class="countdown {{item.statusClass}}">
+          <text class="countdown-number">{{item.daysRemaining}}</text>
+          <text class="countdown-unit">天</text>
         </view>
-      </scroll-view>
+        <view class="urgent-info">
+          <text class="university-name">{{item.universityName}}</text>
+          <text class="camp-title">{{item.title}}</text>
+          <text class="deadline">{{item.deadlineText}}</text>
+        </view>
+      </view>
     </view>
     
     <empty-state wx:else text="暂无即将截止的夏令营" />
@@ -40,6 +44,13 @@
   <view class="section">
     <view class="section-header-vertical">
       <text class="section-title">我的夏令营</text>
+      <view wx:if="{{showFollowGuide}}" class="follow-guide" bindtap="handleOpenSelector">
+        <view class="follow-guide-content">
+          <text class="follow-guide-title">先关注院校，夏令营自动汇总</text>
+          <text class="follow-guide-desc">点击选择你关注的院校，首页会展示匹配的夏令营。</text>
+        </view>
+        <view class="follow-guide-action">去选择</view>
+      </view>
       <view class="filter-bar">
         <view class="filter-row">
           <text class="filter-label">状态</text>

@@ -51,7 +51,7 @@
     <view class="section" wx:if="{{campDetail.requirements}}">
       <text class="section-title">申请条件</text>
       <view class="info-card">
-        <view class="requirement-item" wx:for="{{campDetail.requirements.other}}" wx:key="{{index}}">
+        <view class="requirement-item" wx:for="{{campDetail.requirements.other}}" wx:key="index">
           <text class="requirement-text">{{item}}</text>
         </view>
         <view class="requirement-item">
@@ -78,18 +78,19 @@
         </button>
       </view>
       <view class="info-card materials-card">
-        <view class="material-item" wx:for="{{campDetail.materials}}" wx:key="{{index}}">
-          <text class="material-text">{{item}}</text>
+        <view class="material-item" wx:for="{{campDetail.materials}}" wx:key="index">
+          <text class="material-title">{{item.title || item}}</text>
+          <text class="material-desc" wx:if="{{item.detail}}">{{item.detail}}</text>
         </view>
       </view>
     </view>
 
-    <!-- 报名流程 -->
+    <!-- 夏令营流程 -->
     <view class="section" wx:if="{{campDetail.process && campDetail.process.length > 0}}">
-      <text class="section-title">报名流程</text>
+      <text class="section-title">夏令营流程</text>
       <view class="info-card">
         <view class="timeline">
-          <view class="timeline-item" wx:for="{{campDetail.process}}" wx:key="{{index}}">
+          <view class="timeline-item" wx:for="{{campDetail.process}}" wx:key="index">
             <view class="timeline-marker">
               <view class="timeline-dot {{index === 0 ? 'active' : ''}}">{{index + 1}}</view>
               <view class="timeline-line" wx:if="{{index < campDetail.process.length - 1}}"></view>
@@ -98,7 +99,7 @@
               <view class="timeline-header">
                 <text class="timeline-title">{{item.action}}</text>
                 <view class="timeline-status {{index === 0 ? 'current' : (index === 1 ? 'next' : 'pending')}}">
-                  {{index === 0 ? '当前' : (index === 1 ? '下一步' : '待完成')}}
+                  {{index === 0 ? '当前' : (index === 1 ? '下一步' : '待开始')}}
                 </view>
               </view>
               <text class="timeline-deadline" wx:if="{{item.deadline}}">

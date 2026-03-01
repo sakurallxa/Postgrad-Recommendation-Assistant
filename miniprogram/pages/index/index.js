@@ -1,6 +1,7 @@
 // 首页逻辑
 import { selectionStore } from '../../store/selection'
 import { campService } from '../../services/camp'
+import { http } from '../../services/http'
 
 Page({
   data: {
@@ -23,10 +24,11 @@ Page({
     ],
     yearFilterOptions: [{ label: '全部年份', value: 'all' }],
     universityFilterOptions: [{ label: '全部', value: 'all' }],
+    showFollowGuide: false,
     // 当前激活的筛选
     activeStatusFilter: 'all',
     activeYearFilter: 'all',
-    activeUniversityFilter: 'followed',
+    activeUniversityFilter: 'all',
     // 加载状态
     loading: false,
     loadingMore: false,
@@ -43,7 +45,7 @@ Page({
 
   onShow() {
     // 页面显示时刷新数据
-    this.updateUniversityFilterOptions()
+    this.loadUserSelection()
     this.refreshData()
   },
 
@@ -86,7 +88,7 @@ Page({
   },
 
   loadStats() {
-    const followed = selectionStore.selectedUniversities || []
+    const followed = this.getFollowedUniversities()
     this.setData({
       stats: {
         ...this.data.stats,
@@ -96,9 +98,45 @@ Page({
     return Promise.resolve()
   },
 
+  async loadUserSelection() {
+    try {
+      if (!this.shouldUseRemoteUserApi()) {
+        return
+      }
+      const selection = await http.get('/user/selection', null, {
+        showLoading: false,
+        showError: false
+      })
+      const universities = selection?.universities || []
+      wx.setStorageSync('selectedUniversities', universities)
+      selectionStore.setSelection(universities, selection?.majors || [])
+    } catch (error) {
+      // 如果接口不可用，保持本地已有数据
+    } finally {
+      this.updateUniversityFilterOptions()
+    }
+  },
+
   loadUrgentCamps() {
     this.setData({ urgentCamps: [] })
-    return Promise.resolve()
+    if (!this.shouldUseRemoteCampApi()) {
+      const urgent = this.buildUrgentCamps(this.getMockCamps())
+      this.setData({ urgentCamps: urgent })
+      return Promise.resolve()
+    }
+
+    return campService.getCamps(
+      { page: 1, limit: 50, status: 'published' },
+      { showLoading: false, showError: false }
+    ).then(response => {
+      const fetchedList = Array.isArray(response?.data) ? response.data : []
+      const normalizedList = fetchedList.map(item => this.normalizeCampItem(item))
+      const urgent = this.buildUrgentCamps(normalizedList)
+      this.setData({ urgentCamps: urgent })
+    }).catch(() => {
+      const urgent = this.buildUrgentCamps(this.getMockCamps())
+      this.setData({ urgentCamps: urgent })
+    })
   },
 
   async loadCamps(isRefresh = false) {
@@ -132,6 +170,7 @@ Page({
             campCount: filteredList.length
           }
         })
+        this.updateUniversityFilterOptions()
       } else {
         const mockList = this.getMockCamps()
         const filteredList = this.applyCampFilters(mockList)
@@ -144,6 +183,7 @@ Page({
             campCount: filteredList.length
           }
         })
+        this.updateUniversityFilterOptions()
       }
     } catch (error) {
       // API不可用时回退到本地模拟数据，保证筛选功能可调试
@@ -158,6 +198,7 @@ Page({
           campCount: filteredList.length
         }
       })
+      this.updateUniversityFilterOptions()
     } finally {
       this.setData({
         loading: false,
@@ -165,7 +206,6 @@ Page({
       })
     }
 
-    this.updateUrgentCampsFromCurrentList()
   },
 
   loadMoreCamps() {
@@ -245,12 +285,10 @@ Page({
   },
 
   updateUniversityFilterOptions() {
-    const storeUniversities = selectionStore.selectedUniversities || []
-    const localUniversities = wx.getStorageSync('selectedUniversities') || []
-    const followed = this.mergeUniversities(storeUniversities, localUniversities)
+    const followed = this.getFollowedUniversities()
     const options = [{ label: '全部院校', value: 'all' }]
+
     if (followed.length > 0) {
-      options.push({ label: '已关注院校', value: 'followed' })
       followed.forEach(uni => {
         options.push({ label: uni.name, value: uni.id })
       })
@@ -258,7 +296,14 @@ Page({
 
     this.setData({
       universityFilterOptions: options,
-      activeUniversityFilter: followed.length > 0 ? this.data.activeUniversityFilter : 'all'
+      activeUniversityFilter: this.data.activeUniversityFilter || 'all',
+      showFollowGuide: followed.length === 0
+    })
+  },
+
+  handleOpenSelector() {
+    wx.navigateTo({
+      url: '/packageSelector/pages/selector/index'
     })
   },
 
@@ -266,10 +311,25 @@ Page({
     const merged = {}
     const all = [].concat(storeUniversities || [], localUniversities || [])
     all.forEach(item => {
-      if (!item || !item.id) return
-      merged[item.id] = item
+      if (!item) return
+      const id = item.id || item.universityId
+      const name = item.name || item.universityName
+      if (!id || !name) return
+      merged[id] = { ...item, id, name }
     })
     return Object.keys(merged).map(id => merged[id])
+  },
+
+  getFollowedUniversities() {
+    const storeUniversities = selectionStore.selectedUniversities || []
+    const localUniversities = wx.getStorageSync('selectedUniversities') || []
+    const userSelection = wx.getStorageSync('userSelection') || {}
+    const selectionUniversities = userSelection.universities || []
+    return this.mergeUniversities(storeUniversities, localUniversities.concat(selectionUniversities))
+  },
+
+  getCampUniversities() {
+    return []
   },
 
   shouldUseRemoteCampApi() {
@@ -286,6 +346,15 @@ Page({
     return Boolean(baseUrl)
   },
 
+  shouldUseRemoteUserApi() {
+    const app = getApp()
+    const baseUrl = app?.globalData?.apiBaseUrl || ''
+    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
+      return false
+    }
+    return Boolean(baseUrl)
+  },
+
   buildCampQueryParams(page) {
     const {
       pageSize,
@@ -293,14 +362,16 @@ Page({
       activeYearFilter,
       activeUniversityFilter
     } = this.data
-    const followedIds = (selectionStore.selectedUniversities || []).map(item => item.id)
+    const followedIds = this.getFollowedUniversities().map(item => item.id)
 
     const params = { page, limit: pageSize }
     if (activeStatusFilter !== 'all') params.status = activeStatusFilter
     if (activeYearFilter !== 'all') params.year = activeYearFilter
-    if (activeUniversityFilter === 'followed' && followedIds.length > 0) {
-      params.universityIds = followedIds
-    } else if (activeUniversityFilter !== 'all') {
+    if (activeUniversityFilter === 'all') {
+      if (followedIds.length > 0) {
+        params.universityIds = followedIds
+      }
+    } else {
       params.universityId = activeUniversityFilter
     }
 
@@ -313,7 +384,7 @@ Page({
       activeYearFilter,
       activeUniversityFilter
     } = this.data
-    const followedIds = (selectionStore.selectedUniversities || []).map(item => item.id)
+    const followedIds = this.getFollowedUniversities().map(item => item.id)
 
     return sourceList.filter(camp => {
       if (activeStatusFilter !== 'all' && camp.status !== activeStatusFilter) {
@@ -324,13 +395,13 @@ Page({
         return false
       }
 
-      if (activeUniversityFilter === 'followed' && followedIds.length > 0) {
-        if (followedIds.indexOf(camp.universityId) === -1) {
-          return false
-        }
-      } else if (activeUniversityFilter !== 'all' && camp.universityId !== activeUniversityFilter) {
+    if (activeUniversityFilter === 'all') {
+      if (followedIds.length > 0 && followedIds.indexOf(camp.universityId) === -1) {
         return false
       }
+    } else if (camp.universityId !== activeUniversityFilter) {
+      return false
+    }
 
       return true
     })
@@ -364,8 +435,8 @@ Page({
     }
   },
 
-  updateUrgentCampsFromCurrentList() {
-    const urgentSource = this.data.campList
+  buildUrgentCamps(sourceList) {
+    return sourceList
       .filter(item => item.status === 'published')
       .filter(item => item.deadline)
       .map(item => {
@@ -384,8 +455,6 @@ Page({
       .filter(item => item.daysRemaining >= 0)
       .sort((a, b) => a.daysRemaining - b.daysRemaining)
       .slice(0, 5)
-
-    this.setData({ urgentCamps: urgentSource })
   },
 
   getMockCamps() {

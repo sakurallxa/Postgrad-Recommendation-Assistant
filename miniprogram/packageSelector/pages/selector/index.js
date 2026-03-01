@@ -355,6 +355,12 @@ Page({
   onConfirmSelection() {
     // 保存选择到状态管理
     selectionStore.setSelection(this.data.selectedUniversities, []);
+    // 同步到本地存储，供首页筛选读取
+    wx.setStorageSync('selectedUniversities', this.data.selectedUniversities);
+    wx.setStorageSync('userSelection', {
+      universities: this.data.selectedUniversities,
+      majors: []
+    });
     
     // 提示用户
     wx.showToast({

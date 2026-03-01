@@ -46,8 +46,8 @@ class CampService {
    * @param {string} id - 夏令营ID
    * @returns {Promise} 夏令营详情
    */
-  async getCampDetail(id) {
-    return http.get(`/camps/${id}`)
+  async getCampDetail(id, config = {}) {
+    return http.get(`/camps/${id}`, null, config)
   }
 
   /**

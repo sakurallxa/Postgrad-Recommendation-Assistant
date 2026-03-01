@@ -103,6 +103,8 @@
   flex: 1;
   line-height: 1.6;
   font-weight: 500;
+  word-break: break-all;
+  word-wrap: break-word;
 }
 
 .deadline {
@@ -178,11 +180,19 @@
   margin-bottom: 0;
 }
 
-.material-text {
+.material-title {
   font-size: 15px;
   color: var(--text-primary);
-  line-height: 1.6;
-  font-weight: 500;
+  line-height: 1.5;
+  font-weight: 600;
+  display: block;
+}
+
+.material-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-top: 4px;
   display: block;
 }
 
@@ -440,6 +450,11 @@
 
 .contact-item:last-child {
   margin-bottom: 0;
+}
+
+.contact-item .label {
+  min-width: 60px;
+  margin-right: var(--spacing-md);
 }
 
 /* 响应式设计 */
