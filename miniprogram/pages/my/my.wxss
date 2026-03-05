@@ -160,15 +160,17 @@
   background: var(--surface-card-bg-soft);
   border: 1px solid rgba(26, 115, 232, 0.12);
   border-radius: var(--border-radius-lg);
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
   box-shadow: var(--shadow-1);
 }
 
 .disclaimer-text {
+  display: block;
   font-size: var(--font-size-caption);
   color: var(--text-tertiary);
-  line-height: var(--line-height-relaxed);
+  line-height: var(--line-height-normal);
   text-align: center;
+  width: 100%;
 }
 
 /* 响应式设计 */

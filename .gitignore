@@ -30,3 +30,10 @@ ehthumbs.db
 # 打包文件
 *.zip
 *.rar
+
+# 本地环境与构建产物（不入库）
+backend/.env
+backend/prisma/dev.db
+backend/dist/
+backend/coverage/
+baoyanwang.jpg

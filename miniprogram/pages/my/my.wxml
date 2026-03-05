@@ -67,15 +67,10 @@
       <view class="menu-icon">ℹ️</view>
       <view class="menu-content">
         <text class="menu-title">关于我们</text>
-        <text class="menu-desc">了解保研信息助手</text>
+        <text class="menu-desc">了解保研汪</text>
       </view>
       <view class="menu-arrow">→</view>
     </view>
-  </view>
-
-  <!-- 版本信息 -->
-  <view class="version-info">
-    <text>版本号: v1.0.0</text>
   </view>
 
   <!-- 免责声明 -->
@@ -83,5 +78,10 @@
     <text class="disclaimer-text">
       免责声明：本小程序提供的夏令营/预推免信息仅供参考，具体信息以院校官网为准。
     </text>
+  </view>
+
+  <!-- 版本信息 -->
+  <view class="version-info">
+    <text>版本号: v1.0.0</text>
   </view>
 </view>

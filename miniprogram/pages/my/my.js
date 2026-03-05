@@ -112,7 +112,7 @@ Page({
   handleFeedback() {
     wx.showModal({
       title: '意见反馈',
-      content: '请将您的建议或问题发送至：baoyan@example.com',
+      content: '请将您的建议或问题发送至邮箱：myrt.chaos@gmail.com',
       showCancel: false,
       confirmText: '确定'
     })
@@ -122,7 +122,7 @@ Page({
   handleAbout() {
     wx.showModal({
       title: '关于我们',
-      content: '保研信息助手 v1.0.0\n\n专注于为保研学生提供目标院校夏令营/预推免信息的精准聚合与截止日期智能提醒服务。\n\n让保研学生不再错过任何一个夏令营/预推免报名截止日期。',
+      content: '保研汪 v1.0.0\n\n专注为保研学子提供目标夏令营/预推免信息的精准聚合和进度管理服务，打造属于你个人的保研信息小助手。',
       showCancel: false,
       confirmText: '确定'
     })
