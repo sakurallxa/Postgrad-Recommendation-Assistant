@@ -245,7 +245,7 @@ Page({
     }
 
     return campService.getCamps(
-      { page: 1, limit: 20, status: 'published' },
+      { page: 1, limit: 60, status: 'published' },
       { showLoading: false, showError: false }
     ).then(response => {
       const fetchedList = Array.isArray(response?.data) ? response.data : []
@@ -305,17 +305,44 @@ Page({
 
   handleCampTap(e) {
     // 处理夏令营点击
-    const campId = e.detail.campId
-    wx.navigateTo({
-      url: `/packageCamp/pages/camp-detail/index?id=${campId}`
+    const detail = e.detail || {}
+    const dataset = (e.currentTarget && e.currentTarget.dataset) || {}
+    this.navigateToCampDetail({
+      campId: detail.campId || dataset.id || dataset.campId || '',
+      announcementType: detail.announcementType || dataset.announcementType || '',
+      title: detail.title || dataset.title || ''
     })
   },
 
   handleUrgentCampTap(e) {
     // 处理即将截止卡片点击
-    const campId = e.currentTarget.dataset.id
+    const dataset = (e.currentTarget && e.currentTarget.dataset) || {}
+    this.navigateToCampDetail({
+      campId: dataset.id || '',
+      announcementType: dataset.announcementType || '',
+      title: dataset.title || ''
+    })
+  },
+
+  navigateToCampDetail({ campId = '', announcementType = '', title = '' } = {}) {
+    if (!campId) {
+      wx.showToast({
+        title: '公告信息缺失',
+        icon: 'none'
+      })
+      return
+    }
+
+    const query = [`id=${encodeURIComponent(campId)}`]
+    if (announcementType) {
+      query.push(`announcementType=${encodeURIComponent(announcementType)}`)
+    }
+    if (title) {
+      query.push(`title=${encodeURIComponent(title)}`)
+    }
+
     wx.navigateTo({
-      url: `/packageCamp/pages/camp-detail/index?id=${campId}`
+      url: `/packageCamp/pages/camp-detail/index?${query.join('&')}`
     })
   },
 
@@ -378,6 +405,20 @@ Page({
     wx.navigateTo({
       url: '/packageCamp/pages/camp-list/index?mode=opportunity'
     })
+  },
+
+  buildCampDetailUrl({ id = '', announcementType = '', title = '' } = {}) {
+    if (!id) {
+      return ''
+    }
+    const query = [`id=${encodeURIComponent(id)}`]
+    if (announcementType) {
+      query.push(`announcementType=${encodeURIComponent(announcementType)}`)
+    }
+    if (title) {
+      query.push(`title=${encodeURIComponent(title)}`)
+    }
+    return `/packageCamp/pages/camp-detail/index?${query.join('&')}`
   },
 
   mergeUniversities(storeUniversities, localUniversities) {
@@ -551,6 +592,12 @@ Page({
     return sourceList
       .filter(item => item && typeof item === 'object')
       .filter(item => item.status === 'published')
+      .filter(item => {
+        if (!item.deadline) return true
+        const deadlineDate = new Date(item.deadline)
+        if (Number.isNaN(deadlineDate.getTime())) return true
+        return deadlineDate.getTime() >= Date.now()
+      })
       .sort((a, b) => {
         const aDate = new Date(a.deadline || '2999-12-31')
         const bDate = new Date(b.deadline || '2999-12-31')
@@ -558,7 +605,15 @@ Page({
         const bTime = Number.isNaN(bDate.getTime()) ? new Date('2999-12-31').getTime() : bDate.getTime()
         return aTime - bTime
       })
-      .slice(0, 3)
+      .map(item => ({
+        ...item,
+        detailUrl: this.buildCampDetailUrl({
+          id: item.id,
+          announcementType: item.announcementType,
+          title: item.title
+        })
+      }))
+      .slice(0, 5)
   },
 
   getMockCamps() {

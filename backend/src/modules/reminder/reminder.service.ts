@@ -78,12 +78,31 @@ export class ReminderService {
       campId: dto.campId,
       remindTime: new Date(dto.remindTime),
     };
-
-    if (dto.content) {
-      data.content = dto.content;
-    }
     
-    return this.prisma.reminder.create({ data });
+    const reminder = await this.prisma.reminder.create({ data });
+    await this.prisma.campWatchSubscription.upsert({
+      where: {
+        userId_campId: {
+          userId,
+          campId: dto.campId,
+        },
+      },
+      create: {
+        userId,
+        campId: dto.campId,
+        sourceType: 'reminder',
+        enabled: true,
+        inAppEnabled: true,
+        wechatEnabled: true,
+      },
+      update: {
+        sourceType: 'reminder',
+        enabled: true,
+        inAppEnabled: true,
+        wechatEnabled: true,
+      },
+    });
+    return reminder;
   }
 
   /**
@@ -109,8 +128,29 @@ export class ReminderService {
       throw new ForbiddenException('无权删除此提醒');
     }
 
-    return this.prisma.reminder.delete({
+    const deleted = await this.prisma.reminder.delete({
       where: { id },
     });
+    const [remainingReminders, existingProgress] = await Promise.all([
+      this.prisma.reminder.count({
+        where: { userId, campId: reminder.campId, status: { not: 'expired' } },
+      }),
+      this.prisma.applicationProgress.findUnique({
+        where: {
+          userId_campId: {
+            userId,
+            campId: reminder.campId,
+          },
+        },
+        select: { id: true },
+      }),
+    ]);
+    if (remainingReminders === 0 && !existingProgress) {
+      await this.prisma.campWatchSubscription.updateMany({
+        where: { userId, campId: reminder.campId },
+        data: { enabled: false },
+      });
+    }
+    return deleted;
   }
 }

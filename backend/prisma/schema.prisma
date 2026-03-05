@@ -21,14 +21,46 @@ model User {
   updatedAt    DateTime @updatedAt
 
   // 关联
+  profile UserProfile?
   selection UserSelection?
   reminders Reminder[]
   progresses ApplicationProgress[]
   progressSubscriptions ProgressSubscription[]
   progressAlerts ProgressAlert[]
+  campWatchSubscriptions CampWatchSubscription[]
+  progressMatchCandidates ProgressMatchCandidate[]
 
   @@index([openidHash])
   @@map("users")
+}
+
+// 用户保研档案
+model UserProfile {
+  id       String @id @default(uuid())
+  userId   String @unique
+
+  schoolName          String?
+  schoolLevel         String?
+  education           String?
+  major               String?
+  gradeRankPercent    Float?
+  gradeRankText       String?
+  gpa                 String?
+  englishType         String?
+  englishScore        Float?
+  subjectRanking      String?
+  researchExperience  String?
+  competitionAwards   String?
+  preferredDirection  String?
+  targetNote          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_profiles")
 }
 
 // 院校表
@@ -81,6 +113,8 @@ model CampInfo {
   id          String   @id @default(uuid())
   title       String
   announcementType String @default("summer_camp") // summer_camp/pre_recommendation
+  identityHash String?
+  identityVersion Int @default(1)
   sourceUrl   String
   
   universityId String
@@ -94,6 +128,7 @@ model CampInfo {
   requirements String? // 申请要求（JSON字符串）
   materials    String? // 所需材料清单（JSON字符串）
   process      String? // 报名流程步骤（JSON字符串）
+  contact      String? // 联系方式（JSON字符串）
   
   status     String   @default("published") // draft/published/expired
   confidence Float    @default(1.00) // 信息置信度 0-1
@@ -108,6 +143,10 @@ model CampInfo {
   progresses ApplicationProgress[]
   progressChangeEvents ProgressChangeEvent[]
   progressAlerts ProgressAlert[]
+  sourceAliases CampSourceAlias[]
+  watchSubscriptions CampWatchSubscription[]
+  extractionLogs CampExtractionLog[]
+  resultEntries CampResultEntry[]
 
   @@index([universityId])
   @@index([majorId])
@@ -115,7 +154,54 @@ model CampInfo {
   @@index([status])
   @@index([publishDate])
   @@index([announcementType])
+  @@index([identityHash])
+  @@index([universityId, identityHash])
   @@map("camp_infos")
+}
+
+model CampExtractionLog {
+  id                String   @id @default(uuid())
+  campId             String?
+  universityId       String
+  sourceUrl          String
+  triggerReasons     String? // JSON数组字符串
+  sourceSnippet      String?
+  provider           String   @default("deepseek")
+  model              String?
+  extractionVersion  String
+  confidenceScore    Float?
+  requestPayload     String?
+  responsePayload    String?
+  parsedResult       String?
+  status             String   @default("success") // success/fallback/error/invalid
+  errorMessage       String?
+  createdAt          DateTime @default(now())
+
+  camp CampInfo? @relation(fields: [campId], references: [id], onDelete: SetNull)
+
+  @@index([campId, createdAt])
+  @@index([universityId, createdAt])
+  @@index([sourceUrl])
+  @@map("camp_extraction_logs")
+}
+
+model CampSourceAlias {
+  id            String   @id @default(uuid())
+  campId         String
+  universityId   String
+  sourceUrl      String
+  sourceUrlHash  String
+  isPrimary      Boolean  @default(false)
+  firstSeenAt    DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  camp CampInfo @relation(fields: [campId], references: [id], onDelete: Cascade)
+
+  @@unique([universityId, sourceUrlHash])
+  @@index([campId, lastSeenAt])
+  @@map("camp_source_aliases")
 }
 
 // 用户选择表
@@ -219,6 +305,7 @@ model ApplicationProgress {
   statusLogs ProgressStatusLog[]
   subscription ProgressSubscription?
   alerts ProgressAlert[]
+  matchCandidates ProgressMatchCandidate[]
 
   @@unique([userId, campId])
   @@index([userId, status])
@@ -235,10 +322,17 @@ model ProgressStatusLog {
   toStatus   String
   note       String?
   changedAt  DateTime @default(now())
+  sourceType String   @default("manual") // manual/confirm/auto_high_conf/system
+  sourceEventId String?
+  idempotencyKey String? @unique
+  evidenceJson String?
+  rollbackOfLogId String?
+  rolledBackAt DateTime?
 
   progress ApplicationProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
 
   @@index([progressId, changedAt])
+  @@index([sourceEventId])
   @@map("progress_status_logs")
 }
 
@@ -270,6 +364,7 @@ model ProgressChangeEvent {
   fieldName    String?
   oldValue     String?
   newValue     String?
+  idempotencyKey String? @unique
   sourceType   String   @default("crawler") // crawler/manual/system
   sourceUrl    String?
   sourceUpdatedAt DateTime?
@@ -279,11 +374,37 @@ model ProgressChangeEvent {
 
   camp CampInfo @relation(fields: [campId], references: [id], onDelete: Cascade)
   alerts ProgressAlert[]
+  resultEntries CampResultEntry[]
+  matchCandidates ProgressMatchCandidate[]
 
   @@index([campId, createdAt])
   @@index([eventType, createdAt])
   @@index([confidenceLabel])
   @@map("progress_change_events")
+}
+
+model CampWatchSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  campId    String
+  sourceType String @default("manual") // reminder/progress/manual
+  deadlineChanged          Boolean @default(true)
+  materialsChanged         Boolean @default(true)
+  admissionResultChanged   Boolean @default(true)
+  outstandingResultChanged Boolean @default(true)
+  enabled     Boolean @default(true)
+  inAppEnabled Boolean @default(true)
+  wechatEnabled Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  camp CampInfo @relation(fields: [campId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, campId])
+  @@index([campId, enabled])
+  @@index([userId, enabled])
+  @@map("camp_watch_subscriptions")
 }
 
 // 进展提醒/订阅消息
@@ -296,9 +417,19 @@ model ProgressAlert {
   type        String // deadline_stage/result_watch/change_event
   title       String
   content     String
+  channel     String  @default("in_app") // in_app/wechat
+  sendStatus  String  @default("pending") // pending/sending/sent/failed
+  sendAttempt Int     @default(0)
+  lastError   String?
+  sentAt      DateTime?
+  idempotencyKey String? @unique
   status      String  @default("pending") // pending/handled/snoozed
   priority    String  @default("normal") // normal/high/urgent
   confidenceLabel String?
+  actionType String?
+  actionToken String? @unique
+  actionPayloadJson String?
+  actionExpireAt DateTime?
   scheduledAt DateTime @default(now())
   snoozeUntil DateTime?
   handledAt   DateTime?
@@ -314,5 +445,52 @@ model ProgressAlert {
   @@index([progressId])
   @@index([campId])
   @@index([eventId])
+  @@index([channel, sendStatus, scheduledAt])
+  @@index([actionExpireAt])
   @@map("progress_alerts")
+}
+
+model ProgressMatchCandidate {
+  id        String   @id @default(uuid())
+  eventId   String
+  userId    String
+  progressId String
+  matchConfidenceScore Float  @default(0)
+  matchConfidenceLabel String @default("low") // high/medium/low
+  featuresJson String?
+  decision  String? // auto_promoted/confirm_required/notify_only/skipped
+  decidedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event ProgressChangeEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  progress ApplicationProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([progressId, createdAt])
+  @@index([eventId, matchConfidenceLabel])
+  @@map("progress_match_candidates")
+}
+
+model CampResultEntry {
+  id         String   @id @default(uuid())
+  campId     String
+  eventId    String
+  entryType  String // admission/outstanding
+  nameRaw    String
+  nameHash   String
+  schoolRaw  String?
+  majorRaw   String?
+  auxJson    String?
+  sourceSnippet String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  camp CampInfo @relation(fields: [campId], references: [id], onDelete: Cascade)
+  event ProgressChangeEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([campId, eventId, entryType])
+  @@index([nameHash, entryType])
+  @@map("camp_result_entries")
 }

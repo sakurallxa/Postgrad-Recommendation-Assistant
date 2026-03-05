@@ -42,25 +42,14 @@ ITEM_PIPELINES = {
 }
 
 # ==========================================
-# 中间件配置
+# 中间件与扩展配置
 # ==========================================
-DOWNLOADER_MIDDLEWARES = {
-    'baoyan_crawler.middlewares.retry.RetryMiddleware': 90,
-    'scrapy.downloadermiddlewares.retry.RetryMiddleware': None,
-    'baoyan_crawler.middlewares.proxy.ProxyMiddleware': 100,
-    'baoyan_crawler.middlewares.useragent.UserAgentMiddleware': 110,
-}
-
-SPIDER_MIDDLEWARES = {
-    'baoyan_crawler.middlewares.error.ErrorMiddleware': 50,
-}
-
-# ==========================================
-# 扩展配置
-# ==========================================
+# 当前仓库默认不启用自定义 middlewares/extensions，
+# 直接使用 Scrapy 内置实现，避免独立运行时报模块缺失。
+DOWNLOADER_MIDDLEWARES = {}
+SPIDER_MIDDLEWARES = {}
 EXTENSIONS = {
     'scrapy.extensions.telnet.TelnetConsole': None,
-    'baoyan_crawler.extensions.monitor.MonitorExtension': 100,
 }
 
 # ==========================================
@@ -85,6 +74,21 @@ DOWNLOAD_TIMEOUT = 30
 # 数据库配置
 # ==========================================
 DATABASE_URL = os.getenv('DATABASE_URL', 'mysql://root:password@localhost:3306/baoyan')
+
+# ==========================================
+# 后端 ingest 配置
+# ==========================================
+BACKEND_BASE_URL = os.getenv('BACKEND_BASE_URL', 'http://127.0.0.1:3000')
+CRAWLER_INGEST_ENABLED = os.getenv('CRAWLER_INGEST_ENABLED', '1')
+CRAWLER_INGEST_URL = os.getenv(
+    'CRAWLER_INGEST_URL',
+    f"{BACKEND_BASE_URL.rstrip('/')}/api/v1/crawler/ingest-camps"
+)
+CRAWLER_INGEST_BEARER_TOKEN = os.getenv('CRAWLER_INGEST_BEARER_TOKEN', '')
+CRAWLER_INGEST_KEY = os.getenv('CRAWLER_INGEST_KEY', '')
+CRAWLER_INGEST_TIMEOUT_SECONDS = int(os.getenv('CRAWLER_INGEST_TIMEOUT_SECONDS', 15))
+CRAWLER_INGEST_BATCH_SIZE = int(os.getenv('CRAWLER_INGEST_BATCH_SIZE', 30))
+CRAWLER_INGEST_EMIT_BASELINE_EVENTS = os.getenv('CRAWLER_INGEST_EMIT_BASELINE_EVENTS', '1')
 
 # ==========================================
 # Redis配置
@@ -166,17 +170,7 @@ DEEPSEEK_CONFIG = {
 # ==========================================
 # 爬虫调度配置
 # ==========================================
-# 调度器类
-SCHEDULER = 'baoyan_crawler.scheduler.PriorityScheduler'
-
-# 去重类
-DUPEFILTER_CLASS = 'baoyan_crawler.dupefilter.RedisDupeFilter'
-
-# 调度持久化
-SCHEDULER_PERSIST = True
-
-# 调度队列刷新间隔
-SCHEDULER_FLUSH_ON_START = False
+# 使用 Scrapy 默认调度器与默认去重器。
 
 # ==========================================
 # 代理配置

@@ -21,12 +21,24 @@ class ProgressService {
     return http.post('/progress', data, this.withNo404Fallback(config))
   }
 
+  async unfollowCamp(campId, config = {}) {
+    return http.delete(`/progress/camp/${campId}/follow`, this.withNo404Fallback(config))
+  }
+
   async getProgressDetail(progressId, config = {}) {
     return http.get(`/progress/${progressId}`, null, this.withNo404Fallback(config))
   }
 
+  async removeProgress(progressId, config = {}) {
+    return http.delete(`/progress/${progressId}`, this.withNo404Fallback(config))
+  }
+
   async updateProgressStatus(progressId, data, config = {}) {
     return http.patch(`/progress/${progressId}/status`, data, this.withNo404Fallback(config))
+  }
+
+  async confirmProgressStep(progressId, data, config = {}) {
+    return http.post(`/progress/${progressId}/confirm-step`, data, this.withNo404Fallback(config))
   }
 
   async getSubscription(progressId, config = {}) {
@@ -35,6 +47,18 @@ class ProgressService {
 
   async updateSubscription(progressId, data, config = {}) {
     return http.patch(`/progress/${progressId}/subscription`, data, this.withNo404Fallback(config))
+  }
+
+  async getSchoolSubscriptions(config = {}) {
+    return http.get('/progress/school-subscriptions', null, this.withNo404Fallback(config))
+  }
+
+  async updateSchoolSubscription(universityId, data, config = {}) {
+    return http.patch(
+      `/progress/school-subscriptions/${universityId}`,
+      data,
+      this.withNo404Fallback(config)
+    )
   }
 
   async getAlerts(params = {}, config = {}) {
@@ -52,6 +76,10 @@ class ProgressService {
 
   async snoozeAlert(alertId, data = { hours: 24 }, config = {}) {
     return http.patch(`/progress/alerts/${alertId}/snooze`, data, this.withNo404Fallback(config))
+  }
+
+  async consumeActionToken(data, config = {}) {
+    return http.post('/progress/actions/consume', data, this.withNo404Fallback(config))
   }
 }
 

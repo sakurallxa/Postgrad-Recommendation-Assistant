@@ -1,0 +1,15 @@
+<view class="page">
+  <view class="card">
+    <view class="title">进展确认</view>
+    <view class="desc" wx:if="{{loading}}">正在处理，请稍候...</view>
+    <view wx:elif="{{success}}">
+      <view class="result success">{{message}}</view>
+      <button class="primary-btn" bindtap="onOpenProgressDetail" wx:if="{{progressId}}">查看关注详情</button>
+      <button class="secondary-btn" bindtap="onOpenReminder">返回通知中心</button>
+    </view>
+    <view wx:else>
+      <view class="result fail">{{message}}</view>
+      <button class="primary-btn" bindtap="onOpenReminder">返回通知中心</button>
+    </view>
+  </view>
+</view>

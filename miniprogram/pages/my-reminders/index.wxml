@@ -1,9 +1,22 @@
 <view class="reminders-page">
+  <view class="center-switch">
+    <view
+      wx:for="{{centerTabs}}"
+      wx:key="value"
+      class="center-switch-item {{activeCenterTab === item.value ? 'active' : ''}}"
+      bindtap="onCenterTabTap"
+      data-value="{{item.value}}"
+    >
+      {{item.label}}
+    </view>
+  </view>
+
+  <view wx:if="{{activeCenterTab === 'risk'}}">
   <view class="summary-card">
     <view class="summary-item urgent">
       <text class="summary-value">{{summary.todayDueSchools}}</text>
       <text class="summary-title">今日截止申请学校</text>
-      <text class="summary-desc">最高优先处理</text>
+      <text class="summary-desc">最高优先关注</text>
     </view>
     <view class="summary-item recent">
       <text class="summary-value">{{summary.threeDaysDueSchools}}</text>
@@ -61,6 +74,7 @@
       </view>
       <text class="focus-filter-hint">{{focusFilterHint}}</text>
     </view>
+
   </view>
 
   <view wx:if="{{selectedViewMode === 'school'}}" class="school-view">
@@ -68,7 +82,7 @@
       <view wx:for="{{groupedSchools}}" wx:key="key" wx:for-item="school" class="school-card">
         <view class="school-header">
           <text class="school-name">{{school.schoolName}}</text>
-          <text class="school-count">{{school.unHandledCount}} 个待处理</text>
+          <text class="school-count">{{school.unHandledCount}} 条待关注通知</text>
         </view>
 
         <view class="school-scope-switch">
@@ -110,7 +124,6 @@
           <view wx:for="{{school.visiblePendingReminders}}" wx:key="id" wx:for-item="task" class="school-task-item">
             <view class="school-task-head">
               <text class="school-task-title">{{task.campTitle}}</text>
-              <text class="task-tag {{task.displayTag.type}}">{{task.displayTag.text}}</text>
             </view>
 
             <view class="school-task-meta">
@@ -125,8 +138,19 @@
                 class="text-action secondary"
                 bindtap="onViewCamp"
                 data-camp-id="{{task.campId}}"
+                data-announcement-type="{{task.announcementType}}"
+                data-title="{{task.campTitle}}"
               >
                 查看详情
+              </view>
+              <view class="text-action-divider" wx:if="{{task.canQuickConfirm}}"></view>
+              <view
+                wx:if="{{task.canQuickConfirm}}"
+                class="text-action primary"
+                bindtap="onQuickConfirm"
+                data-action-token="{{task.actionToken}}"
+              >
+                {{task.actionLabel || '立即确认'}}
               </view>
               <view class="text-action-divider"></view>
               <view
@@ -142,7 +166,7 @@
                 bindtap="onToggleHandled"
                 data-reminder-id="{{task.id}}"
               >
-                {{task.isHandled ? '取消已处理' : '标记已处理'}}
+                {{task.isHandled ? '取消已查看' : '标记已查看'}}
               </view>
             </view>
           </view>
@@ -153,7 +177,7 @@
             bindtap="onToggleSchoolExpand"
             data-school-key="{{school.key}}"
           >
-            还有 {{school.morePendingCount}} 条待处理，点击展开
+            还有 {{school.morePendingCount}} 条待关注通知，点击展开
           </view>
 
           <view
@@ -162,12 +186,12 @@
             bindtap="onToggleSchoolExpand"
             data-school-key="{{school.key}}"
           >
-            收起任务列表
+            收起通知列表
           </view>
         </view>
 
         <view wx:else class="school-empty-inline">
-          当前筛选下该学校暂无待处理任务，可切换标签查看
+          当前筛选下该学校暂无待关注通知，可切换标签查看
         </view>
       </view>
     </view>
@@ -189,7 +213,6 @@
         <view wx:for="{{item.list}}" wx:key="id" wx:for-item="task" class="task-card">
           <view class="task-card-header">
             <text class="task-school">{{task.universityName}}</text>
-            <text class="task-tag {{task.displayTag.type}}">{{task.displayTag.text}}</text>
           </view>
 
           <text class="task-title">{{task.campTitle}}</text>
@@ -217,7 +240,7 @@
           </view>
 
           <view wx:if="{{task.attentionMessages.length > 0}}" class="task-attention-block">
-            <text class="task-attention-title">需要处理</text>
+            <text class="task-attention-title">建议关注</text>
             <text wx:for="{{task.attentionMessages}}" wx:key="*this" class="task-attention-item">{{item}}</text>
           </view>
 
@@ -227,8 +250,19 @@
               size="mini"
               bindtap="onViewCamp"
               data-camp-id="{{task.campId}}"
+              data-announcement-type="{{task.announcementType}}"
+              data-title="{{task.campTitle}}"
             >
               查看详情
+            </button>
+            <button
+              wx:if="{{task.canQuickConfirm}}"
+              class="action-btn primary"
+              size="mini"
+              bindtap="onQuickConfirm"
+              data-action-token="{{task.actionToken}}"
+            >
+              {{task.actionLabel || '立即确认'}}
             </button>
             <button
               class="action-btn secondary"
@@ -244,7 +278,7 @@
               bindtap="onToggleHandled"
               data-reminder-id="{{task.id}}"
             >
-              {{task.isHandled ? '取消已处理' : '标记已处理'}}
+              {{task.isHandled ? '取消已查看' : '标记已查看'}}
             </button>
           </view>
         </view>
@@ -254,6 +288,53 @@
     <view wx:else class="empty-state">
       <text class="empty-text">{{emptyState.title}}</text>
       <text class="empty-subtext">{{emptyState.desc}}</text>
+    </view>
+  </view>
+  </view>
+
+  <view wx:elif="{{activeCenterTab === 'progress'}}" class="progress-tab-view">
+    <view class="progress-tip" wx:if="{{progressUseFallback}}">
+      {{progressUsingMockData ? '当前展示开发环境演示进展，连接后端后可查看实时数据。' : '当前展示本地缓存进展，连接后端后可查看实时数据。'}}
+    </view>
+
+    <view class="progress-tool-entry" bindtap="onOpenSchoolSubscription">
+      <view class="progress-tool-main">
+        <text class="progress-tool-title">学校级通知设置</text>
+        <text class="progress-tool-desc">按学校统一设置通知开关，新增公告自动继承</text>
+      </view>
+      <text class="progress-tool-arrow">→</text>
+    </view>
+
+    <view class="progress-empty" wx:if="{{!progressLoading && progressOverviewList.length === 0}}">
+      <text class="empty-text">还没有关注公告</text>
+      <text class="empty-subtext">先到夏令营/预推免详情页点击“已关注”</text>
+      <button class="progress-refresh-btn" bindtap="onOpenAdvancedSubscription">刷新关注进展</button>
+    </view>
+
+    <view class="progress-loading" wx:if="{{progressLoading}}">加载关注进展中...</view>
+
+    <view class="progress-overview-list" wx:if="{{!progressLoading && progressOverviewList.length > 0}}">
+      <view
+        wx:for="{{progressOverviewList}}"
+        wx:key="id"
+        class="progress-overview-item"
+        data-id="{{item.id}}"
+        bindtap="onOpenProgressDetail"
+      >
+        <view class="progress-overview-head">
+          <text class="progress-overview-title">{{item.campTitle}}</text>
+          <text class="progress-overview-stage">{{item.stageText}}</text>
+        </view>
+        <view class="progress-overview-meta">
+          <text>{{item.universityName}}</text>
+          <text>截止: {{item.deadlineText}}</text>
+        </view>
+        <text class="progress-overview-next">建议：{{item.nextAction}}</text>
+        <view class="progress-overview-meta">
+          <text>更新于 {{item.updatedAtText}}</text>
+          <text>{{item.subscriptionEnabled ? '通知已开启' : '通知未开启'}}</text>
+        </view>
+      </view>
     </view>
   </view>
 </view>

@@ -6,6 +6,28 @@
 
 ---
 
+## 0. 上线固定提醒清单（2026-03-01新增）
+
+每次正式上线前，必须先完成以下两项：
+
+1. 执行数据库迁移（部署环境）
+
+```bash
+npm --prefix backend run db:deploy
+```
+
+2. 配置并开启环境变量（后端与爬虫配置一致）
+
+- `CRAWLER_INGEST_KEY`：后端与 Python 爬虫必须完全一致
+- `WX_PROGRESS_CHANGE_TEMPLATE_ID`：进展变更模板（可回退 `WX_SUBSCRIBE_TEMPLATE_ID`）
+- `WECHAT_ACTION_TOKEN_ENABLED=true`：开启微信一键确认跳转
+- `AUTO_MATCH_ENABLED=true`：开启名单匹配引擎
+- `AUTO_PROGRESS_HIGH_CONF_ENABLED=false`：先灰度关闭高置信自动推进，观察后再放量
+- `DEEPSEEK_API_KEY`：生产可用密钥
+- `DEEPSEEK_FALLBACK_ENABLED=true`：开启规则失败时的 LLM 兜底
+
+---
+
 ## 一、部署架构
 
 ```

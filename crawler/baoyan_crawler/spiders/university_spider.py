@@ -251,6 +251,7 @@ class UniversitySpider(scrapy.Spider):
             item['requirements'] = camp_info.get('requirements', {})
             item['materials'] = camp_info.get('materials', [])
             item['process'] = camp_info.get('process', [])
+            item['contact'] = camp_info.get('contact', {})
             item['content'] = content
             
             yield item
@@ -350,6 +351,7 @@ class UniversitySpider(scrapy.Spider):
             'requirements': self.extract_requirements(content),
             'materials': self.extract_materials(content),
             'process': self.extract_process(content),
+            'contact': self.extract_contact(content),
         }
         
         return camp_info
@@ -437,6 +439,27 @@ class UniversitySpider(scrapy.Spider):
                 break
         
         return process
+
+    def extract_contact(self, content):
+        """提取联系方式（邮箱/电话/地址）"""
+        contact = {}
+
+        email_match = re.search(r'([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})', content)
+        if email_match:
+            contact['email'] = email_match.group(1)
+
+        phone_match = re.search(r'((?:0\d{2,3}-?)?\d{7,8}(?:-\d+)?|1[3-9]\d{9})', content)
+        if phone_match:
+            contact['phone'] = phone_match.group(1)
+
+        address_match = re.search(
+            r'(北京市|上海市|天津市|重庆市|[^\s，。；]{2,8}省[^\s，。；]{2,20}(?:市|区|县)?|[^\s，。；]{2,10}市[^\s，。；]{2,20}(?:区|县)?)',
+            content,
+        )
+        if address_match:
+            contact['address'] = address_match.group(1)
+
+        return contact
     
     def handle_error(self, failure):
         """处理请求错误"""

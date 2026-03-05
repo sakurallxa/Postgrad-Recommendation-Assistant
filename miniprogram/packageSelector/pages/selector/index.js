@@ -1,6 +1,6 @@
 // 院校选择页
 import { selectionStore } from '../../../store/selection'
-import { universityService } from '../../../services/university'
+import { universityService } from '../../services/university'
 
 const MACRO_REGIONS = ['华北', '华东', '华南', '华中', '西南', '西北', '东北']
 const PROVINCE_REGION_MAP = {

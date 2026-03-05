@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { RedisService } from './services/redis.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { OpenidCryptoService } from './services/openid-crypto.service';
+import { DeepSeekService } from './services/deepseek.service';
 
 /**
  * 通用模块
@@ -24,7 +25,7 @@ import { OpenidCryptoService } from './services/openid-crypto.service';
       inject: [ConfigService],
     }),
   ],
-  providers: [RedisService, JwtAuthGuard, OpenidCryptoService],
-  exports: [RedisService, JwtAuthGuard, JwtModule, OpenidCryptoService],
+  providers: [RedisService, JwtAuthGuard, OpenidCryptoService, DeepSeekService],
+  exports: [RedisService, JwtAuthGuard, JwtModule, OpenidCryptoService, DeepSeekService],
 })
 export class CommonModule {}

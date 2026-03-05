@@ -44,7 +44,12 @@
       </view>
     </view>
     <view class="actions">
-      <view wx:if="{{camp.hasReminder}}" class="reminder-status">
+      <view
+        wx:if="{{camp.hasReminder}}"
+        class="reminder-status"
+        catchtap="handleRemindTap"
+        hover-class="reminder-status-hover"
+      >
         <text class="reminder-icon">🔔</text>
         <text class="reminder-text">已设置提醒</text>
       </view>

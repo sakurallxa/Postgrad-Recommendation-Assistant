@@ -1,13 +1,36 @@
 // 我的提醒页（行动视角）
 import { reminderService } from '../../services/reminder'
+import { normalizeAnnouncementType } from '../../services/announcement'
+import { campService } from '../../services/camp'
+import { progressService } from '../../services/progress'
 
 const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 const HANDLED_MAP_KEY = 'reminderHandledMap'
 const REMINDER_REFRESH_TOKEN_KEY = 'myRemindersRefreshToken'
+const RICH_MOCK_REMINDERS_KEY = 'enableRichReminderMock'
+const REMINDER_CAMP_SNAPSHOT_MAP_KEY = 'reminderCampSnapshotMap'
+const PROGRESS_FALLBACK_LIST_KEY = 'progressFallbackList'
+const PROGRESS_USE_MOCK_KEY = 'progressUseMockData'
+const NOTIFICATION_CENTER_ACTIVE_TAB_KEY = 'notificationCenterActiveTab'
+
+const PROGRESS_STAGE_MAP = {
+  followed: '进行中',
+  preparing: '进行中',
+  submitted: '进行中',
+  waiting_admission: '待名单',
+  admitted: '待结果',
+  waiting_outstanding: '待结果',
+  outstanding_published: '已出结果'
+}
 
 Page({
   data: {
+    centerTabs: [
+      { label: '风险提醒', value: 'risk' },
+      { label: '关注进展', value: 'progress' }
+    ],
+    activeCenterTab: 'risk',
     summary: {
       todayDueSchools: 0,
       threeDaysDueSchools: 0,
@@ -15,7 +38,7 @@ Page({
     },
     viewModes: [
       { label: '按学校看', value: 'school' },
-      { label: '按任务看', value: 'task' }
+      { label: '按通知看', value: 'task' }
     ],
     selectedViewMode: 'school',
     schoolFilterOptions: [{ label: '全部学校', value: 'all' }],
@@ -23,14 +46,18 @@ Page({
     schoolFilterHint: '',
     focusFilters: [
       { label: '全部', value: 'all' },
-      { label: '今日必处理', value: 'today' },
-      { label: '3天内需处理', value: 'three_days' },
+      { label: '今日优先', value: 'today' },
+      { label: '3天内关注', value: 'three_days' },
       { label: '信息有变更', value: 'changed' },
-      { label: '已处理', value: 'handled' }
+      { label: '已查看', value: 'handled' }
     ],
     selectedFocusFilter: 'today',
     focusFilterHint: '',
     reminders: [],
+    progressOverviewList: [],
+    progressLoading: false,
+    progressUseFallback: false,
+    progressUsingMockData: false,
     taskSections: [],
     groupedSchools: [],
     schoolExpandMap: {},
@@ -40,7 +67,7 @@ Page({
     lastRefreshToken: 0,
     handledMap: {},
     emptyState: {
-      title: '暂无提醒任务',
+      title: '暂无保研通知',
       desc: '在夏令营/预推免详情页设置提醒后会出现在这里'
     }
   },
@@ -50,6 +77,12 @@ Page({
   },
 
   onShow() {
+    const targetTab = wx.getStorageSync(NOTIFICATION_CENTER_ACTIVE_TAB_KEY)
+    if (targetTab === 'risk' || targetTab === 'progress') {
+      this.setData({ activeCenterTab: targetTab })
+      wx.removeStorageSync(NOTIFICATION_CENTER_ACTIVE_TAB_KEY)
+    }
+
     const refreshToken = Number(wx.getStorageSync(REMINDER_REFRESH_TOKEN_KEY) || 0)
 
     if (!this.data.initialized) {
@@ -58,6 +91,9 @@ Page({
         lastRefreshToken: refreshToken
       })
       this.loadReminders({ preserveOnEmpty: true })
+      if (this.data.activeCenterTab === 'progress') {
+        this.loadProgressOverview()
+      }
       return
     }
 
@@ -65,6 +101,159 @@ Page({
       this.setData({ lastRefreshToken: refreshToken })
       this.loadReminders({ preserveOnEmpty: true })
     }
+    if (this.data.activeCenterTab === 'progress') {
+      this.loadProgressOverview()
+    }
+  },
+
+  onCenterTabTap(e) {
+    const tab = e?.currentTarget?.dataset?.value
+    if (!tab || tab === this.data.activeCenterTab) return
+    if (tab === 'progress') {
+      this.setData({ activeCenterTab: 'progress' })
+      this.loadProgressOverview()
+      return
+    }
+    this.setData({ activeCenterTab: 'risk' })
+  },
+
+  async loadProgressOverview() {
+    if (this.data.progressLoading) return
+    this.setData({ progressLoading: true })
+
+    if (!this.shouldUseRemoteProgressApi()) {
+      this.loadProgressFallbackData()
+      return
+    }
+
+    try {
+      const result = await progressService.getProgressList({
+        page: 1,
+        limit: 50
+      }, {
+        showLoading: false,
+        showError: false
+      })
+      const progressOverviewList = (result?.data || []).map(item => this.normalizeProgressItem(item))
+      this.setData({
+        progressOverviewList,
+        progressLoading: false,
+        progressUseFallback: false,
+        progressUsingMockData: false
+      })
+      wx.setStorageSync(PROGRESS_FALLBACK_LIST_KEY, progressOverviewList)
+    } catch (error) {
+      this.loadProgressFallbackData()
+    }
+  },
+
+  loadProgressFallbackData() {
+    let fallbackList = wx.getStorageSync(PROGRESS_FALLBACK_LIST_KEY) || []
+    let progressUsingMockData = false
+
+    if ((!Array.isArray(fallbackList) || fallbackList.length === 0) && this.shouldInjectProgressMockData()) {
+      fallbackList = this.buildProgressMockFallbackList()
+      progressUsingMockData = true
+      wx.setStorageSync(PROGRESS_FALLBACK_LIST_KEY, fallbackList)
+    }
+
+    if (!Array.isArray(fallbackList)) fallbackList = []
+
+    const progressOverviewList = fallbackList.map(item => this.normalizeProgressItem(item))
+
+    this.setData({
+      progressOverviewList,
+      progressLoading: false,
+      progressUseFallback: true,
+      progressUsingMockData
+    })
+  },
+
+  shouldInjectProgressMockData() {
+    if (!this.isDevelopEnv()) return false
+    return wx.getStorageSync(PROGRESS_USE_MOCK_KEY) === true
+  },
+
+  buildProgressMockFallbackList() {
+    const now = Date.now()
+    return [
+      {
+        id: 'mock-progress-fudan-1',
+        status: 'waiting_admission',
+        stageText: PROGRESS_STAGE_MAP.waiting_admission,
+        nextAction: '每天检查是否有名单更新',
+        campId: 'mock-camp-fudan-1',
+        campTitle: 'AI研究院2026年预推免通知',
+        universityName: '复旦大学',
+        deadlineText: '2026-03-12',
+        updatedAtText: this.formatMockDateTime(now - 2 * HOUR_MS),
+        subscriptionEnabled: true
+      },
+      {
+        id: 'mock-progress-tsinghua-1',
+        status: 'waiting_outstanding',
+        stageText: PROGRESS_STAGE_MAP.waiting_outstanding,
+        nextAction: '关注优秀营员结果发布',
+        campId: 'mock-camp-tsinghua-1',
+        campTitle: '计算机学院2026年优秀大学生夏令营',
+        universityName: '清华大学',
+        deadlineText: '2026-03-18',
+        updatedAtText: this.formatMockDateTime(now - 6 * HOUR_MS),
+        subscriptionEnabled: true
+      }
+    ]
+  },
+
+  normalizeProgressItem(item = {}) {
+    return {
+      id: String(item.id || ''),
+      status: String(item.status || ''),
+      stageText: item.stageText || PROGRESS_STAGE_MAP[item.status] || '进行中',
+      nextAction: item.nextAction || this.getProgressDefaultNextAction(item.status),
+      campId: String(item.campId || item.camp?.id || ''),
+      campTitle: item.campTitle || item.camp?.title || '未命名公告',
+      universityName: item.universityName || item.camp?.university?.name || '未知院校',
+      deadlineText: item.deadlineText || this.formatProgressDate(item.camp?.deadline),
+      updatedAtText: item.updatedAtText || this.formatProgressDateTime(item.updatedAt),
+      subscriptionEnabled: item.subscriptionEnabled !== undefined
+        ? Boolean(item.subscriptionEnabled)
+        : item.subscription?.enabled !== false
+    }
+  },
+
+  getProgressDefaultNextAction(status) {
+    const actionMap = {
+      followed: '先整理材料并确认报名入口',
+      preparing: '检查材料完整性并准备提交',
+      submitted: '关注入营名单发布时间',
+      waiting_admission: '每天检查是否有名单更新',
+      admitted: '准备营期安排并跟进后续通知',
+      waiting_outstanding: '关注优秀营员结果发布',
+      outstanding_published: '记录结果并准备下一步申请'
+    }
+    return actionMap[status] || '持续关注项目进展'
+  },
+
+  formatProgressDate(value) {
+    const ts = this.safeGetTimestamp(value)
+    if (!ts) return '待定'
+    const date = new Date(ts)
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  },
+
+  formatProgressDateTime(value) {
+    const ts = this.safeGetTimestamp(value)
+    if (!ts) return '未知'
+    const date = new Date(ts)
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    const h = String(date.getHours()).padStart(2, '0')
+    const min = String(date.getMinutes()).padStart(2, '0')
+    return `${y}-${m}-${d} ${h}:${min}`
   },
 
   loadHandledMap() {
@@ -84,10 +273,12 @@ Page({
 
     try {
       const result = await reminderService.getReminders({ page: 1, limit: 200, status: 'all' })
-      const rawList = Array.isArray(result?.data) ? result.data : []
-      const reminders = rawList
+      const serverList = Array.isArray(result?.data) ? result.data : []
+      const rawList = this.withDebugMockReminders(serverList)
+      const normalizedReminders = rawList
         .map(item => this.normalizeReminder(item))
         .filter(item => item)
+      const reminders = await this.enrichRemindersWithChangeSignals(normalizedReminders)
 
       if (preserveOnEmpty && reminders.length === 0 && this.data.reminders.length > 0) {
         this.recomputeView()
@@ -107,6 +298,615 @@ Page({
     }
   },
 
+  async enrichRemindersWithChangeSignals(reminders = []) {
+    if (!Array.isArray(reminders) || reminders.length === 0) {
+      return reminders
+    }
+
+    const [alertSignalMap, snapshotSignalMap] = await Promise.all([
+      this.fetchProgressAlertSignals(reminders),
+      this.detectCampSnapshotChanges(reminders)
+    ])
+
+    return reminders.map(reminder => this.mergeReminderSignals(
+      reminder,
+      alertSignalMap[reminder.campId],
+      snapshotSignalMap[reminder.campId]
+    ))
+  },
+
+  mergeReminderSignals(reminder, alertSignal, snapshotSignal) {
+    const mergedSignal = this.mergeChangeSignals(alertSignal, snapshotSignal)
+    if (!mergedSignal) {
+      return reminder
+    }
+
+    const mergedReminder = {
+      ...reminder,
+      hasChange: true,
+      changeTypes: mergedSignal.changeTypes,
+      changeSummary: mergedSignal.changeSummary || reminder.changeSummary || '',
+      changeAt: mergedSignal.changeAt || reminder.changeAt || '',
+      eventType: mergedSignal.eventType || reminder.eventType,
+      eventTime: mergedSignal.eventTime || reminder.eventTime,
+      actionType: mergedSignal.actionType || reminder.actionType || '',
+      actionToken: mergedSignal.actionToken || reminder.actionToken || '',
+      actionLabel: mergedSignal.actionLabel || reminder.actionLabel || '',
+      actionExpireAt: mergedSignal.actionExpireAt || reminder.actionExpireAt || '',
+      progressId: mergedSignal.progressId || reminder.progressId || ''
+    }
+    mergedReminder.eventTimeLabel = this.getEventTimeLabel(mergedReminder.eventType)
+    mergedReminder.eventTimestamp = this.safeGetTimestamp(mergedReminder.eventTime)
+
+    return this.decorateReminder(mergedReminder, mergedReminder.isHandled)
+  },
+
+  mergeChangeSignals(alertSignal, snapshotSignal) {
+    if (!alertSignal && !snapshotSignal) {
+      return null
+    }
+
+    const changeTypes = []
+    ;[alertSignal, snapshotSignal].forEach(signal => {
+      if (!signal || !Array.isArray(signal.changeTypes)) return
+      signal.changeTypes.forEach(type => {
+        if (type && changeTypes.indexOf(type) === -1) {
+          changeTypes.push(type)
+        }
+      })
+    })
+
+    return {
+      changeTypes,
+      changeSummary: (alertSignal && alertSignal.changeSummary) ||
+        (snapshotSignal && snapshotSignal.changeSummary) ||
+        '公告信息有更新，请尽快核实',
+      changeAt: (alertSignal && alertSignal.changeAt) || (snapshotSignal && snapshotSignal.changeAt) || '',
+      eventType: (alertSignal && alertSignal.eventType) || (snapshotSignal && snapshotSignal.eventType) || '',
+      eventTime: (alertSignal && alertSignal.eventTime) || (snapshotSignal && snapshotSignal.eventTime) || '',
+      actionType: (alertSignal && alertSignal.actionType) || '',
+      actionToken: (alertSignal && alertSignal.actionToken) || '',
+      actionLabel: (alertSignal && alertSignal.actionLabel) || '',
+      actionExpireAt: (alertSignal && alertSignal.actionExpireAt) || '',
+      progressId: (alertSignal && alertSignal.progressId) || ''
+    }
+  },
+
+  async fetchProgressAlertSignals(reminders = []) {
+    if (!this.shouldUseRemoteProgressApi()) {
+      return {}
+    }
+
+    const campIdSet = new Set(reminders.map(item => String(item.campId || '')).filter(Boolean))
+    if (campIdSet.size === 0) {
+      return {}
+    }
+
+    try {
+      const result = await progressService.getAlerts({ page: 1, limit: 200 }, {
+        showLoading: false,
+        showError: false
+      })
+      const alerts = Array.isArray(result?.data) ? result.data : []
+      const signalMap = {}
+
+      alerts.forEach(alert => {
+        const campId = String(alert?.campId || alert?.camp?.id || '')
+        if (!campId || !campIdSet.has(campId)) {
+          return
+        }
+        if (!alert?.event) {
+          return
+        }
+
+        const nextSignal = this.transformProgressAlertToSignal(alert)
+        if (!nextSignal) {
+          return
+        }
+
+        const currentSignal = signalMap[campId]
+        const shouldReplace = !currentSignal
+          || nextSignal.sortTs > currentSignal.sortTs
+          || (nextSignal.actionToken && !currentSignal.actionToken)
+        if (shouldReplace) {
+          signalMap[campId] = nextSignal
+        }
+      })
+
+      return signalMap
+    } catch (error) {
+      return {}
+    }
+  },
+
+  transformProgressAlertToSignal(alert) {
+    const event = alert?.event || {}
+    const eventType = String(event.eventType || '').toLowerCase()
+    if (!eventType) {
+      return null
+    }
+
+    const labels = this.resolveChangeTypeLabels(eventType, event.fieldName)
+    const oldValue = this.normalizeSignalValue(event.oldValue)
+    const newValue = this.normalizeSignalValue(event.newValue)
+    const summary = this.buildAlertChangeSummary(labels, oldValue, newValue, alert?.content || '')
+    const extractedTime = this.extractDateTimeFromText(newValue)
+    const mappedEventType = eventType === 'deadline' ? '报名截止' : ''
+    const actionType = String(alert?.actionType || '')
+    const actionToken = String(alert?.actionToken || '')
+    const actionExpireAt = alert?.actionExpireAt || ''
+    const canConfirmAction = (
+      actionType === 'confirm_progress_step' &&
+      Boolean(actionToken) &&
+      String(alert?.status || 'pending') !== 'handled'
+    )
+
+    return {
+      sortTs: this.safeGetTimestamp(event.sourceUpdatedAt || alert.updatedAt || alert.createdAt || alert.scheduledAt || ''),
+      changeTypes: labels,
+      changeSummary: summary,
+      changeAt: event.sourceUpdatedAt || alert.updatedAt || alert.createdAt || '',
+      eventType: mappedEventType,
+      eventTime: mappedEventType ? extractedTime : '',
+      actionType: canConfirmAction ? actionType : '',
+      actionToken: canConfirmAction ? actionToken : '',
+      actionLabel: canConfirmAction ? '立即确认' : '',
+      actionExpireAt: canConfirmAction ? actionExpireAt : '',
+      progressId: alert?.progressId || ''
+    }
+  },
+
+  resolveChangeTypeLabels(eventType = '', fieldName = '') {
+    const labels = []
+    const field = String(fieldName || '').toLowerCase()
+    const add = (label) => {
+      if (label && labels.indexOf(label) === -1) {
+        labels.push(label)
+      }
+    }
+
+    if (field.indexOf('deadline') > -1) add('截止时间')
+    if (field.indexOf('material') > -1) add('材料清单')
+    if (field.indexOf('requirement') > -1) add('申请要求')
+    if (field.indexOf('process') > -1) add('流程安排')
+    if (field.indexOf('startdate') > -1 || field.indexOf('enddate') > -1) add('举办时间')
+
+    if (eventType === 'deadline') add('截止时间')
+    if (eventType === 'materials') add('材料清单')
+    if (eventType === 'admission_result') add('入营结果')
+    if (eventType === 'outstanding_result') add('优秀营员结果')
+
+    return labels.length > 0 ? labels : ['公告信息']
+  },
+
+  normalizeSignalValue(value) {
+    if (value === null || value === undefined) return ''
+    return String(value).trim()
+  },
+
+  buildAlertChangeSummary(labels = [], oldValue = '', newValue = '', fallback = '') {
+    const labelText = labels[0] || '公告信息'
+    if (oldValue && newValue) {
+      return `${labelText}已更新：${oldValue} -> ${newValue}`
+    }
+    if (newValue) {
+      return `${labelText}已更新：${newValue}`
+    }
+    if (fallback) {
+      return fallback
+    }
+    return `${labelText}有更新，请尽快核实`
+  },
+
+  extractDateTimeFromText(text = '') {
+    if (!text) return ''
+    const raw = String(text)
+    const match = raw.match(/\d{4}[-/.]\d{1,2}[-/.]\d{1,2}(?:\s+\d{1,2}:\d{2})?/)
+    if (!match) {
+      return ''
+    }
+    return match[0].replace(/[/.]/g, '-')
+  },
+
+  async detectCampSnapshotChanges(reminders = []) {
+    if (!this.shouldUseRemoteCampApi()) {
+      return {}
+    }
+
+    const campIds = Array.from(new Set(reminders
+      .map(item => String(item.campId || ''))
+      .filter(Boolean)))
+
+    if (campIds.length === 0) {
+      return {}
+    }
+
+    const limitedCampIds = campIds.slice(0, 80)
+    const snapshotMap = wx.getStorageSync(REMINDER_CAMP_SNAPSHOT_MAP_KEY) || {}
+    const nextSnapshotMap = { ...snapshotMap }
+    const signalMap = {}
+
+    const campDetails = await this.fetchCampDetailsWithLimit(limitedCampIds, 6)
+    campDetails.forEach(detail => {
+      const campId = String(detail.id || '')
+      if (!campId) return
+
+      const currentSnapshot = this.normalizeCampSnapshot(detail)
+      if (!currentSnapshot) return
+
+      const previousSnapshot = snapshotMap[campId]
+      const diff = this.diffCampSnapshot(previousSnapshot, currentSnapshot)
+      if (previousSnapshot && diff.changedFields.length > 0) {
+        signalMap[campId] = this.buildSnapshotChangeSignal(diff, previousSnapshot, currentSnapshot)
+      }
+
+      nextSnapshotMap[campId] = currentSnapshot
+    })
+
+    wx.setStorageSync(REMINDER_CAMP_SNAPSHOT_MAP_KEY, nextSnapshotMap)
+    return signalMap
+  },
+
+  async fetchCampDetailsWithLimit(campIds = [], concurrency = 6) {
+    const queue = campIds.slice()
+    const results = []
+    const workerCount = Math.min(Math.max(concurrency, 1), queue.length)
+
+    const workers = Array.from({ length: workerCount }).map(async () => {
+      while (queue.length > 0) {
+        const campId = queue.shift()
+        if (!campId) continue
+        try {
+          const detail = await campService.getCampDetail(campId, {
+            showLoading: false,
+            showError: false
+          })
+          if (detail && typeof detail === 'object') {
+            results.push(detail)
+          }
+        } catch (error) {
+          // ignore single camp detail failure
+        }
+      }
+    })
+
+    await Promise.all(workers)
+    return results
+  },
+
+  normalizeCampSnapshot(detail) {
+    if (!detail || typeof detail !== 'object') return null
+
+    return {
+      title: String(detail.title || '').trim(),
+      announcementType: String(detail.announcementType || detail.announcement_type || '').trim(),
+      deadline: this.normalizeDateValue(detail.deadline),
+      startDate: this.normalizeDateValue(detail.startDate),
+      endDate: this.normalizeDateValue(detail.endDate),
+      location: String(detail.location || '').trim(),
+      requirements: this.normalizeStructuredValue(detail.requirements),
+      materials: this.normalizeStructuredValue(detail.materials),
+      process: this.normalizeStructuredValue(detail.process)
+    }
+  },
+
+  normalizeDateValue(value) {
+    if (!value) return ''
+    const timestamp = this.safeGetTimestamp(value)
+    if (!timestamp) {
+      return String(value).trim()
+    }
+    const parsed = new Date(timestamp)
+    const year = parsed.getFullYear()
+    const month = String(parsed.getMonth() + 1).padStart(2, '0')
+    const day = String(parsed.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  },
+
+  normalizeStructuredValue(value) {
+    if (value === null || value === undefined) return ''
+    let parsed = value
+    if (typeof parsed === 'string') {
+      const text = parsed.trim()
+      if (!text) return ''
+      try {
+        parsed = JSON.parse(text)
+      } catch (error) {
+        return text
+      }
+    }
+    return this.stableStringify(parsed)
+  },
+
+  stableStringify(value) {
+    if (Array.isArray(value)) {
+      return `[${value.map(item => this.stableStringify(item)).join(',')}]`
+    }
+    if (value && typeof value === 'object') {
+      const keys = Object.keys(value).sort()
+      return `{${keys.map(key => `${JSON.stringify(key)}:${this.stableStringify(value[key])}`).join(',')}}`
+    }
+    return JSON.stringify(value)
+  },
+
+  diffCampSnapshot(previous, current) {
+    if (!previous || !current) {
+      return { changedFields: [] }
+    }
+
+    const watchedFields = [
+      'title',
+      'announcementType',
+      'deadline',
+      'startDate',
+      'endDate',
+      'location',
+      'requirements',
+      'materials',
+      'process'
+    ]
+
+    const changedFields = watchedFields.filter(field => String(previous[field] || '') !== String(current[field] || ''))
+    return { changedFields }
+  },
+
+  buildSnapshotChangeSignal(diff, previous, current) {
+    const labelMap = {
+      title: '公告标题',
+      announcementType: '公告类型',
+      deadline: '截止时间',
+      startDate: '举办开始时间',
+      endDate: '举办结束时间',
+      location: '举办地点',
+      requirements: '申请要求',
+      materials: '材料清单',
+      process: '流程安排'
+    }
+
+    const changeTypes = diff.changedFields.map(field => labelMap[field]).filter(Boolean)
+    const isDeadlineChanged = diff.changedFields.indexOf('deadline') > -1
+    const deadlineSummary = isDeadlineChanged
+      ? `截止时间已更新：${previous.deadline || '未设置'} -> ${current.deadline || '未设置'}`
+      : ''
+
+    return {
+      sortTs: Date.now(),
+      changeTypes,
+      changeSummary: deadlineSummary || `${changeTypes.join('、')}有更新，请尽快核实`,
+      changeAt: this.formatMockDateTime(Date.now()),
+      eventType: isDeadlineChanged ? '报名截止' : '',
+      eventTime: isDeadlineChanged ? (current.deadline || '') : ''
+    }
+  },
+
+  shouldUseRemoteCampApi() {
+    const app = getApp()
+    const baseUrl = app?.globalData?.apiBaseUrl || ''
+    const forceRemote = wx.getStorageSync('forceRemoteCampApi')
+    if (forceRemote === true) {
+      return true
+    }
+    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
+      return false
+    }
+    return Boolean(baseUrl)
+  },
+
+  shouldUseRemoteProgressApi() {
+    const app = getApp()
+    const baseUrl = app?.globalData?.apiBaseUrl || ''
+    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
+      return false
+    }
+    return Boolean(baseUrl)
+  },
+
+  withDebugMockReminders(serverList = []) {
+    if (!this.shouldInjectRichMockReminders()) {
+      return serverList
+    }
+
+    const mockList = this.buildRichMockReminderList()
+    const merged = [...serverList]
+    const existingIds = new Set(serverList.map(item => String(item?.id || '')))
+
+    mockList.forEach(item => {
+      const id = String(item?.id || '')
+      if (!id || existingIds.has(id)) {
+        return
+      }
+      merged.push(item)
+      existingIds.add(id)
+    })
+
+    return merged
+  },
+
+  shouldInjectRichMockReminders() {
+    if (!this.isDevelopEnv()) {
+      return false
+    }
+    const setting = wx.getStorageSync(RICH_MOCK_REMINDERS_KEY)
+    return setting !== false
+  },
+
+  isDevelopEnv() {
+    try {
+      const accountInfo = wx.getAccountInfoSync()
+      return accountInfo?.miniProgram?.envVersion === 'develop'
+    } catch (error) {
+      return false
+    }
+  },
+
+  buildRichMockReminderList() {
+    const now = Date.now()
+    const toDateTime = (offsetHours) => this.formatMockDateTime(now + offsetHours * HOUR_MS)
+
+    return [
+      // 清华大学
+      {
+        id: 'mock_reminder_thu_1',
+        campId: 'mock_camp_thu_pre_1',
+        campTitle: '计算机系2026年预推免通知',
+        universityName: '清华大学',
+        announcementType: 'pre_recommendation',
+        eventType: '报名截止',
+        eventTime: toDateTime(8),
+        remindTime: toDateTime(2),
+        status: 'pending',
+        hasChange: true,
+        changeTypes: ['报名截止时间', '材料清单'],
+        changeSummary: '截止时间提前，材料新增导师意向表',
+        updatedAt: toDateTime(-1)
+      },
+      {
+        id: 'mock_reminder_thu_2',
+        campId: 'mock_camp_thu_summer_2',
+        campTitle: '电子系2026年优秀大学生夏令营',
+        universityName: '清华大学',
+        announcementType: 'summer_camp',
+        eventType: '面试',
+        eventTime: toDateTime(46),
+        remindTime: toDateTime(30),
+        status: 'pending',
+        hasChange: false
+      },
+      {
+        id: 'mock_reminder_thu_3',
+        campId: 'mock_camp_thu_summer_3',
+        campTitle: '交叉信息院2026年夏令营',
+        universityName: '清华大学',
+        announcementType: 'summer_camp',
+        eventType: '报名截止',
+        eventTime: toDateTime(140),
+        remindTime: toDateTime(116),
+        status: 'sent',
+        isHandled: true,
+        hasChange: false
+      },
+
+      // 北京大学
+      {
+        id: 'mock_reminder_pku_1',
+        campId: 'mock_camp_pku_summer_1',
+        campTitle: '软微学院2026年保研夏令营',
+        universityName: '北京大学',
+        announcementType: 'summer_camp',
+        eventType: '报名截止',
+        eventTime: toDateTime(20),
+        remindTime: toDateTime(4),
+        status: 'failed',
+        hasChange: false
+      },
+      {
+        id: 'mock_reminder_pku_2',
+        campId: 'mock_camp_pku_pre_2',
+        campTitle: '信科院2026年预推免接收办法',
+        universityName: '北京大学',
+        announcementType: 'pre_recommendation',
+        eventType: '预报名开放',
+        eventTime: toDateTime(60),
+        remindTime: toDateTime(52),
+        status: 'pending',
+        hasChange: true,
+        changeTypes: ['系统开放时间'],
+        changeSummary: '预报名系统开放时间延后半天'
+      },
+      {
+        id: 'mock_reminder_pku_3',
+        campId: 'mock_camp_pku_pre_3',
+        campTitle: '工学院2026年预推免通知',
+        universityName: '北京大学',
+        announcementType: 'pre_recommendation',
+        eventType: '报名截止',
+        eventTime: toDateTime(-12),
+        remindTime: toDateTime(-30),
+        status: 'expired',
+        isHandled: true,
+        hasChange: false
+      },
+
+      // 复旦大学
+      {
+        id: 'mock_reminder_fdu_1',
+        campId: 'mock_camp_fdu_pre_1',
+        campTitle: 'AI研究院2026年预推免通知',
+        universityName: '复旦大学',
+        announcementType: 'pre_recommendation',
+        eventType: '报名截止',
+        eventTime: toDateTime(6),
+        remindTime: toDateTime(1),
+        status: 'pending',
+        hasChange: true,
+        changeTypes: ['报名系统入口', '联系方式'],
+        changeSummary: '报名链接更新，新增招生咨询邮箱'
+      },
+      {
+        id: 'mock_reminder_fdu_2',
+        campId: 'mock_camp_fdu_summer_2',
+        campTitle: '计算机学院2026年优秀大学生夏令营',
+        universityName: '复旦大学',
+        announcementType: 'summer_camp',
+        eventType: '线下面试',
+        eventTime: toDateTime(68),
+        remindTime: toDateTime(44),
+        status: 'sent',
+        hasChange: false
+      },
+      {
+        id: 'mock_reminder_fdu_3',
+        campId: 'mock_camp_fdu_summer_3',
+        campTitle: '类脑智能学院2026年夏令营',
+        universityName: '复旦大学',
+        announcementType: 'summer_camp',
+        eventType: '报名截止',
+        eventTime: toDateTime(170),
+        remindTime: toDateTime(146),
+        status: 'pending',
+        hasChange: false
+      },
+
+      // 上海交通大学
+      {
+        id: 'mock_reminder_sjtu_1',
+        campId: 'mock_camp_sjtu_summer_1',
+        campTitle: '电院2026年夏令营',
+        universityName: '上海交通大学',
+        announcementType: 'summer_camp',
+        eventType: '报名截止',
+        eventTime: toDateTime(10),
+        remindTime: toDateTime(3),
+        status: 'pending',
+        hasChange: false
+      },
+      {
+        id: 'mock_reminder_sjtu_2',
+        campId: 'mock_camp_sjtu_pre_2',
+        campTitle: '人工智能学院2026年预推免工作通知',
+        universityName: '上海交通大学',
+        announcementType: 'pre_recommendation',
+        eventType: '材料提交',
+        eventTime: toDateTime(72),
+        remindTime: toDateTime(48),
+        status: 'failed',
+        hasChange: true,
+        changeTypes: ['材料模板'],
+        changeSummary: '推荐信模板已更新，请重新下载'
+      }
+    ]
+  },
+
+  formatMockDateTime(timestamp) {
+    const date = new Date(timestamp)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hour = String(date.getHours()).padStart(2, '0')
+    const minute = String(date.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hour}:${minute}`
+  },
+
   normalizeReminder(raw) {
     if (!raw || typeof raw !== 'object') return null
 
@@ -116,12 +916,18 @@ Page({
     const eventType = raw.eventType || '报名截止'
     const eventTime = raw.eventTime || camp.deadline || raw.deadline || ''
     const status = raw.status || 'pending'
+    const normalizedAnnouncement = normalizeAnnouncementType({
+      announcementType: raw.announcementType || camp.announcementType || camp.announcement_type || '',
+      title: raw.campTitle || camp.title || '',
+      sourceUrl: raw.sourceUrl || camp.sourceUrl || ''
+    })
 
     const baseReminder = {
       id: String(raw.id || `${raw.campId || 'camp'}_${remindTime || Date.now()}`),
       campId: String(raw.campId || camp.id || ''),
       campTitle: raw.campTitle || camp.title || '未知夏令营/预推免',
       universityName: raw.universityName || university.name || '未知院校',
+      announcementType: normalizedAnnouncement.announcementType,
       eventType,
       eventTime,
       eventTimeLabel: this.getEventTimeLabel(eventType),
@@ -133,10 +939,15 @@ Page({
       hasChange: Boolean(raw.hasChange || raw.isChanged || raw.changeSummary || (Array.isArray(raw.changeTypes) && raw.changeTypes.length > 0)),
       changeTypes: Array.isArray(raw.changeTypes) ? raw.changeTypes : [],
       changeSummary: raw.changeSummary || '',
-      changeAt: raw.changeAt || raw.updatedAt || ''
+      changeAt: raw.changeAt || raw.updatedAt || '',
+      actionType: String(raw.actionType || ''),
+      actionToken: String(raw.actionToken || ''),
+      actionLabel: String(raw.actionLabel || ''),
+      actionExpireAt: raw.actionExpireAt || '',
+      progressId: String(raw.progressId || '')
     }
 
-    return this.decorateReminder(baseReminder)
+    return this.decorateReminder(baseReminder, Boolean(raw.isHandled || raw.handled))
   },
 
   decorateReminder(reminder, handledOverride) {
@@ -163,10 +974,9 @@ Page({
       deadlineHintText: this.getDeadlineHint(reminder.eventTimestamp),
       reminderHintText: this.getReminderHint(reminder.status, reminder.remindTimestamp, reminder.remindTime),
       attentionMessages: this.getAttentionMessages({ ...reminder, isHandled, changeSummary }),
+      canQuickConfirm: Boolean(reminder.actionToken && reminder.actionType === 'confirm_progress_step'),
       schoolGroupKey: reminder.universityName || '未知院校'
     }
-
-    decorated.displayTag = this.getDisplayTag(decorated)
     return decorated
   },
 
@@ -175,10 +985,61 @@ Page({
   },
 
   safeGetTimestamp(dateStr) {
-    if (!dateStr) return 0
-    const date = new Date(dateStr)
+    if (!dateStr && dateStr !== 0) return 0
+
+    if (typeof dateStr === 'number') {
+      return Number.isFinite(dateStr) ? dateStr : 0
+    }
+
+    if (dateStr instanceof Date) {
+      const ts = dateStr.getTime()
+      return Number.isNaN(ts) ? 0 : ts
+    }
+
+    const normalized = this.normalizeDateTimeInput(dateStr)
+    if (!normalized) return 0
+
+    const date = new Date(normalized)
     if (Number.isNaN(date.getTime())) return 0
     return date.getTime()
+  },
+
+  normalizeDateTimeInput(input) {
+    const raw = String(input || '').trim()
+    if (!raw) return ''
+
+    if (/^\d{10}$/.test(raw)) {
+      return Number(raw) * 1000
+    }
+    if (/^\d{13}$/.test(raw)) {
+      return Number(raw)
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      return `${raw}T00:00:00`
+    }
+
+    if (/^\d{4}\/\d{2}\/\d{2}$/.test(raw)) {
+      return `${raw} 00:00:00`
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}$/.test(raw)) {
+      return `${raw.replace(/\s+/, 'T')}:00`
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$/.test(raw)) {
+      return raw.replace(/\s+/, 'T')
+    }
+
+    if (/^\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}$/.test(raw)) {
+      return `${raw}:00`
+    }
+
+    if (/^\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2}$/.test(raw)) {
+      return raw
+    }
+
+    return raw
   },
 
   getEventTimeLabel(eventType) {
@@ -292,26 +1153,6 @@ Page({
     return messages
   },
 
-  getDisplayTag(reminder) {
-    if (reminder.isHandled) {
-      return { text: '已处理', type: 'handled' }
-    }
-
-    if (reminder.hasChange) {
-      return { text: '有变更', type: 'changed' }
-    }
-
-    if (reminder.urgencyBucket === 'today') {
-      return { text: '今日优先', type: 'urgent' }
-    }
-
-    if (reminder.urgencyBucket === 'three_days') {
-      return { text: '近期关注', type: 'recent' }
-    }
-
-    return { text: '后续跟进', type: 'later' }
-  },
-
   recomputeView() {
     const { selectedViewMode, selectedFocusFilter, selectedSchoolFilter } = this.data
     const summary = this.buildSummary(this.data.reminders)
@@ -370,26 +1211,26 @@ Page({
 
   getFocusFilterHint(filterValue) {
     const hintMap = {
-      all: '查看全部提醒任务（含已处理）',
-      today: '优先处理今天截止的夏令营/预推免任务',
-      three_days: '查看未来3天内需要处理的夏令营/预推免任务',
-      changed: '查看夏令营/预推免信息有变更的任务',
-      handled: '查看已确认完成提交申请的夏令营/预推免任务'
+      all: '查看全部提醒通知（含已查看）',
+      today: '优先关注今天截止的夏令营/预推免通知',
+      three_days: '查看未来3天内需要关注的夏令营/预推免通知',
+      changed: '查看夏令营/预推免信息有变更的通知',
+      handled: '查看已确认完成提交申请的夏令营/预推免通知'
     }
     return hintMap[filterValue] || hintMap.all
   },
 
   getSchoolFilterHint(filterValue, options = []) {
     if (filterValue === 'all') {
-      return '查看所有关注学校的待处理夏令营/预推免任务'
+      return '查看所有关注学校的待关注夏令营/预推免通知'
     }
 
     const selectedOption = options.find(option => option.value === filterValue)
     if (!selectedOption) {
-      return '查看所有关注学校的待处理夏令营/预推免任务'
+      return '查看所有关注学校的待关注夏令营/预推免通知'
     }
 
-    return `仅查看 ${selectedOption.label} 的待处理夏令营/预推免任务`
+    return `仅查看 ${selectedOption.label} 的待关注夏令营/预推免通知`
   },
 
   applyFocusFilter(reminders) {
@@ -424,7 +1265,7 @@ Page({
     const sections = []
 
     if (filterValue === 'today') {
-      pushSection(sections, 'today', '今日必处理', reminders)
+      pushSection(sections, 'today', '今日优先', reminders)
       return sections
     }
 
@@ -439,7 +1280,7 @@ Page({
     }
 
     if (filterValue === 'handled') {
-      pushSection(sections, 'handled', '已处理任务', reminders)
+      pushSection(sections, 'handled', '已查看通知', reminders)
       return sections
     }
 
@@ -453,10 +1294,10 @@ Page({
     const handled = remaining.filter(item => item.isHandled)
 
     pushSection(sections, 'changed', '信息有变更', changed)
-    pushSection(sections, 'today', '今日必处理', today)
+    pushSection(sections, 'today', '今日优先', today)
     pushSection(sections, 'three_days', '近期关注（3天内）', threeDays)
     pushSection(sections, 'later', '后续跟进', later)
-    pushSection(sections, 'handled', '已处理任务', handled)
+    pushSection(sections, 'handled', '已查看通知', handled)
 
     return sections
   },
@@ -539,7 +1380,7 @@ Page({
   buildTaskEmptyState(filteredCount) {
     if (this.data.reminders.length === 0) {
       return {
-        title: '还没有提醒任务',
+        title: '还没有保研通知',
         desc: '在夏令营/预推免详情页设置提醒后会显示在这里'
       }
     }
@@ -550,25 +1391,25 @@ Page({
 
     const byFilter = {
       today: {
-        title: '今日无需优先处理任务',
-        desc: '你今天没有即将截止的任务'
+        title: '今日暂无优先关注通知',
+        desc: '你今天没有即将截止的保研通知'
       },
       three_days: {
-        title: '3天内暂无任务',
+        title: '3天内暂无保研通知',
         desc: '近期可以先关注信息变更'
       },
       changed: {
         title: '暂无信息变更',
-        desc: '当前关注任务暂无新的变更通知'
+        desc: '当前关注通知暂无新的变更提示'
       },
       handled: {
-        title: '暂无已处理记录',
-        desc: '完成任务后可手动标记已处理'
+        title: '暂无已查看记录',
+        desc: '查看通知后可手动标记已查看'
       }
     }
 
     return byFilter[this.data.selectedFocusFilter] || {
-      title: '当前筛选下暂无任务',
+      title: '当前筛选下暂无保研通知',
       desc: '可切换筛选条件查看其他提醒'
     }
   },
@@ -576,7 +1417,7 @@ Page({
   buildSchoolEmptyState(filteredSchoolCount) {
     if (this.data.reminders.length === 0) {
       return {
-        title: '还没有关注学校任务',
+        title: '还没有关注学校通知',
         desc: '在夏令营/预推免详情页设置提醒后会显示在这里'
       }
     }
@@ -587,8 +1428,8 @@ Page({
 
     if (this.data.selectedSchoolFilter && this.data.selectedSchoolFilter !== 'all') {
       return {
-        title: '当前学校暂无待处理任务',
-        desc: '可切换到其他学校查看任务'
+        title: '当前学校暂无待关注通知',
+        desc: '可切换到其他学校查看通知'
       }
     }
 
@@ -613,12 +1454,56 @@ Page({
     this.recomputeView()
   },
 
+  onOpenAdvancedSubscription() {
+    this.setData({ activeCenterTab: 'progress' })
+    this.loadProgressOverview()
+  },
+
+  onOpenProgressDetail(e) {
+    const id = e?.currentTarget?.dataset?.id
+    if (!id) return
+    wx.navigateTo({
+      url: `/packageProgress/pages/progress-detail/index?id=${id}`
+    })
+  },
+
+  onOpenSchoolSubscription() {
+    wx.navigateTo({
+      url: '/packageProgress/pages/school-subscription/index'
+    })
+  },
+
   onViewCamp(e) {
     const campId = e.currentTarget.dataset.campId
+    const announcementType = e.currentTarget.dataset.announcementType || ''
+    const title = e.currentTarget.dataset.title || ''
     if (!campId) return
 
+    const query = [`id=${encodeURIComponent(campId)}`]
+    if (announcementType) {
+      query.push(`announcementType=${encodeURIComponent(announcementType)}`)
+    }
+    if (title) {
+      query.push(`title=${encodeURIComponent(title)}`)
+    }
+
     wx.navigateTo({
-      url: `/packageCamp/pages/camp-detail/index?id=${campId}`
+      url: `/packageCamp/pages/camp-detail/index?${query.join('&')}`
+    })
+  },
+
+  onQuickConfirm(e) {
+    const actionToken = String(e?.currentTarget?.dataset?.actionToken || '').trim()
+    if (!actionToken) {
+      wx.showToast({
+        title: '当前通知不可确认',
+        icon: 'none'
+      })
+      return
+    }
+
+    wx.navigateTo({
+      url: `/packageProgress/pages/action-landing/index?token=${encodeURIComponent(actionToken)}`
     })
   },
 

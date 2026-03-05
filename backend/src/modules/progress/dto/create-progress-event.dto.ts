@@ -46,6 +46,18 @@ export class CreateProgressEventDto {
   @MaxLength(500)
   newValue?: string;
 
+  @ApiPropertyOptional({ description: '来源原文片段（用于名单解析）', maxLength: 5000 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  sourceSnippet?: string;
+
+  @ApiPropertyOptional({ description: '事件幂等键', maxLength: 80 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  idempotencyKey?: string;
+
   @ApiPropertyOptional({ description: '来源类型', default: 'crawler' })
   @IsOptional()
   @IsString()

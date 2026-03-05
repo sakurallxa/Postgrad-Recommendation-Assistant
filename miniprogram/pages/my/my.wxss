@@ -2,20 +2,20 @@
 
 .container {
   padding: var(--spacing-lg);
-  background-color: var(--background-light);
+  background-color: var(--surface-page);
   min-height: 100vh;
 }
 
 /* 用户信息卡片 */
 .user-info-card {
-  background: linear-gradient(135deg, var(--primary-color) 0%, #4285F4 100%);
+  background: linear-gradient(145deg, #1f74e8 0%, #6ea3ff 100%);
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-xl);
   margin-bottom: var(--spacing-lg);
   display: flex;
   align-items: center;
   color: white;
-  box-shadow: var(--shadow-2);
+  box-shadow: var(--shadow-3);
 }
 
 .user-avatar {
@@ -38,16 +38,18 @@
 }
 
 .user-name {
-  font-size: 18px;
+  font-size: var(--font-size-title);
   font-weight: 600;
   margin-bottom: var(--spacing-xs);
   display: block;
+  line-height: var(--line-height-tight);
 }
 
 .user-openid {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   opacity: 0.8;
   display: block;
+  line-height: var(--line-height-normal);
 }
 
 .login-btn {
@@ -56,8 +58,9 @@
   border: none;
   border-radius: var(--border-radius-sm);
   padding: var(--spacing-xs) var(--spacing-lg);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 500;
+  line-height: var(--line-height-normal);
 }
 
 .login-btn::after {
@@ -70,8 +73,9 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: var(--border-radius-sm);
   padding: var(--spacing-xs) var(--spacing-lg);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 500;
+  line-height: var(--line-height-normal);
 }
 
 .logout-btn::after {
@@ -84,9 +88,10 @@
 
 /* 功能菜单 */
 .menu-section {
-  background-color: var(--background-white);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-1);
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-2);
   margin-bottom: var(--spacing-lg);
   overflow: hidden;
 }
@@ -95,8 +100,8 @@
   display: flex;
   align-items: center;
   padding: var(--spacing-lg);
-  border-bottom: 1px solid var(--border-color);
-  transition: background-color 0.2s ease;
+  border-bottom: 1px solid rgba(95, 99, 104, 0.2);
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .menu-item:last-child {
@@ -104,7 +109,8 @@
 }
 
 .menu-item:active {
-  background-color: var(--background-light);
+  background-color: rgba(26, 115, 232, 0.08);
+  transform: translateY(-1px);
 }
 
 .menu-icon {
@@ -119,21 +125,23 @@
 }
 
 .menu-title {
-  font-size: 16px;
+  font-size: var(--font-size-subtitle);
   font-weight: 500;
   color: var(--text-primary);
   display: block;
   margin-bottom: var(--spacing-xs);
+  line-height: var(--line-height-tight);
 }
 
 .menu-desc {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
   display: block;
+  line-height: var(--line-height-normal);
 }
 
 .menu-arrow {
-  font-size: 16px;
+  font-size: var(--font-size-subtitle);
   color: var(--text-tertiary);
   margin-left: var(--spacing-sm);
 }
@@ -142,22 +150,24 @@
 .version-info {
   text-align: center;
   margin-bottom: var(--spacing-lg);
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-tertiary);
+  line-height: var(--line-height-normal);
 }
 
 /* 免责声明 */
 .disclaimer {
-  background-color: var(--background-white);
-  border-radius: var(--border-radius-md);
+  background: var(--surface-card-bg-soft);
+  border: 1px solid rgba(26, 115, 232, 0.12);
+  border-radius: var(--border-radius-lg);
   padding: var(--spacing-md);
   box-shadow: var(--shadow-1);
 }
 
 .disclaimer-text {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
-  line-height: 1.5;
+  line-height: var(--line-height-relaxed);
   text-align: center;
 }
 

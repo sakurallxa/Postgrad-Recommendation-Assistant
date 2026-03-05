@@ -4,6 +4,7 @@ import { UserService } from './user.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UpdateSelectionDto } from './dto/update-selection.dto';
+import { UpdateStudentProfileDto } from './dto/update-student-profile.dto';
 
 @ApiTags('用户')
 @Controller('user')
@@ -31,5 +32,20 @@ export class UserController {
     @Body() dto: UpdateSelectionDto,
   ) {
     return this.userService.updateSelection(userId, dto);
+  }
+
+  @Get('student-profile')
+  @ApiOperation({ summary: '获取用户保研档案' })
+  async getStudentProfile(@CurrentUser('sub') userId: string) {
+    return this.userService.getStudentProfile(userId);
+  }
+
+  @Put('student-profile')
+  @ApiOperation({ summary: '更新用户保研档案' })
+  async updateStudentProfile(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: UpdateStudentProfileDto,
+  ) {
+    return this.userService.updateStudentProfile(userId, dto);
   }
 }

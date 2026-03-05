@@ -23,6 +23,7 @@ class CampInfoItem(scrapy.Item):
     requirements = scrapy.Field()   # 申请要求 (JSON)
     materials = scrapy.Field()      # 所需材料 (JSON数组)
     process = scrapy.Field()        # 报名流程 (JSON数组)
+    contact = scrapy.Field()        # 联系方式 (JSON)
     content = scrapy.Field()        # 原始内容
     
     # 元数据

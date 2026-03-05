@@ -34,7 +34,16 @@
       "name": "progress",
       "pages": [
         "pages/progress-list/index",
-        "pages/progress-detail/index"
+        "pages/progress-detail/index",
+        "pages/school-subscription/index",
+        "pages/action-landing/index"
+      ]
+    },
+    {
+      "root": "packageProfile",
+      "name": "profile",
+      "pages": [
+        "pages/profile/index"
       ]
     }
   ],
@@ -44,6 +53,7 @@
       "packages": ["camp"]
     }
   },
+  "lazyCodeLoading": "requiredComponents",
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#ffffff",
@@ -59,20 +69,20 @@
       {
         "pagePath": "pages/index/index",
         "text": "首页",
-        "iconPath": "assets/images/icons/home.png",
-        "selectedIconPath": "assets/images/icons/home-active.png"
+        "iconPath": "assets/images/icons/tab-home.png",
+        "selectedIconPath": "assets/images/icons/tab-home-active.png"
       },
       {
         "pagePath": "pages/my-reminders/index",
         "text": "我的提醒",
-        "iconPath": "assets/images/icons/reminder.png",
-        "selectedIconPath": "assets/images/icons/reminder-active.png"
+        "iconPath": "assets/images/icons/tab-reminder.png",
+        "selectedIconPath": "assets/images/icons/tab-reminder-active.png"
       },
       {
         "pagePath": "pages/my/my",
         "text": "个人中心",
-        "iconPath": "assets/images/icons/user.png",
-        "selectedIconPath": "assets/images/icons/user-active.png"
+        "iconPath": "assets/images/icons/tab-my.png",
+        "selectedIconPath": "assets/images/icons/tab-my-active.png"
       }
     ]
   },

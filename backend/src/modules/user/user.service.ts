@@ -1,12 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateSelectionDto } from './dto/update-selection.dto';
+import { UpdateStudentProfileDto } from './dto/update-student-profile.dto';
+import { ProgressService } from '../progress/progress.service';
 
 @Injectable()
 export class UserService {
   private readonly logger = new Logger(UserService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly progressService: ProgressService,
+  ) {}
 
   /**
    * 安全解析JSON字符串
@@ -24,6 +29,81 @@ export class UserService {
       this.logger.error(`JSON解析失败: ${jsonString}`, error.message);
       return defaultValue;
     }
+  }
+
+  private normalizeProfileText(value?: string): string | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+  }
+
+  private normalizeProfileNumber(value?: number): number | null {
+    if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
+      return null;
+    }
+    return value;
+  }
+
+  private buildProfileCompleteness(profile: {
+    education: string | null;
+    major: string | null;
+    gradeRankPercent: number | null;
+    englishScore: number | null;
+  }) {
+    const requiredFilled = [
+      profile.education,
+      profile.major,
+      profile.gradeRankPercent,
+      profile.englishScore,
+    ].filter((value) => value !== null && value !== '').length;
+
+    const status = requiredFilled === 0 ? 'empty' : requiredFilled === 4 ? 'complete' : 'partial';
+    return {
+      requiredFilled,
+      totalRequired: 4,
+      status,
+    };
+  }
+
+  private toStudentProfileResponse(profile: any) {
+    if (!profile) {
+      return {
+        profile: null,
+        completeness: {
+          requiredFilled: 0,
+          totalRequired: 4,
+          status: 'empty',
+        },
+      };
+    }
+
+    const normalized = {
+      schoolName: this.normalizeProfileText(profile.schoolName),
+      schoolLevel: this.normalizeProfileText(profile.schoolLevel),
+      education: this.normalizeProfileText(profile.education),
+      major: this.normalizeProfileText(profile.major),
+      rankPercent: this.normalizeProfileNumber(profile.gradeRankPercent),
+      rankText: this.normalizeProfileText(profile.gradeRankText),
+      gpa: this.normalizeProfileText(profile.gpa),
+      englishType: this.normalizeProfileText(profile.englishType) || 'none',
+      englishScore: this.normalizeProfileNumber(profile.englishScore),
+      subjectRanking: this.normalizeProfileText(profile.subjectRanking) || '不确定',
+      researchExperience: this.normalizeProfileText(profile.researchExperience) || 'unknown',
+      competitionAwards: this.normalizeProfileText(profile.competitionAwards) || 'unknown',
+      preferredDirection: this.normalizeProfileText(profile.preferredDirection),
+      targetNote: this.normalizeProfileText(profile.targetNote),
+      updatedAt: profile.updatedAt,
+    };
+
+    return {
+      profile: normalized,
+      completeness: this.buildProfileCompleteness({
+        education: normalized.education,
+        major: normalized.major,
+        gradeRankPercent: normalized.rankPercent,
+        englishScore: normalized.englishScore,
+      }),
+    };
   }
 
   /**
@@ -158,6 +238,15 @@ export class UserService {
       }
     }
 
+    const previousSelection = await this.prisma.userSelection.findUnique({
+      where: { userId },
+      select: { universityIds: true },
+    });
+    const previousUniversityIds = this.safeJsonParse<string[]>(
+      previousSelection?.universityIds,
+      [],
+    );
+
     // 更新或创建用户选择
     const selection = await this.prisma.userSelection.upsert({
       where: { userId },
@@ -171,13 +260,79 @@ export class UserService {
         majorIds: JSON.stringify(majorIds || []),
       },
     });
+    const currentUniversityIds = this.safeJsonParse<string[]>(selection.universityIds, []);
+    const addedUniversityIds = currentUniversityIds.filter((id) => !previousUniversityIds.includes(id));
+    const removedUniversityIds = previousUniversityIds.filter((id) => !currentUniversityIds.includes(id));
+
+    await this.progressService.syncSchoolDefaultSubscriptionsForUserSelection(
+      userId,
+      addedUniversityIds,
+      removedUniversityIds,
+    );
 
     return {
       message: '用户选择更新成功',
       selection: {
-        universityIds: this.safeJsonParse<string[]>(selection.universityIds, []),
+        universityIds: currentUniversityIds,
         majorIds: this.safeJsonParse<string[]>(selection.majorIds, []),
       },
     };
+  }
+
+  async getStudentProfile(userId: string) {
+    const profile = await this.prisma.userProfile.findUnique({
+      where: { userId },
+    });
+
+    return this.toStudentProfileResponse(profile);
+  }
+
+  async updateStudentProfile(userId: string, dto: UpdateStudentProfileDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    const profile = await this.prisma.userProfile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        schoolName: this.normalizeProfileText(dto.schoolName),
+        schoolLevel: this.normalizeProfileText(dto.schoolLevel),
+        education: this.normalizeProfileText(dto.education),
+        major: this.normalizeProfileText(dto.major),
+        gradeRankPercent: this.normalizeProfileNumber(dto.rankPercent),
+        gradeRankText: this.normalizeProfileText(dto.rankText),
+        gpa: this.normalizeProfileText(dto.gpa),
+        englishType: this.normalizeProfileText(dto.englishType) || 'none',
+        englishScore: this.normalizeProfileNumber(dto.englishScore),
+        subjectRanking: this.normalizeProfileText(dto.subjectRanking) || '不确定',
+        researchExperience: this.normalizeProfileText(dto.researchExperience) || 'unknown',
+        competitionAwards: this.normalizeProfileText(dto.competitionAwards) || 'unknown',
+        preferredDirection: this.normalizeProfileText(dto.preferredDirection),
+        targetNote: this.normalizeProfileText(dto.targetNote),
+      },
+      update: {
+        schoolName: this.normalizeProfileText(dto.schoolName),
+        schoolLevel: this.normalizeProfileText(dto.schoolLevel),
+        education: this.normalizeProfileText(dto.education),
+        major: this.normalizeProfileText(dto.major),
+        gradeRankPercent: this.normalizeProfileNumber(dto.rankPercent),
+        gradeRankText: this.normalizeProfileText(dto.rankText),
+        gpa: this.normalizeProfileText(dto.gpa),
+        englishType: this.normalizeProfileText(dto.englishType) || 'none',
+        englishScore: this.normalizeProfileNumber(dto.englishScore),
+        subjectRanking: this.normalizeProfileText(dto.subjectRanking) || '不确定',
+        researchExperience: this.normalizeProfileText(dto.researchExperience) || 'unknown',
+        competitionAwards: this.normalizeProfileText(dto.competitionAwards) || 'unknown',
+        preferredDirection: this.normalizeProfileText(dto.preferredDirection),
+        targetNote: this.normalizeProfileText(dto.targetNote),
+      },
+    });
+
+    return this.toStudentProfileResponse(profile);
   }
 }

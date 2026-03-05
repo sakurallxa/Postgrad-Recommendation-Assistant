@@ -7,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
+import { ProgressService } from '../progress/progress.service';
 
 describe('UserService', () => {
   let service: UserService;
@@ -15,6 +16,10 @@ describe('UserService', () => {
   const mockPrismaService = {
     user: {
       findUnique: jest.fn(),
+    },
+    userProfile: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
     },
     userSelection: {
       findUnique: jest.fn(),
@@ -28,11 +33,16 @@ describe('UserService', () => {
     },
   };
 
+  const mockProgressService = {
+    syncSchoolDefaultSubscriptionsForUserSelection: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: ProgressService, useValue: mockProgressService },
       ],
     }).compile();
 
@@ -399,6 +409,106 @@ describe('UserService', () => {
       results.forEach(result => {
         expect(result.message).toBe('用户选择更新成功');
       });
+    });
+  });
+
+  describe('用户保研档案', () => {
+    it('TC-USER-PROFILE-001: 获取保研档案 - 无数据', async () => {
+      const userId = 'user_123';
+      mockPrismaService.userProfile.findUnique.mockResolvedValue(null);
+
+      const result = await service.getStudentProfile(userId);
+
+      expect(result.profile).toBeNull();
+      expect(result.completeness).toEqual({
+        requiredFilled: 0,
+        totalRequired: 4,
+        status: 'empty',
+      });
+    });
+
+    it('TC-USER-PROFILE-002: 获取保研档案 - 有数据', async () => {
+      const userId = 'user_123';
+      const now = new Date('2026-03-01T20:30:00.000Z');
+      mockPrismaService.userProfile.findUnique.mockResolvedValue({
+        userId,
+        schoolName: '复旦大学',
+        schoolLevel: '985',
+        education: '本科在读',
+        major: '计算机科学与技术',
+        gradeRankPercent: 12,
+        gradeRankText: '',
+        gpa: '3.8/4.0',
+        englishType: 'cet6',
+        englishScore: 490,
+        subjectRanking: 'A-',
+        researchExperience: 'basic',
+        competitionAwards: 'province',
+        preferredDirection: 'AI',
+        targetNote: '关注NLP方向',
+        updatedAt: now,
+      });
+
+      const result = await service.getStudentProfile(userId);
+
+      expect(result.profile.schoolName).toBe('复旦大学');
+      expect(result.profile.rankPercent).toBe(12);
+      expect(result.profile.englishScore).toBe(490);
+      expect(result.profile.subjectRanking).toBe('A-');
+      expect(result.completeness.status).toBe('complete');
+    });
+
+    it('TC-USER-PROFILE-003: 更新保研档案 - 成功', async () => {
+      const userId = 'user_123';
+      const now = new Date('2026-03-01T20:31:00.000Z');
+      mockPrismaService.user.findUnique.mockResolvedValue({ id: userId });
+      mockPrismaService.userProfile.upsert.mockResolvedValue({
+        userId,
+        schoolName: '复旦大学',
+        schoolLevel: '985',
+        education: '本科在读',
+        major: '计算机',
+        gradeRankPercent: 15,
+        gradeRankText: '',
+        gpa: '',
+        englishType: 'cet6',
+        englishScore: 500,
+        subjectRanking: 'B+',
+        researchExperience: 'basic',
+        competitionAwards: 'none',
+        preferredDirection: '',
+        targetNote: '',
+        updatedAt: now,
+      });
+
+      const result = await service.updateStudentProfile(userId, {
+        schoolName: '复旦大学',
+        schoolLevel: '985',
+        education: '本科在读',
+        major: '计算机',
+        rankPercent: 15,
+        englishType: 'cet6',
+        englishScore: 500,
+        subjectRanking: 'B+',
+        researchExperience: 'basic',
+        competitionAwards: 'none',
+      });
+
+      expect(result.profile.major).toBe('计算机');
+      expect(result.completeness.requiredFilled).toBe(4);
+      expect(mockPrismaService.userProfile.upsert).toHaveBeenCalled();
+    });
+
+    it('TC-USER-PROFILE-004: 更新保研档案 - 用户不存在', async () => {
+      const userId = 'missing_user';
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateStudentProfile(userId, {
+          education: '本科在读',
+          major: '计算机',
+        }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

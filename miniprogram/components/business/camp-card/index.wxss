@@ -1,17 +1,18 @@
 /* 夏令营卡片组件样式 */
 
 .camp-card {
-  background-color: var(--background-white);
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-2);
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-md);
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .camp-card:active {
-  box-shadow: var(--shadow-2);
-  transform: translateY(-2px);
+  box-shadow: var(--surface-card-shadow-active);
+  transform: translateY(-1px);
 }
 
 /* 卡片头部 */
@@ -44,7 +45,7 @@
 /* 院校标签样式 */
 .university-tag {
   display: inline-block;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 600;
   color: var(--primary-color);
   background: linear-gradient(135deg, var(--primary-light) 0%, rgba(74, 144, 226, 0.12) 100%);
@@ -56,7 +57,7 @@
 .announcement-type-tag {
   display: inline-flex;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 500;
   padding: 4px 10px;
   border-radius: var(--border-radius-sm);
@@ -76,22 +77,22 @@
 }
 
 .camp-title {
-  font-size: 16px;
+  font-size: var(--font-size-subtitle);
   font-weight: 600;
   color: var(--text-primary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.5;
+  line-height: var(--line-height-normal);
 }
 
 /* 卡片主体 - 网格布局 */
 .card-body {
   margin-bottom: var(--spacing-md);
   padding: var(--spacing-md) 0;
-  border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
+  border-top: 1px solid rgba(95, 99, 104, 0.2);
+  border-bottom: 1px solid rgba(95, 99, 104, 0.2);
 }
 
 .info-grid {
@@ -119,15 +120,17 @@
 }
 
 .info-label {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-bottom: 2px;
+  line-height: var(--line-height-normal);
 }
 
 .info-value {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-primary);
   font-weight: 500;
+  line-height: var(--line-height-normal);
 }
 
 /* 卡片底部 */
@@ -155,14 +158,16 @@
 }
 
 .deadline-text {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 600;
+  line-height: var(--line-height-normal);
 }
 
 .days-remaining {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 400;
   margin-top: 2px;
+  line-height: var(--line-height-normal);
 }
 
 .deadline.normal {
@@ -190,11 +195,18 @@
 .reminder-status {
   display: flex;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--primary-color);
-  background-color: var(--primary-light);
+  background-color: var(--surface-chip-bg);
   padding: 6px 12px;
   border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(26, 115, 232, 0.18);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.reminder-status-hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
 }
 
 .reminder-icon {
@@ -207,16 +219,13 @@
 }
 
 .remind-btn {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   padding: 6px 14px;
   border-radius: var(--border-radius-sm);
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  line-height: 1.5;
-  background-color: var(--primary-light);
+  background-color: rgba(255, 255, 255, 0.92);
   color: var(--primary-color);
   border: 1px solid var(--primary-color);
+  line-height: var(--line-height-normal);
 }
 
 .remind-btn::after {

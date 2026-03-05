@@ -3,7 +3,7 @@
   <view class="filter-section">
     <view 
       wx:for="{{filterOptions}}" 
-      wx:key="{{item.value}}"
+      wx:key="value"
       class="filter-tag {{selectedFilter === item.value ? 'active' : ''}}"
       bindtap="onFilterTap"
       data-value="{{item.value}}"
@@ -16,7 +16,7 @@
   <view class="reminder-list-section">
     <view 
       wx:for="{{filteredReminders}}" 
-      wx:key="{{item.id}}"
+      wx:key="id"
       class="reminder-item"
     >
       <view class="reminder-header">
@@ -45,6 +45,8 @@
           size="mini" 
           bindtap="onViewCamp"
           data-camp-id="{{item.campId}}"
+          data-announcement-type="{{item.announcementType}}"
+          data-title="{{item.campTitle}}"
         >
           查看详情
         </button>

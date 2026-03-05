@@ -1,38 +1,32 @@
 <view class="page">
   <view class="tips" wx:if="{{useFallback}}">
-    当前展示本地缓存进展，连接后端后可查看实时数据。
+    {{usingMockData ? '当前展示开发环境演示数据（含状态历史），连接后端后可查看实时数据。' : '当前展示本地缓存通知数据，连接后端后可查看实时数据。'}}
   </view>
 
-  <scroll-view scroll-x class="status-scroll">
-    <view class="status-row">
-      <view
-        wx:for="{{statusOptions}}"
-        wx:key="value"
-        class="status-chip {{activeStatus === item.value ? 'active' : ''}}"
-        data-status="{{item.value}}"
-        bindtap="onFilterTap"
-      >
-        {{item.label}}
-      </view>
-    </view>
-  </scroll-view>
-
-  <view class="alert-section" wx:if="{{alertList.length > 0}}">
-    <view class="section-title">最新变更提醒</view>
-    <view class="alert-item" wx:for="{{alertList}}" wx:key="id">
-      <view class="alert-title-row">
-        <text class="alert-title">{{item.title}}</text>
-        <text class="confidence {{item.confidenceLabel}}">{{item.confidenceLabel || 'medium'}}</text>
-      </view>
-      <text class="alert-content">{{item.content}}</text>
-      <text class="alert-time">{{item.scheduledAtText}}</text>
+  <view class="center-switch">
+    <view
+      wx:for="{{centerTabs}}"
+      wx:key="value"
+      class="center-switch-item {{activeCenterTab === item.value ? 'active' : ''}}"
+      bindtap="onCenterTabTap"
+      data-value="{{item.value}}"
+    >
+      {{item.label}}
     </view>
   </view>
 
-  <view class="section-title">我的申请进展</view>
+  <view class="school-sub-entry" bindtap="onOpenSchoolSubscription">
+    <view class="school-sub-entry-main">
+      <text class="school-sub-entry-title">学校级通知设置</text>
+      <text class="school-sub-entry-desc">按学校统一设置通知开关，新增公告自动继承</text>
+    </view>
+    <text class="school-sub-entry-arrow">→</text>
+  </view>
+
+  <view class="section-title">我关注的公告</view>
   <view class="empty" wx:if="{{progressList.length === 0}}">
-    <text>还没有申请进展，先去夏令营/预推免详情页点击“加入关注”。</text>
-    <button class="primary-btn" bindtap="onOpenCampList">去看夏令营/预推免</button>
+    <text>还没有关注公告，先去夏令营/预推免详情页点击“已关注”。</text>
+    <button class="primary-btn" bindtap="onOpenCampList">去看公告</button>
   </view>
 
   <view class="progress-list" wx:else>
@@ -45,16 +39,16 @@
     >
       <view class="row">
         <text class="title">{{item.campTitle}}</text>
-        <text class="status">{{item.statusText}}</text>
+        <text class="status">{{item.stageText}}</text>
       </view>
       <view class="meta-row">
         <text>{{item.universityName}}</text>
         <text>截止: {{item.deadlineText}}</text>
       </view>
-      <text class="next-action">下一步: {{item.nextAction}}</text>
+      <text class="next-action">建议：{{item.nextAction}}</text>
       <view class="meta-row">
         <text>更新于 {{item.updatedAtText}}</text>
-        <text>{{item.subscriptionEnabled ? '已订阅变更' : '未订阅变更'}}</text>
+        <text>{{item.subscriptionEnabled ? '通知已开启' : '通知未开启'}}</text>
       </view>
     </view>
   </view>

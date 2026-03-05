@@ -1,23 +1,24 @@
 /* 院校选择页样式 */
 .selector-page {
   min-height: 100vh;
-  background-color: #F8F9FA;
+  background-color: var(--surface-page);
   padding-bottom: 64px; /* 为底部操作栏留出空间 */
 }
 
 /* 搜索框 */
 .search-section {
-  padding: 16px;
-  background-color: #FFFFFF;
-  border-bottom: 1px solid #DADCE0;
+  padding: var(--grid-4);
+  background: var(--surface-card-bg-soft);
+  border-bottom: 1px solid rgba(26, 115, 232, 0.14);
 }
 
 .search-box {
   display: flex;
   align-items: center;
-  background-color: #F8F9FA;
-  border-radius: 8px;
-  padding: 8px 12px;
+  background-color: rgba(255, 255, 255, 0.92);
+  border-radius: 10px;
+  border: 1px solid rgba(95, 99, 104, 0.2);
+  padding: var(--grid-2) var(--grid-3);
 }
 
 .search-icon {
@@ -26,9 +27,10 @@
 
 .search-input {
   flex: 1;
-  font-size: 16px;
+  font-size: var(--font-size-subtitle);
   color: #202124;
-  padding: 4px 0;
+  padding: var(--grid-1) 0;
+  line-height: var(--line-height-normal);
 }
 
 .search-placeholder {
@@ -37,15 +39,16 @@
 
 /* 筛选区 */
 .filter-section {
-  background-color: #FFFFFF;
-  padding: 12px 16px;
-  border-bottom: 1px solid #DADCE0;
+  background: var(--surface-card-bg);
+  padding: var(--grid-3) var(--grid-4);
+  border-bottom: 1px solid rgba(26, 115, 232, 0.14);
+  border-top: 1px solid rgba(26, 115, 232, 0.1);
 }
 
 .filter-group {
   display: flex;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: var(--grid-3);
 }
 
 .filter-group:last-child {
@@ -62,14 +65,14 @@
 }
 
 .filter-tag {
-  padding: 6px 12px;
-  border: 1px solid #DADCE0;
+  padding: 6px var(--grid-3);
+  border: 1px solid rgba(95, 99, 104, 0.24);
   border-radius: 16px;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: #5F6368;
-  margin-right: 8px;
-  margin-bottom: 8px;
-  background-color: #FFFFFF;
+  margin-right: var(--grid-2);
+  margin-bottom: var(--grid-2);
+  background-color: rgba(255, 255, 255, 0.96);
 }
 
 .province-filter-tag {
@@ -78,27 +81,29 @@
 }
 
 .filter-tag.active {
-  background-color: #E8F0FE;
+  background-color: var(--surface-chip-bg);
   border-color: #1A73E8;
   color: #1A73E8;
+  font-weight: 600;
 }
 
 /* 已选院校区 */
 .selected-section {
-  background-color: #FFFFFF;
-  padding: 16px;
-  margin-top: 12px;
-  border-radius: 12px;
-  margin-left: 16px;
-  margin-right: 16px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  padding: var(--grid-4);
+  margin-top: var(--grid-3);
+  border-radius: 16px;
+  margin-left: var(--grid-4);
+  margin-right: var(--grid-4);
+  box-shadow: var(--shadow-2);
 }
 
 .selected-header {
   position: relative;
   min-height: 24px;
   padding-right: 132px;
-  margin-bottom: 12px;
+  margin-bottom: var(--grid-3);
 }
 
 .selected-actions {
@@ -111,15 +116,15 @@
 }
 
 .selected-title {
-  font-size: 16px;
+  font-size: var(--font-size-subtitle);
   font-weight: 500;
   color: #202124;
-  line-height: 24px;
   white-space: nowrap;
+  line-height: var(--line-height-tight);
 }
 
 .clear-btn {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: #EA4335;
   line-height: 24px;
   padding: 0;
@@ -128,7 +133,7 @@
 }
 
 .toggle-btn {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: #1A73E8;
   line-height: 24px;
   white-space: nowrap;
@@ -137,16 +142,17 @@
 .selected-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--grid-2);
 }
 
 .selected-tag {
   display: flex;
   align-items: center;
-  background-color: #E8F0FE;
+  background-color: var(--surface-chip-bg);
+  border: 1px solid rgba(26, 115, 232, 0.2);
   padding: 6px 10px;
   border-radius: 16px;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: #1A73E8;
 }
 
@@ -165,18 +171,19 @@
 }
 
 .selected-empty-text {
-  font-size: 13px;
+  font-size: var(--font-size-note);
   color: #80868B;
 }
 
 /* 院校列表区 */
 .university-list-section {
-  margin-top: 12px;
-  background-color: #FFFFFF;
-  border-radius: 12px;
-  margin-left: 16px;
-  margin-right: 16px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  margin-top: var(--grid-3);
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  border-radius: 16px;
+  margin-left: var(--grid-4);
+  margin-right: var(--grid-4);
+  box-shadow: var(--shadow-2);
   overflow: hidden;
 }
 
@@ -189,11 +196,11 @@
 }
 
 .group-letter {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 600;
   color: #1A73E8;
-  padding: 12px 16px 8px;
-  background-color: #F8F9FA;
+  padding: var(--grid-3) var(--grid-4) var(--grid-2);
+  background-color: rgba(26, 115, 232, 0.06);
 }
 
 .university-list {
@@ -204,12 +211,17 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid #F0F0F0;
+  padding: var(--grid-3) var(--grid-4);
+  border-bottom: 1px solid rgba(95, 99, 104, 0.16);
+  transition: background-color 0.2s ease;
 }
 
 .university-item:last-child {
   border-bottom: none;
+}
+
+.university-item:active {
+  background-color: rgba(26, 115, 232, 0.08);
 }
 
 .university-info {
@@ -217,14 +229,15 @@
 }
 
 .university-name {
-  font-size: 16px;
+  font-size: var(--font-size-subtitle);
   color: #202124;
-  margin-bottom: 4px;
+  margin-bottom: var(--grid-1);
   display: block;
+  line-height: var(--line-height-tight);
 }
 
 .university-level {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: #80868B;
   background-color: #F8F9FA;
   padding: 2px 6px;
@@ -233,7 +246,7 @@
 }
 
 .university-checkbox {
-  margin-left: 16px;
+  margin-left: var(--grid-4);
 }
 
 .checkbox {
@@ -259,10 +272,11 @@
   align-items: center;
   justify-content: center;
   padding: 60px 0;
-  background-color: #FFFFFF;
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
   margin: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  border-radius: 16px;
+  box-shadow: var(--shadow-2);
 }
 
 .loading-spinner {
@@ -281,8 +295,9 @@
 }
 
 .loading-text {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: #5F6368;
+  line-height: var(--line-height-normal);
 }
 
 /* 空状态 */
@@ -290,7 +305,8 @@
   padding: 60px 0;
   text-align: center;
   color: #80868B;
-  font-size: 14px;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
 }
 
 /* 底部操作区 */
@@ -299,27 +315,28 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: #FFFFFF;
-  padding: 10px 16px;
-  border-top: 1px solid #DADCE0;
+  background-color: rgba(255, 255, 255, 0.96);
+  padding: 10px var(--grid-4);
+  border-top: 1px solid rgba(26, 115, 232, 0.16);
   display: flex;
   justify-content: space-between;
   align-items: center;
   min-height: 52px;
   box-sizing: border-box;
+  box-shadow: 0 -8px 22px rgba(26, 115, 232, 0.12);
 }
 
 .selected-count {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: #5F6368;
 }
 
 .confirm-btn {
-  background-color: #1A73E8;
+  background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
   color: #FFFFFF;
   border-radius: 20px;
   padding: 8px 20px;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 500;
   min-width: 90px;
   text-align: center;

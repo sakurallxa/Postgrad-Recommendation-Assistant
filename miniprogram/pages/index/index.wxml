@@ -11,7 +11,7 @@
   <view class="section">
     <view class="section-header">
       <text class="section-title">即将截止</text>
-      <navigator url="/pages/my-reminders/index" open-type="switchTab" class="section-more">
+      <navigator url="/packageCamp/pages/camp-list/index?mode=urgent" class="section-more">
         查看全部
         <text class="arrow-right">→</text>
       </navigator>
@@ -24,6 +24,8 @@
         class="urgent-card"
         bindtap="handleUrgentCampTap"
         data-id="{{item.id}}"
+        data-announcement-type="{{item.announcementType}}"
+        data-title="{{item.title}}"
       >
         <view class="countdown {{item.statusClass}}">
           <text class="countdown-number">{{item.daysRemaining}}</text>
@@ -136,6 +138,9 @@
         camp="{{item}}"
         bindtap="handleCampTap"
         bindremind="handleRemindTap"
+        data-id="{{item.id}}"
+        data-announcement-type="{{item.announcementType}}"
+        data-title="{{item.title}}"
       />
       
       <!-- 加载更多 -->
@@ -166,13 +171,24 @@
         <text class="arrow-right">→</text>
       </view>
     </view>
-    <view class="opportunity-pool-card" bindtap="handleOpenOpportunityPool">
-      <text class="opportunity-pool-desc">汇总全站信息，补充你的关注范围</text>
+    <view class="opportunity-pool-card">
+      <text class="opportunity-pool-desc">汇总全网夏令营/预推免信息，避免错过其他机会</text>
       <view wx:if="{{opportunityPoolCamps.length > 0}}" class="opportunity-list">
-        <view wx:for="{{opportunityPoolCamps}}" wx:key="id" class="opportunity-item">
-          <text class="opportunity-university">{{item.universityName}}</text>
+        <navigator
+          wx:for="{{opportunityPoolCamps}}"
+          wx:key="id"
+          class="opportunity-item"
+          url="{{item.detailUrl}}"
+        >
+          <view class="opportunity-meta">
+            <text class="opportunity-university">{{item.universityName}}</text>
+            <view class="opportunity-type-badge {{item.announcementType === 'pre_recommendation' ? 'pre-recommendation' : 'summer-camp'}}">
+              <text>{{item.announcementType === 'pre_recommendation' ? '预推免' : '夏令营'}}</text>
+            </view>
+          </view>
           <text class="opportunity-title">{{item.title}}</text>
-        </view>
+          <text wx:if="{{item.deadline}}" class="opportunity-deadline">{{item.deadline}} 截止</text>
+        </navigator>
       </view>
       <text wx:else class="opportunity-empty">暂未发现新的公开机会</text>
     </view>

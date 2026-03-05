@@ -17,7 +17,7 @@
     <scroll-view class="category-scroll" scroll-x>
       <view 
         wx:for="{{categories}}" 
-        wx:key="{{item.value}}"
+        wx:key="value"
         class="category-tag {{selectedCategory === item.value ? 'active' : ''}}"
         bindtap="onCategoryTap"
         data-value="{{item.value}}"
@@ -38,7 +38,7 @@
     <view class="selected-tags" wx:if="isSelectedSectionExpanded && selectedMajors.length > 0">
       <view 
         wx:for="{{selectedMajors}}" 
-        wx:key="{{item.id}}"
+        wx:key="id"
         class="selected-tag"
       >
         <text class="tag-text">{{item.name}}</text>
@@ -51,7 +51,7 @@
   <view class="major-list-section">
     <view 
       wx:for="{{filteredMajors}}" 
-      wx:key="{{item.id}}"
+      wx:key="id"
       class="major-item"
       bindtap="onMajorTap"
       data-id="{{item.id}}"

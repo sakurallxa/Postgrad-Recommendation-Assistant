@@ -81,13 +81,18 @@ Component({
 
     // 处理卡片点击
     handleTap() {
-      this.triggerEvent('tap', { campId: this.properties.camp.id })
+      const normalized = normalizeAnnouncementType(this.properties.camp || {})
+      this.triggerEvent('tap', {
+        campId: normalized.id,
+        announcementType: normalized.announcementType,
+        title: normalized.title || ''
+      })
     },
 
     // 处理设置提醒
     handleRemindTap() {
       // catchtap 已自动阻止事件冒泡，无需额外处理
-      const camp = this.properties.camp || {}
+      const camp = normalizeAnnouncementType(this.properties.camp || {})
       this.triggerEvent('remind', {
         campId: camp.id,
         title: camp.title || '',

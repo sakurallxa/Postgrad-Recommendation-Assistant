@@ -1,11 +1,11 @@
 <view class="container">
   <!-- 筛选栏 -->
-  <view class="filter-bar">
+  <view class="filter-bar" wx:if="{{mode === 'all'}}">
     <scroll-view class="filter-scroll" scroll-x enable-flex="true">
       <view class="filter-list">
         <view 
           wx:for="{{filterOptions}}" 
-          wx:key="{{item.value}}"
+          wx:key="value"
           class="filter-item {{activeFilter === item.value ? 'active' : ''}}"
           bindtap="handleFilterChange" 
           data-value="{{item.value}}"
@@ -19,14 +19,49 @@
     </navigator>
   </view>
 
+  <view wx:elif="{{mode === 'urgent'}}" class="filter-bar">
+    <view class="filter-scroll">
+      <view class="filter-list">
+        <view class="filter-item active">全部即将截止公告</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:elif="{{mode === 'opportunity'}}" class="mode-title-bar">
+    <view class="mode-title-wrap">
+      <text class="mode-title">全部公开公告</text>
+      <text class="mode-subtitle">汇总全网夏令营/预推免公告，支持关键词查找</text>
+    </view>
+  </view>
+
+  <view wx:if="{{mode === 'opportunity'}}" class="search-bar" bindtap="handleSearchBarTap">
+    <text class="search-icon">搜</text>
+    <input
+      class="search-input"
+      type="text"
+      placeholder="搜索学校/公告关键词（如 复旦、AI、预推免）"
+      placeholder-class="search-placeholder"
+      value="{{searchKeyword}}"
+      focus="{{searchFocused}}"
+      bindinput="handleSearchInput"
+      bindfocus="handleSearchFocus"
+      bindblur="handleSearchBlur"
+      confirm-type="search"
+    />
+  </view>
+  <text wx:if="{{mode === 'opportunity' && searchKeyword}}" class="search-hint">{{searchResultHint}}</text>
+
   <!-- 夏令营列表 -->
   <view wx:if="{{campList.length > 0}}" class="camp-list">
     <camp-card 
       wx:for="{{campList}}" 
-      wx:key="{{item.id}}"
+      wx:key="id"
       camp="{{item}}"
       bindtap="handleCampTap"
       bindremind="handleRemindTap"
+      data-id="{{item.id}}"
+      data-announcement-type="{{item.announcementType}}"
+      data-title="{{item.title}}"
     />
     
     <!-- 加载更多 -->
@@ -40,5 +75,8 @@
     </view>
   </view>
   
-  <empty-state wx:else text="暂无夏令营/预推免信息" />
+  <empty-state
+    wx:else
+    text="{{mode === 'opportunity' && searchKeyword ? '未找到匹配公告，请尝试其他关键词' : '暂无夏令营/预推免信息'}}"
+  />
 </view>

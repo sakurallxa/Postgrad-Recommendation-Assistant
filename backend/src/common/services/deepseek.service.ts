@@ -30,19 +30,101 @@ interface DeepSeekResponse {
  */
 export interface CampInfoExtraction {
   title: string;
+  announcementType?: 'summer_camp' | 'pre_recommendation';
   publishDate?: string;
   deadline?: string;
   startDate?: string;
   endDate?: string;
-  requirements: {
-    gradeRank?: string;
-    english?: string;
-    major?: string;
-    other?: string;
+  requirements: Record<string, any>;
+  materials: Array<string | Record<string, any>>;
+  process: Array<string | Record<string, any>>;
+  contact: {
+    email?: string;
+    phone?: string;
+    address?: string;
+    other?: string[];
   };
-  materials: string[];
-  process: string[];
   confidence: number;
+}
+
+interface PromptHint {
+  announcementType?: string;
+  title?: string;
+  publishDate?: string;
+  deadline?: string;
+  startDate?: string;
+  endDate?: string;
+  requirements?: any;
+  materials?: any;
+  process?: any;
+  contact?: any;
+}
+
+function normalizeAnnouncementType(value: any): 'summer_camp' | 'pre_recommendation' {
+  const text = String(value || '').toLowerCase();
+  if (text === 'pre_recommendation' || /预推免|推免/.test(text)) {
+    return 'pre_recommendation';
+  }
+  return 'summer_camp';
+}
+
+function normalizeIsoDate(value: any): string | undefined {
+  if (!value) return undefined;
+  const text = String(value).trim();
+  if (!text) return undefined;
+  const normalized = text.replace(/[年/.]/g, '-').replace(/月/g, '-').replace(/日/g, '');
+  const dt = new Date(normalized);
+  if (Number.isNaN(dt.getTime())) {
+    return undefined;
+  }
+  return dt.toISOString();
+}
+
+function normalizeStringArray(value: any): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(/[\n；;,，]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function normalizeRecord(value: any): Record<string, any> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return value;
+}
+
+function normalizeContact(value: any): CampInfoExtraction['contact'] {
+  const record = normalizeRecord(value);
+  const email = String(record.email || '').trim();
+  const phone = String(record.phone || '').trim();
+  const address = String(record.address || '').trim();
+  const other = normalizeStringArray(record.other);
+  return {
+    ...(email ? { email } : {}),
+    ...(phone ? { phone } : {}),
+    ...(address ? { address } : {}),
+    ...(other.length > 0 ? { other } : {}),
+  };
+}
+
+function normalizeConfidence(value: any): number {
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return 0.6;
+  }
+  if (num < 0) return 0;
+  if (num > 1) return 1;
+  return Number(num.toFixed(2));
 }
 
 /**
@@ -54,6 +136,7 @@ export class DeepSeekService {
   private readonly logger = new Logger(DeepSeekService.name);
   private readonly apiKey: string;
   private readonly apiUrl: string;
+  private readonly model: string;
   private dailyCallCount = 0;
   private lastResetDate: string;
 
@@ -63,6 +146,7 @@ export class DeepSeekService {
       'DEEPSEEK_API_URL',
       'https://api.deepseek.com/v1',
     );
+    this.model = this.configService.get<string>('DEEPSEEK_MODEL', 'deepseek-chat');
     this.lastResetDate = new Date().toDateString();
   }
 
@@ -75,6 +159,7 @@ export class DeepSeekService {
   async extractCampInfo(
     content: string,
     universityName: string,
+    hint: PromptHint = {},
   ): Promise<CampInfoExtraction | null> {
     // 检查API配置
     if (!this.apiKey || this.apiKey === 'sk-placeholder') {
@@ -89,7 +174,7 @@ export class DeepSeekService {
     }
 
     try {
-      const prompt = this.buildExtractionPrompt(content, universityName);
+      const prompt = this.buildExtractionPrompt(content, universityName, hint);
       const response = await this.callDeepSeekAPI(prompt);
 
       if (response) {
@@ -110,8 +195,29 @@ export class DeepSeekService {
   private buildExtractionPrompt(
     content: string,
     universityName: string,
+    hint: PromptHint = {},
   ): string {
+    const hintBlock = JSON.stringify(
+      {
+        announcementType: hint.announcementType || '',
+        title: hint.title || '',
+        publishDate: hint.publishDate || '',
+        deadline: hint.deadline || '',
+        startDate: hint.startDate || '',
+        endDate: hint.endDate || '',
+        requirements: hint.requirements || {},
+        materials: hint.materials || [],
+        process: hint.process || [],
+        contact: hint.contact || {},
+      },
+      null,
+      2,
+    );
+
     return `请从以下${universityName}的夏令营招生信息中提取结构化数据。
+
+已有规则抽取结果（可参考但不必盲从）：
+${hintBlock}
 
 内容：
 ${content.substring(0, 3000)}
@@ -119,25 +225,27 @@ ${content.substring(0, 3000)}
 请提取以下信息并以JSON格式返回：
 {
   "title": "夏令营标题",
+  "announcementType": "summer_camp 或 pre_recommendation",
   "publishDate": "发布日期(YYYY-MM-DD格式)",
   "deadline": "截止日期(YYYY-MM-DD格式)",
   "startDate": "开始日期(YYYY-MM-DD格式)",
   "endDate": "结束日期(YYYY-MM-DD格式)",
-  "requirements": {
-    "gradeRank": "成绩排名要求",
-    "english": "英语要求",
-    "major": "专业要求",
-    "other": "其他要求"
-  },
+  "requirements": {"任意键": "任意值"},
   "materials": ["所需材料1", "所需材料2"],
   "process": ["流程步骤1", "流程步骤2"],
+  "contact": {
+    "email": "邮箱",
+    "phone": "电话",
+    "address": "地址",
+    "other": ["其他联系方式"]
+  },
   "confidence": 0.95
 }
 
 注意：
 1. 如果某项信息不存在，请使用null或空数组
 2. confidence表示信息提取的置信度(0-1)
-3. 日期必须使用YYYY-MM-DD格式
+3. 日期请输出为YYYY-MM-DD或ISO字符串
 4. 只返回JSON，不要包含其他内容`;
   }
 
@@ -149,7 +257,7 @@ ${content.substring(0, 3000)}
       const response = await axios.post<DeepSeekResponse>(
         `${this.apiUrl}/chat/completions`,
         {
-          model: 'deepseek-chat',
+          model: this.model,
           messages: [
             {
               role: 'system',
@@ -203,22 +311,24 @@ ${content.substring(0, 3000)}
 
       const result = JSON.parse(jsonContent);
 
-      // 验证必要字段
-      if (!result.title) {
+      const title = String(result.title || '').trim();
+      if (!title) {
         this.logger.warn('提取结果缺少标题');
         return null;
       }
 
       return {
-        title: result.title,
-        publishDate: result.publishDate,
-        deadline: result.deadline,
-        startDate: result.startDate,
-        endDate: result.endDate,
-        requirements: result.requirements || {},
-        materials: result.materials || [],
-        process: result.process || [],
-        confidence: result.confidence || 0.5,
+        title,
+        announcementType: normalizeAnnouncementType(result.announcementType),
+        publishDate: normalizeIsoDate(result.publishDate),
+        deadline: normalizeIsoDate(result.deadline),
+        startDate: normalizeIsoDate(result.startDate),
+        endDate: normalizeIsoDate(result.endDate),
+        requirements: normalizeRecord(result.requirements),
+        materials: Array.isArray(result.materials) ? result.materials : normalizeStringArray(result.materials),
+        process: Array.isArray(result.process) ? result.process : normalizeStringArray(result.process),
+        contact: normalizeContact(result.contact),
+        confidence: normalizeConfidence(result.confidence),
       };
     } catch (error) {
       this.logger.error('解析提取结果失败:', error.message);

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   DefaultValuePipe,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -20,6 +21,7 @@ import { UpdateProgressStatusDto } from './dto/update-progress-status.dto';
 import { UpdateProgressSubscriptionDto } from './dto/update-progress-subscription.dto';
 import { CreateProgressEventDto } from './dto/create-progress-event.dto';
 import { SnoozeProgressAlertDto } from './dto/snooze-progress-alert.dto';
+import { ConfirmProgressStepDto } from './dto/confirm-progress-step.dto';
 
 @ApiTags('申请进展')
 @ApiBearerAuth()
@@ -46,6 +48,15 @@ export class ProgressController {
   @ApiOperation({ summary: '创建申请进展' })
   async create(@CurrentUser('sub') userId: string, @Body() dto: CreateProgressDto) {
     return this.progressService.create(userId, dto);
+  }
+
+  @Delete('camp/:campId/follow')
+  @ApiOperation({ summary: '按公告取消关注（取消进展并清理订阅/提醒）' })
+  async unfollowByCamp(
+    @CurrentUser('sub') userId: string,
+    @Param('campId', ParseUUIDPipe) campId: string,
+  ) {
+    return this.progressService.unfollowByCamp(userId, campId);
   }
 
   @Get('alerts')
@@ -87,6 +98,22 @@ export class ProgressController {
     return this.progressService.createChangeEvent(dto);
   }
 
+  @Get('school-subscriptions')
+  @ApiOperation({ summary: '获取学校级订阅设置' })
+  async getSchoolSubscriptions(@CurrentUser('sub') userId: string) {
+    return this.progressService.getSchoolSubscriptions(userId);
+  }
+
+  @Patch('school-subscriptions/:universityId')
+  @ApiOperation({ summary: '更新学校级订阅设置' })
+  async updateSchoolSubscription(
+    @CurrentUser('sub') userId: string,
+    @Param('universityId', ParseUUIDPipe) universityId: string,
+    @Body() dto: UpdateProgressSubscriptionDto,
+  ) {
+    return this.progressService.updateSchoolSubscription(userId, universityId, dto);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: '获取申请进展详情' })
   async findOne(
@@ -94,6 +121,15 @@ export class ProgressController {
     @Param('id', ParseUUIDPipe) progressId: string,
   ) {
     return this.progressService.findOne(userId, progressId);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: '取消关注（按进展ID）' })
+  async remove(
+    @CurrentUser('sub') userId: string,
+    @Param('id', ParseUUIDPipe) progressId: string,
+  ) {
+    return this.progressService.removeProgress(userId, progressId);
   }
 
   @Patch(':id/status')
@@ -104,6 +140,16 @@ export class ProgressController {
     @Body() dto: UpdateProgressStatusDto,
   ) {
     return this.progressService.updateStatus(userId, progressId, dto);
+  }
+
+  @Post(':id/confirm-step')
+  @ApiOperation({ summary: '确认推进申请进展状态（用于名单/结果确认）' })
+  async confirmStep(
+    @CurrentUser('sub') userId: string,
+    @Param('id', ParseUUIDPipe) progressId: string,
+    @Body() dto: ConfirmProgressStepDto,
+  ) {
+    return this.progressService.confirmStep(userId, progressId, dto);
   }
 
   @Get(':id/subscription')

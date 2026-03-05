@@ -1,0 +1,59 @@
+.page {
+  min-height: 100vh;
+  background: #f5f8ff;
+  padding: 32rpx;
+  box-sizing: border-box;
+}
+
+.card {
+  margin-top: 80rpx;
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 36rpx 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(36, 80, 180, 0.08);
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1f2d4d;
+}
+
+.desc {
+  margin-top: 20rpx;
+  font-size: 28rpx;
+  color: #5e6f94;
+}
+
+.result {
+  margin-top: 24rpx;
+  font-size: 30rpx;
+  line-height: 1.6;
+}
+
+.result.success {
+  color: #1a7f45;
+}
+
+.result.fail {
+  color: #b8393d;
+}
+
+.primary-btn,
+.secondary-btn {
+  margin-top: 24rpx;
+  border-radius: 20rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.primary-btn {
+  background: #1f7aff;
+  color: #ffffff;
+}
+
+.secondary-btn {
+  background: #ffffff;
+  border: 1px solid #c7d5f8;
+  color: #1f5fcc;
+}

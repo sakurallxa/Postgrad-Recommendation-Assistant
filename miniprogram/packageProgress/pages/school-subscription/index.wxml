@@ -1,0 +1,106 @@
+<view class="page">
+  <view class="tips" wx:if="{{useFallback}}">
+    当前处于离线预览模式，仅展示本地缓存设置，无法提交更新。
+  </view>
+
+  <view class="desc-card">
+    <text class="desc-text">仅专业匹配时触发学校提醒，新增公告会继承本页开关。</text>
+  </view>
+
+  <view class="loading" wx:if="{{loading}}">加载中...</view>
+
+  <view class="empty" wx:if="{{!loading && schoolList.length === 0}}">
+    <text>你还没有关注学校，先去首页选择关注院校。</text>
+  </view>
+
+  <view class="school-list" wx:if="{{!loading && schoolList.length > 0}}">
+    <view class="school-card" wx:for="{{schoolList}}" wx:key="universityId">
+      <view class="school-header">
+        <view class="school-main">
+          <text class="school-name">{{item.universityName}}</text>
+          <text class="school-level" wx:if="{{item.universityLevel}}">{{item.universityLevel}}</text>
+        </view>
+        <text class="school-sync" wx:if="{{savingMap[item.universityId]}}">同步中</text>
+      </view>
+
+      <view class="switch-row switch-parent-row">
+        <view class="switch-parent-main">
+          <text class="switch-parent-title">开启该校通知</text>
+        </view>
+        <switch
+          disabled="{{savingMap[item.universityId]}}"
+          checked="{{item.subscription.enabled}}"
+          data-university-id="{{item.universityId}}"
+          data-key="enabled"
+          bindchange="onSubscriptionChange"
+        />
+      </view>
+
+      <view class="details-toggle-row" bindtap="onToggleSchoolDetails" data-university-id="{{item.universityId}}">
+        <text class="details-toggle-label">细分通知类型</text>
+        <text class="details-toggle-action">{{expandedMap[item.universityId] ? '收起' : '展开'}}</text>
+      </view>
+
+      <view
+        class="switch-children {{!item.subscription.enabled ? 'disabled' : ''}}"
+        wx:if="{{expandedMap[item.universityId]}}"
+      >
+        <view class="switch-row child-row {{!item.subscription.enabled ? 'disabled' : ''}}">
+          <view class="child-label-wrap">
+            <text class="child-dot">•</text>
+            <text class="child-label">截止时间提醒</text>
+          </view>
+          <switch
+            disabled="{{!item.subscription.enabled || savingMap[item.universityId]}}"
+            checked="{{item.subscription.deadlineChanged}}"
+            data-university-id="{{item.universityId}}"
+            data-key="deadlineChanged"
+            bindchange="onSubscriptionChange"
+          />
+        </view>
+
+        <view class="switch-row child-row {{!item.subscription.enabled ? 'disabled' : ''}}">
+          <view class="child-label-wrap">
+            <text class="child-dot">•</text>
+            <text class="child-label">材料要求变更</text>
+          </view>
+          <switch
+            disabled="{{!item.subscription.enabled || savingMap[item.universityId]}}"
+            checked="{{item.subscription.materialsChanged}}"
+            data-university-id="{{item.universityId}}"
+            data-key="materialsChanged"
+            bindchange="onSubscriptionChange"
+          />
+        </view>
+
+        <view class="switch-row child-row {{!item.subscription.enabled ? 'disabled' : ''}}">
+          <view class="child-label-wrap">
+            <text class="child-dot">•</text>
+            <text class="child-label">入营名单通知</text>
+          </view>
+          <switch
+            disabled="{{!item.subscription.enabled || savingMap[item.universityId]}}"
+            checked="{{item.subscription.admissionResultChanged}}"
+            data-university-id="{{item.universityId}}"
+            data-key="admissionResultChanged"
+            bindchange="onSubscriptionChange"
+          />
+        </view>
+
+        <view class="switch-row child-row {{!item.subscription.enabled ? 'disabled' : ''}}">
+          <view class="child-label-wrap">
+            <text class="child-dot">•</text>
+            <text class="child-label">优秀营员结果通知</text>
+          </view>
+          <switch
+            disabled="{{!item.subscription.enabled || savingMap[item.universityId]}}"
+            checked="{{item.subscription.outstandingResultChanged}}"
+            data-university-id="{{item.universityId}}"
+            data-key="outstandingResultChanged"
+            bindchange="onSubscriptionChange"
+          />
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

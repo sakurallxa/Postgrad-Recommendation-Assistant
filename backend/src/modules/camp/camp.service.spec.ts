@@ -410,6 +410,37 @@ describe('CampService', () => {
               category: true,
             },
           },
+          progressChangeEvents: {
+            orderBy: [{ sourceUpdatedAt: 'desc' }, { createdAt: 'desc' }],
+            take: 8,
+            select: {
+              id: true,
+              eventType: true,
+              fieldName: true,
+              oldValue: true,
+              newValue: true,
+              sourceType: true,
+              sourceUrl: true,
+              sourceUpdatedAt: true,
+              confidenceLabel: true,
+              confidenceScore: true,
+              createdAt: true,
+            },
+          },
+          extractionLogs: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              provider: true,
+              model: true,
+              extractionVersion: true,
+              confidenceScore: true,
+              status: true,
+              triggerReasons: true,
+              createdAt: true,
+            },
+          },
         },
       });
     });

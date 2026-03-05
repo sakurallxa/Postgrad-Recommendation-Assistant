@@ -20,6 +20,13 @@ describe('ReminderService', () => {
       delete: jest.fn(),
       count: jest.fn(),
     },
+    campWatchSubscription: {
+      upsert: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    applicationProgress: {
+      findUnique: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -51,7 +58,6 @@ describe('ReminderService', () => {
         userId,
         campId: createDto.campId,
         remindTime: new Date(createDto.remindTime),
-        content: createDto.content,
         status: 'pending',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -65,7 +71,6 @@ describe('ReminderService', () => {
       expect(mockPrismaService.reminder.create).toHaveBeenCalledWith({
         data: {
           campId: createDto.campId,
-          content: createDto.content,
           remindTime: new Date(createDto.remindTime),
           userId,
         },
@@ -110,7 +115,6 @@ describe('ReminderService', () => {
         userId,
         campId: createDto.campId,
         remindTime: new Date(createDto.remindTime),
-        content: createDto.content,
         status: 'pending',
         sentAt: null,
         errorMsg: null,
@@ -126,7 +130,6 @@ describe('ReminderService', () => {
       expect(mockPrismaService.reminder.create).toHaveBeenCalledWith({
         data: {
           campId: createDto.campId,
-          content: createDto.content,
           remindTime: new Date(createDto.remindTime),
           userId,
         },

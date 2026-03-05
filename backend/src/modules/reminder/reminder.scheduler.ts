@@ -87,6 +87,47 @@ export class ReminderScheduler {
   }
 
   /**
+   * 每分钟扫描并发送变更类微信提醒（准实时）
+   */
+  @Cron(CronExpression.EVERY_MINUTE)
+  async dispatchProgressWechatAlerts() {
+    const now = new Date();
+    const batchSize = 50;
+    try {
+      const alerts = await this.prisma.progressAlert.findMany({
+        where: {
+          channel: 'wechat',
+          status: 'pending',
+          sendStatus: 'pending',
+          scheduledAt: { lte: now },
+        },
+        include: {
+          user: true,
+          camp: {
+            include: {
+              university: true,
+            },
+          },
+          event: true,
+        },
+        orderBy: { scheduledAt: 'asc' },
+        take: batchSize,
+      });
+
+      if (alerts.length === 0) {
+        return;
+      }
+
+      this.logger.log(`开始发送变更微信提醒: ${alerts.length} 条`);
+      for (const alert of alerts) {
+        await this.sendProgressWechatAlert(alert);
+      }
+    } catch (error) {
+      this.logger.error(`发送变更微信提醒失败: ${error.message}`);
+    }
+  }
+
+  /**
    * 每天凌晨清理过期提醒
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -169,6 +210,88 @@ export class ReminderScheduler {
       });
 
       return { success: false, error: error.message };
+    }
+  }
+
+  private async sendProgressWechatAlert(alert: any): Promise<void> {
+    const lockResult = await this.prisma.progressAlert.updateMany({
+      where: {
+        id: alert.id,
+        sendStatus: 'pending',
+      },
+      data: {
+        sendStatus: 'sending',
+      },
+    });
+    if (!lockResult.count) {
+      return;
+    }
+
+    try {
+      const touser = this.resolveUserOpenid(alert.user);
+      const templateId =
+        this.configService.get('WX_PROGRESS_CHANGE_TEMPLATE_ID')
+        || this.configService.get('WX_SUBSCRIBE_TEMPLATE_ID');
+
+      const campTitle = alert.camp?.title || '保研公告';
+      const universityName = alert.camp?.university?.name || '院校公告';
+      const changeField = alert.event?.fieldName || alert.title || '公告信息';
+      const changeTime = alert.event?.sourceUpdatedAt || alert.createdAt || new Date();
+      const actionTokenEnabled = String(
+        this.configService.get('WECHAT_ACTION_TOKEN_ENABLED') || 'false',
+      ).toLowerCase() === 'true';
+      const messagePage = actionTokenEnabled && alert.actionToken
+        ? `/packageProgress/pages/action-landing/index?token=${encodeURIComponent(alert.actionToken)}`
+        : '/pages/my-reminders/index';
+
+      const message: WxSubscribeMessage = {
+        touser,
+        template_id: templateId,
+        page: messagePage,
+        data: {
+          thing1: { value: campTitle.slice(0, 20) },
+          thing3: { value: `${universityName} ${changeField}`.slice(0, 20) },
+          time2: { value: this.formatDate(changeTime) },
+        },
+      };
+
+      const result = await this.callWxSubscribeApi(message);
+      if (result.success) {
+        await this.prisma.progressAlert.update({
+          where: { id: alert.id },
+          data: {
+            sendStatus: 'sent',
+            sentAt: new Date(),
+            lastError: null,
+            sendAttempt: {
+              increment: 1,
+            },
+          },
+        });
+        return;
+      }
+
+      await this.prisma.progressAlert.update({
+        where: { id: alert.id },
+        data: {
+          sendStatus: 'failed',
+          lastError: result.error || 'unknown',
+          sendAttempt: {
+            increment: 1,
+          },
+        },
+      });
+    } catch (error) {
+      await this.prisma.progressAlert.update({
+        where: { id: alert.id },
+        data: {
+          sendStatus: 'failed',
+          lastError: error.message || 'unknown',
+          sendAttempt: {
+            increment: 1,
+          },
+        },
+      });
     }
   }
 

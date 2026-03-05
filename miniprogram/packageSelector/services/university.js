@@ -1,4 +1,4 @@
-import { http } from './http'
+import { http } from '../../services/http'
 
 export const universityService = {
   async getUniversityList(params) {

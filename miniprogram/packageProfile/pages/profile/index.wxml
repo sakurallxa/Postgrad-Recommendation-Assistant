@@ -1,0 +1,145 @@
+<view class="container">
+  <view wx:if="{{loading}}" class="loading-box">
+    <view class="loading"></view>
+    <text class="loading-text">正在加载档案...</text>
+  </view>
+
+  <view wx:else class="content">
+    <view class="summary-card {{completionStatus}}">
+      <text class="summary-title">个人档案匹配度</text>
+      <text class="summary-value">{{completionText}}</text>
+      <text class="summary-desc">用于公告详情页申请条件模块与你的情况对比判断是否符合申请要求</text>
+    </view>
+
+    <view class="section-card">
+      <view class="section-head">
+        <text class="section-title">基础信息</text>
+        <text class="section-note">建议优先填满 4 项核心字段</text>
+      </view>
+
+      <view class="field-row">
+        <text class="field-label">当前学校</text>
+        <input
+          class="field-input"
+          placeholder="搜索并选择学校（也可手动输入）"
+          value="{{form.schoolName}}"
+          bindfocus="onSchoolFocus"
+          bindinput="onSchoolInput"
+        />
+        <view class="school-suggestions" wx:if="{{schoolSuggestions && schoolSuggestions.length > 0}}">
+          <view class="school-suggestion-item" wx:for="{{schoolSuggestions}}" wx:key="index" data-name="{{item.name}}" data-level="{{item.level}}" bindtap="onPickSchoolSuggestion">
+            <text class="school-name">{{item.name}}</text>
+            <text class="school-level">{{item.level}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="field-group">
+        <text class="field-label">学校层次</text>
+        <view class="choice-row">
+          <view class="choice-pill {{form.schoolLevel === item ? 'active' : ''}}" wx:for="{{schoolLevelOptions}}" wx:key="index" data-value="{{item}}" bindtap="onChooseSchoolLevel">
+            {{item}}
+          </view>
+        </view>
+      </view>
+
+      <view class="field-row">
+        <text class="field-label">学历层次 *</text>
+        <picker mode="selector" range="{{educationOptions}}" bindchange="onEducationChange">
+          <view class="picker-value">{{form.education || '请选择学历层次'}}</view>
+        </picker>
+      </view>
+
+      <view class="field-row">
+        <text class="field-label">当前专业 *</text>
+        <input class="field-input" placeholder="例如：计算机科学与技术" value="{{form.major}}" data-field="major" bindinput="onInputField" />
+      </view>
+
+      <view class="field-row rank-row">
+        <text class="field-label">成绩排名前 %</text>
+        <input class="field-input" type="digit" placeholder="例如：12" value="{{form.rankPercent}}" data-field="rankPercent" bindinput="onInputField" />
+      </view>
+      <view class="quick-tags">
+      <view class="quick-tag {{form.rankPercent == item ? 'active' : ''}}" wx:for="{{rankQuickOptions}}" wx:key="index" data-rank="{{item}}" bindtap="onQuickRank">
+        前{{item}}%
+      </view>
+      </view>
+      <view class="field-row">
+        <text class="field-label">成绩补充</text>
+        <input class="field-input" placeholder="例如：专业前 10/120，绩点 3.8" value="{{form.rankText}}" data-field="rankText" bindinput="onInputField" />
+      </view>
+
+      <view class="field-row">
+        <text class="field-label">英语类型</text>
+        <picker mode="selector" range="{{englishTypeOptions}}" range-key="label" bindchange="onEnglishTypeChange">
+          <view class="picker-value">
+            <text wx:for="{{englishTypeOptions}}" wx:key="value" wx:if="{{item.value === form.englishType}}">{{item.label}}</text>
+          </view>
+        </picker>
+      </view>
+      <view class="field-row">
+        <text class="field-label">英语分数</text>
+        <input class="field-input" type="digit" placeholder="例如：490 / 6.5 / 95" value="{{form.englishScore}}" data-field="englishScore" bindinput="onInputField" />
+      </view>
+      <view class="field-row">
+        <text class="field-label">GPA</text>
+        <input class="field-input" placeholder="例如：3.8/4.0" value="{{form.gpa}}" data-field="gpa" bindinput="onInputField" />
+      </view>
+
+      <view class="field-group">
+        <text class="field-label">专业学科排名（教育部学科评估）</text>
+        <view class="choice-row">
+          <view class="choice-pill {{form.subjectRanking === item ? 'active' : ''}}" wx:for="{{subjectRankingOptions}}" wx:key="index" data-value="{{item}}" bindtap="onChooseSubjectRanking">
+            {{item}}
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-head">
+        <text class="section-title">补充信息</text>
+        <text class="section-note">用于更细粒度的条件匹配</text>
+      </view>
+
+      <view class="field-group">
+        <text class="field-label">科研经历</text>
+        <view class="choice-row">
+          <view class="choice-pill {{form.researchExperience === item.value ? 'active' : ''}}" wx:for="{{researchOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="onSelectResearch">
+            {{item.label}}
+          </view>
+        </view>
+      </view>
+
+      <view class="field-group">
+        <text class="field-label">竞赛获奖</text>
+        <view class="choice-row">
+          <view class="choice-pill {{form.competitionAwards === item.value ? 'active' : ''}}" wx:for="{{competitionOptions}}" wx:key="value" data-value="{{item.value}}" bindtap="onSelectCompetition">
+            {{item.label}}
+          </view>
+        </view>
+      </view>
+
+      <view class="field-row">
+        <text class="field-label">意向方向</text>
+        <input class="field-input" placeholder="例如：NLP / 计算机视觉 / 芯片" value="{{form.preferredDirection}}" data-field="preferredDirection" bindinput="onInputField" />
+      </view>
+
+      <view class="field-row textarea-row">
+        <text class="field-label">补充说明</text>
+        <textarea class="field-textarea" placeholder="可填写目标院系、材料准备情况、特别说明" value="{{form.targetNote}}" data-field="targetNote" bindinput="onInputField" maxlength="300" />
+      </view>
+    </view>
+
+    <view class="hint-card" wx:if="{{!remoteEnabled}}">
+      当前环境未启用远端档案接口，已自动使用本地保存模式。
+    </view>
+
+    <view class="bottom-gap"></view>
+  </view>
+
+  <view class="bottom-action" wx:if="{{!loading}}">
+    <button class="btn-reset" bindtap="handleReset">清空重填</button>
+    <button class="btn-save" loading="{{saving}}" bindtap="handleSave">保存档案</button>
+  </view>
+</view>

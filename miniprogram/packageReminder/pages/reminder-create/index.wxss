@@ -1,38 +1,40 @@
 /* 提醒创建页样式 */
 .reminder-create-page {
   min-height: 100vh;
-  background-color: #F8F9FA;
+  background-color: var(--surface-page);
   padding-bottom: 80px; /* 为底部操作栏留出空间 */
 }
 
 /* 夏令营信息 */
 .camp-info-section {
-  padding: 16px;
+  padding: var(--grid-4);
 }
 
 .camp-card {
-  background-color: #FFFFFF;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  border-radius: 16px;
+  padding: var(--grid-4);
+  box-shadow: var(--shadow-2);
 }
 
 .camp-header {
-  margin-bottom: 12px;
+  margin-bottom: var(--grid-3);
 }
 
 .camp-title {
-  font-size: 16px;
+  font-size: var(--font-size-subtitle);
   font-weight: 500;
   color: #202124;
-  margin-bottom: 8px;
+  margin-bottom: var(--grid-2);
   display: block;
-  line-height: 1.4;
+  line-height: var(--line-height-tight);
 }
 
 .camp-deadline {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: #5F6368;
+  line-height: var(--line-height-normal);
 }
 
 .camp-university {
@@ -41,96 +43,107 @@
   justify-content: flex-start;
   width: 100%;
   text-align: left;
-  padding-top: 12px;
+  padding-top: var(--grid-3);
   border-top: 1px solid #F0F0F0;
 }
 
 .university-label {
-  font-size: 13px;
+  font-size: var(--font-size-note);
   color: #80868B;
   margin-right: 8px;
   flex-shrink: 0;
 }
 
 .university-name {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: #5F6368;
   text-align: left;
   flex: 1;
+  line-height: var(--line-height-normal);
 }
 
 /* 提醒设置 */
 .reminder-settings-section {
-  background-color: #FFFFFF;
-  margin-top: 12px;
-  padding: 16px;
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  border-radius: 16px;
+  margin-top: var(--grid-3);
+  padding: var(--grid-4);
+  margin-left: var(--grid-4);
+  margin-right: var(--grid-4);
+  box-shadow: var(--shadow-2);
 }
 
 .section-title {
-  font-size: 16px;
+  font-size: var(--font-size-subtitle);
   font-weight: 500;
   color: #202124;
-  margin-bottom: 16px;
+  margin-bottom: var(--grid-4);
+  line-height: var(--line-height-tight);
 }
 
 .time-block {
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: var(--grid-3);
 }
 
 .quick-time-block {
-  background: #F8FAFF;
-  border: 1px solid #E1E8FA;
+  background: rgba(26, 115, 232, 0.06);
+  border: 1px solid rgba(26, 115, 232, 0.18);
 }
 
 /* 快捷时间选择 */
 .quick-time-section {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 10px;
+  gap: var(--grid-3);
+  margin-top: var(--grid-2);
 }
 
 .quick-time-item {
-  padding: 10px 16px;
-  border: 1px solid #DADCE0;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #5F6368;
-  background-color: #FFFFFF;
+  padding: 10px var(--grid-4);
+  border: 1px solid rgba(95, 99, 104, 0.24);
+  border-radius: 10px;
+  font-size: var(--font-size-body);
+  color: var(--text-secondary);
+  background-color: rgba(255, 255, 255, 0.96);
+  transition: all 0.2s ease;
 }
 
 .quick-time-item.active {
-  background-color: #E8F0FE;
-  border-color: #1A73E8;
-  color: #1A73E8;
+  background-color: var(--surface-chip-bg);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  font-weight: 600;
 }
 
 /* 自定义时间选择 */
 .custom-time-section {
-  margin-top: 12px;
-  background: #FFFFFF;
-  border: 1px solid #F0F2F5;
+  margin-top: var(--grid-3);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(95, 99, 104, 0.14);
 }
 
 .section-subtitle {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: #202124;
   font-weight: 500;
 }
 
 .section-tip {
   display: block;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: #80868B;
-  margin-top: 4px;
+  margin-top: var(--grid-1);
+  line-height: var(--line-height-normal);
 }
 
 .mode-hint {
-  margin-top: 12px;
-  padding: 8px 10px;
+  margin-top: var(--grid-3);
+  padding: var(--grid-2) 10px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-normal);
 }
 
 .mode-hint.quick {
@@ -156,25 +169,25 @@
   background-color: #F8F9FA;
   border-radius: 8px;
   border-bottom: none;
-  margin-top: 8px;
-  padding: 12px;
+  margin-top: var(--grid-2);
+  padding: var(--grid-3);
 }
 
 .picker-view {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0;
+  padding: var(--grid-3) 0;
   border-bottom: 1px solid #F0F0F0;
 }
 
 .picker-label {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: #5F6368;
 }
 
 .picker-value {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: #202124;
   flex: 1;
   text-align: right;
@@ -183,16 +196,21 @@
 
 /* 提醒方式 */
 .reminder-method-section {
-  background-color: #FFFFFF;
-  margin-top: 12px;
-  padding: 16px;
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  border-radius: 16px;
+  margin-top: var(--grid-3);
+  padding: var(--grid-4);
+  margin-left: var(--grid-4);
+  margin-right: var(--grid-4);
+  box-shadow: var(--shadow-2);
 }
 
 .method-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
+  padding: var(--grid-3) 0;
   border-bottom: 1px solid #F0F0F0;
 }
 
@@ -206,7 +224,7 @@
 }
 
 .method-name {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: #202124;
   margin-left: 12px;
 }
@@ -217,31 +235,33 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: #FFFFFF;
-  padding: 12px 16px;
-  border-top: 1px solid #DADCE0;
+  background-color: rgba(255, 255, 255, 0.96);
+  padding: var(--grid-3) var(--grid-4);
+  border-top: 1px solid rgba(26, 115, 232, 0.16);
   display: flex;
   gap: 12px;
   height: 60px;
+  box-shadow: 0 -8px 22px rgba(26, 115, 232, 0.12);
 }
 
 .cancel-btn {
   flex: 1;
-  background-color: #FFFFFF;
-  color: #5F6368;
-  border: 1px solid #DADCE0;
-  border-radius: 8px;
-  font-size: 16px;
+  background-color: rgba(255, 255, 255, 0.96);
+  color: var(--text-secondary);
+  border: 1px solid rgba(95, 99, 104, 0.32);
+  border-radius: 10px;
+  font-size: var(--font-size-subtitle);
   font-weight: 500;
 }
 
 .confirm-btn {
   flex: 1;
-  background-color: #1A73E8;
+  background: linear-gradient(135deg, var(--primary-color) 0%, #4285f4 100%);
   color: #FFFFFF;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 10px;
+  font-size: var(--font-size-subtitle);
   font-weight: 500;
+  box-shadow: 0 8px 18px rgba(26, 115, 232, 0.22);
 }
 
 .cancel-btn::after,

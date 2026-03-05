@@ -29,8 +29,27 @@
       {{campDetail.title}}
     </view>
 
+    <!-- 快速导航 -->
+    <view class="quick-nav">
+      <view class="quick-nav-chip" data-target="section-basic" bindtap="onJumpSection">基本信息</view>
+      <view class="quick-nav-chip" data-target="section-requirements" bindtap="onJumpSection">申请条件</view>
+      <view class="quick-nav-chip" data-target="section-materials" bindtap="onJumpSection">所需材料</view>
+      <view class="quick-nav-chip" data-target="section-process" bindtap="onJumpSection">流程</view>
+      <view class="quick-nav-chip" data-target="section-changes" bindtap="onJumpSection">本次变更</view>
+      <view class="quick-nav-chip" data-target="section-contact" bindtap="onJumpSection">联系方式</view>
+      <view class="quick-nav-chip" data-target="section-source" bindtap="onJumpSection">来源与可信度</view>
+    </view>
+
+    <!-- 风险提示（轻量Tips） -->
+    <view class="inline-tips" wx:if="{{campDetail.riskHints && campDetail.riskHints.length > 0}}">
+      <text class="tips-badge">Tips</text>
+      <view class="tips-content">
+        <text class="tips-line" wx:for="{{campDetail.riskHints}}" wx:key="index">{{item.title}}：{{item.content}}</text>
+      </view>
+    </view>
+
     <!-- 基本信息 -->
-    <view class="section">
+    <view id="section-basic" class="section">
       <text class="section-title">基本信息</text>
       <view class="info-card">
         <view class="info-item">
@@ -53,29 +72,71 @@
     </view>
 
     <!-- 申请条件 -->
-    <view class="section" wx:if="{{campDetail.requirements}}">
+    <view id="section-requirements" class="section">
       <text class="section-title">申请条件</text>
       <view class="info-card">
-        <view class="requirement-item" wx:for="{{campDetail.requirements.other}}" wx:key="index">
-          <text class="requirement-text">{{item}}</text>
+        <view class="compare-summary {{campDetail.profileComparison.status}}">
+          <text class="compare-summary-label">与你的情况对比：{{campDetail.profileComparison.label}}</text>
+          <text class="compare-summary-desc">{{campDetail.profileComparison.description}}</text>
+          <view class="compare-summary-action" wx:if="{{!campDetail.profileComparison.hasProfile}}" bindtap="handleGoProfile">
+            去完善个人档案
+          </view>
         </view>
-        <view class="requirement-item">
-          <text class="requirement-text">学历要求: {{campDetail.requirements.education}}</text>
+
+        <view class="requirement-group" wx:if="{{campDetail.requirements.hardConstraints && campDetail.requirements.hardConstraints.length > 0}}">
+          <text class="requirement-group-title">硬性门槛</text>
+          <view class="requirement-item" wx:for="{{campDetail.requirements.hardConstraints}}" wx:key="index" wx:if="{{expandHardConstraints || index < 2}}">
+            <view class="requirement-item-header">
+              <text class="requirement-item-title">{{item.title}}</text>
+              <text class="requirement-match {{item.matchStatus}}">{{item.matchStatusLabel || '未知'}}</text>
+            </view>
+            <text class="requirement-text">{{item.content}}</text>
+            <view class="requirement-meta">
+              <text class="requirement-meta-text">原文描述：<text class="source-quote-mark">“</text><text class="source-highlight">{{item.sourceSnippet}}</text><text class="source-quote-mark">”</text></text>
+              <text class="requirement-meta-text" wx:if="{{item.matchReason}}">个人匹配信息：{{item.matchReason}}</text>
+            </view>
+          </view>
+          <view class="section-toggle" wx:if="{{campDetail.requirements.hardConstraints.length > 2}}" data-key="expandHardConstraints" bindtap="onToggleExpand">
+            {{expandHardConstraints ? '收起' : '展开更多'}}
+          </view>
         </view>
-        <view class="requirement-item">
-          <text class="requirement-text">GPA要求: {{campDetail.requirements.gpa}}</text>
+
+        <view class="requirement-group" wx:if="{{campDetail.requirements.softSuggestions && campDetail.requirements.softSuggestions.length > 0}}">
+          <text class="requirement-group-title">软性建议</text>
+          <view class="requirement-item soft" wx:for="{{campDetail.requirements.softSuggestions}}" wx:key="index" wx:if="{{expandSoftSuggestions || index < 2}}">
+            <text class="requirement-item-title">{{item.title}}</text>
+            <text class="requirement-text">{{item.content}}</text>
+            <view class="requirement-meta">
+              <text class="requirement-meta-text">原文描述：<text class="source-quote-mark">“</text><text class="source-highlight">{{item.sourceSnippet}}</text><text class="source-quote-mark">”</text></text>
+            </view>
+          </view>
+          <view class="section-toggle" wx:if="{{campDetail.requirements.softSuggestions.length > 2}}" data-key="expandSoftSuggestions" bindtap="onToggleExpand">
+            {{expandSoftSuggestions ? '收起' : '展开更多'}}
+          </view>
         </view>
-        <view class="requirement-item">
-          <text class="requirement-text">英语要求: {{campDetail.requirements.english}}</text>
+
+        <view class="requirement-group" wx:if="{{campDetail.requirements.uncertainItems && campDetail.requirements.uncertainItems.length > 0}}">
+          <text class="requirement-group-title">不确定项</text>
+          <view class="requirement-item uncertain" wx:for="{{campDetail.requirements.uncertainItems}}" wx:key="index" wx:if="{{expandUncertainItems || index < 2}}">
+            <text class="requirement-item-title">{{item.title}}</text>
+            <text class="requirement-text">{{item.content}}</text>
+            <view class="requirement-meta">
+              <text class="requirement-meta-text">原文描述：<text class="source-quote-mark">“</text><text class="source-highlight">{{item.sourceSnippet}}</text><text class="source-quote-mark">”</text></text>
+            </view>
+          </view>
+          <view class="section-toggle" wx:if="{{campDetail.requirements.uncertainItems.length > 2}}" data-key="expandUncertainItems" bindtap="onToggleExpand">
+            {{expandUncertainItems ? '收起' : '展开更多'}}
+          </view>
         </view>
-        <view class="requirement-item">
-          <text class="requirement-text">专业要求: {{campDetail.requirements.major}}</text>
+
+        <view class="requirement-empty" wx:if="{{(!campDetail.requirements.hardConstraints || campDetail.requirements.hardConstraints.length === 0) && (!campDetail.requirements.softSuggestions || campDetail.requirements.softSuggestions.length === 0) && (!campDetail.requirements.uncertainItems || campDetail.requirements.uncertainItems.length === 0)}}">
+          暂未提取到结构化申请条件，请优先查看原文链接
         </view>
       </view>
     </view>
 
     <!-- 所需材料 -->
-    <view class="section" wx:if="{{campDetail.materials && campDetail.materials.length > 0}}">
+    <view id="section-materials" class="section" wx:if="{{campDetail.materials && campDetail.materials.length > 0}}">
       <view class="section-header">
         <text class="section-title">所需材料</text>
         <button class="copy-btn" size="mini" bindtap="handleCopyMaterials">
@@ -83,33 +144,38 @@
         </button>
       </view>
       <view class="info-card materials-card">
-        <view class="material-item" wx:for="{{campDetail.materials}}" wx:key="index">
+        <view class="material-item {{item.isHighlighted ? 'highlighted' : ''}}" wx:for="{{campDetail.materials}}" wx:key="index" wx:if="{{expandMaterials || index < 4}}">
           <text class="material-title">{{item.title || item}}</text>
           <text class="material-desc" wx:if="{{item.detail}}">{{item.detail}}</text>
+          <text class="material-link-tip" wx:if="{{item.isHighlighted}}">{{item.highlightReason || '申请条件已提及该材料'}}</text>
+        </view>
+        <view class="section-toggle" wx:if="{{campDetail.materials.length > 4}}" data-key="expandMaterials" bindtap="onToggleExpand">
+          {{expandMaterials ? '收起' : '展开更多'}}
         </view>
       </view>
     </view>
 
     <!-- 夏令营流程 -->
-    <view class="section" wx:if="{{campDetail.process && campDetail.process.length > 0}}">
+    <view id="section-process" class="section" wx:if="{{campDetail.process && campDetail.process.length > 0}}">
       <text class="section-title">夏令营/预推免流程</text>
       <view class="info-card">
         <view class="timeline">
           <view class="timeline-item" wx:for="{{campDetail.process}}" wx:key="index">
             <view class="timeline-marker">
-              <view class="timeline-dot {{index === 0 ? 'active' : ''}}">{{index + 1}}</view>
+              <view class="timeline-dot {{item.stageStatus === 'current' || item.stageStatus === 'next' || item.stageStatus === 'done' ? 'active' : ''}}">{{index + 1}}</view>
               <view class="timeline-line" wx:if="{{index < campDetail.process.length - 1}}"></view>
             </view>
             <view class="timeline-content">
               <view class="timeline-header">
                 <text class="timeline-title">{{item.action}}</text>
-                <view class="timeline-status {{index === 0 ? 'current' : (index === 1 ? 'next' : 'pending')}}">
-                  {{index === 0 ? '当前' : (index === 1 ? '下一步' : '待开始')}}
+                <view class="timeline-status {{item.stageStatus || 'pending'}}">
+                  {{item.stageLabel || '待开始'}}
                 </view>
               </view>
               <text class="timeline-deadline" wx:if="{{item.deadline}}">
                 <text class="deadline-label">截止时间：</text>{{item.deadline}}
               </text>
+              <text class="timeline-note" wx:if="{{item.period}}">{{item.period}}</text>
               <text class="timeline-note" wx:if="{{item.note}}">{{item.note}}</text>
             </view>
           </view>
@@ -117,40 +183,86 @@
       </view>
     </view>
 
-    <!-- 联系方式 -->
-    <view class="section" wx:if="{{campDetail.contact}}">
-      <text class="section-title">联系方式</text>
+    <!-- 本次变更（前后对比） -->
+    <view id="section-changes" class="section" wx:if="{{campDetail.changeCompareCards && campDetail.changeCompareCards.length > 0}}">
+      <text class="section-title">本次变更（前后对比）</text>
       <view class="info-card">
-        <view class="contact-item">
-          <text class="label">邮箱</text>
-          <text class="value">{{campDetail.contact.email || '待定'}}</text>
+        <view class="change-card" wx:for="{{campDetail.changeCompareCards}}" wx:key="id" wx:if="{{expandChanges || index < 2}}">
+          <view class="change-header">
+            <text class="change-title">{{item.fieldLabel}}</text>
+            <text class="change-type">{{item.eventTypeLabel}}</text>
+          </view>
+          <view class="change-body">
+            <view class="change-col">
+              <text class="change-col-label">变更前</text>
+              <text class="change-col-value">{{item.beforeText}}</text>
+            </view>
+            <view class="change-col">
+              <text class="change-col-label">变更后</text>
+              <text class="change-col-value after">{{item.afterText}}</text>
+            </view>
+          </view>
+          <text class="change-meta">{{item.changedAtText}}</text>
         </view>
-        <view class="contact-item">
-          <text class="label">电话</text>
-          <text class="value">{{campDetail.contact.phone || '待定'}}</text>
-        </view>
-        <view class="contact-item">
-          <text class="label">地址</text>
-          <text class="value">{{campDetail.contact.address || '待定'}}</text>
+        <view class="section-toggle" wx:if="{{campDetail.changeCompareCards.length > 2}}" data-key="expandChanges" bindtap="onToggleExpand">
+          {{expandChanges ? '收起' : '展开更多'}}
         </view>
       </view>
     </view>
 
-    <!-- 原文链接 -->
-    <view class="section" wx:if="{{campDetail.sourceUrl}}">
-      <text class="section-title">原文链接</text>
+    <!-- 联系方式 -->
+    <view id="section-contact" class="section" wx:if="{{campDetail.contact && campDetail.contact.hasData}}">
+      <text class="section-title">联系方式</text>
       <view class="info-card">
-        <view class="source-link" bindtap="handleOpenSourceUrl">
-          <text class="link-text">{{campDetail.sourceUrl}}</text>
+        <view class="contact-item" wx:if="{{campDetail.contact.email}}">
+          <text class="label">邮箱</text>
+          <text class="value">{{campDetail.contact.email}}</text>
+        </view>
+        <view class="contact-item" wx:if="{{campDetail.contact.phone}}">
+          <text class="label">电话</text>
+          <text class="value">{{campDetail.contact.phone}}</text>
+        </view>
+        <view class="contact-item" wx:if="{{campDetail.contact.address}}">
+          <text class="label">地址</text>
+          <text class="value">{{campDetail.contact.address}}</text>
+        </view>
+        <view class="contact-item" wx:for="{{campDetail.contact.other}}" wx:key="index">
+          <text class="label">其他</text>
+          <text class="value">{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 信息来源与可信度 -->
+    <view id="section-source" class="section" wx:if="{{campDetail.transparencyMeta}}">
+      <text class="section-title">信息来源与可信度</text>
+      <view class="info-card">
+        <view class="source-link" bindtap="handleOpenSourceUrl" wx:if="{{campDetail.transparencyMeta.sourceUrl}}">
+          <text class="link-text">{{campDetail.transparencyMeta.sourceUrl}}</text>
           <text class="link-arrow">→</text>
+        </view>
+        <view class="transparency-item">
+          <text class="label">抓取时间</text>
+          <text class="value">{{campDetail.transparencyMeta.crawledAtText}}</text>
+        </view>
+        <view class="transparency-item">
+          <text class="label">最近更新</text>
+          <text class="value">{{campDetail.transparencyMeta.updatedAtText}}</text>
+        </view>
+        <view class="transparency-item">
+          <text class="label">信息置信度</text>
+          <text class="value">{{campDetail.transparencyMeta.confidenceLabel}}</text>
         </view>
       </view>
     </view>
 
     <!-- 底部操作区 -->
     <view class="bottom-action">
-      <button class="progress-btn" bindtap="handleAddToProgress">
-        {{campDetail.hasProgress ? '已关注' : '加入关注'}}
+      <button
+        class="progress-btn {{campDetail.hasProgress ? 'danger' : ''}}"
+        bindtap="handleToggleProgress"
+      >
+        {{campDetail.hasProgress ? '取消关注' : '加入关注'}}
       </button>
       <button class="remind-btn" bindtap="handleSetReminder">
         {{campDetail.hasReminder ? '已设置提醒' : '设置提醒'}}

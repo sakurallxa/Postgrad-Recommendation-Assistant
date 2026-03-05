@@ -2,7 +2,7 @@
 
 .container {
   padding: var(--spacing-lg);
-  background-color: var(--background-light);
+  background-color: var(--surface-page);
   min-height: 100vh;
 }
 
@@ -12,6 +12,11 @@
   align-items: center;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-lg);
+  background: var(--surface-card-bg-soft);
+  border: 1px solid rgba(26, 115, 232, 0.12);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-sm);
+  box-shadow: var(--shadow-1);
 }
 
 .filter-scroll {
@@ -29,13 +34,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
   padding: var(--spacing-xs) var(--spacing-md);
   margin-right: var(--spacing-sm);
   border-radius: var(--border-radius-full);
-  background-color: var(--background-white);
-  border: 1px solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(95, 99, 104, 0.24);
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -44,21 +49,92 @@
 .filter-item.active {
   color: var(--primary-color);
   border-color: var(--primary-color);
-  background-color: var(--primary-light);
+  background-color: var(--surface-chip-bg);
+  font-weight: 600;
 }
 
 .filter-btn {
-  font-size: 13px;
+  font-size: var(--font-size-note);
   color: var(--primary-color);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: var(--spacing-xs) var(--spacing-md);
   border-radius: var(--border-radius-full);
-  background-color: var(--background-white);
+  background-color: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--primary-color);
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.filter-btn:active {
+  opacity: 0.8;
+}
+
+.mode-title-bar {
+  margin-bottom: var(--spacing-md);
+  background: var(--surface-card-bg-soft);
+  border: 1px solid rgba(26, 115, 232, 0.12);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-1);
+}
+
+.mode-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.mode-title {
+  color: var(--text-primary);
+  font-size: var(--font-size-title-sm);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.mode-subtitle {
+  color: var(--text-secondary);
+  font-size: var(--font-size-note);
+  line-height: 1.5;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
+  background: #fff;
+  border: 1px solid rgba(26, 115, 232, 0.16);
+  border-radius: var(--border-radius-lg);
+  padding: 0 var(--spacing-md);
+  min-height: 76rpx;
+  box-shadow: var(--shadow-1);
+}
+
+.search-icon {
+  font-size: 26rpx;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 64rpx;
+  line-height: 64rpx;
+  font-size: var(--font-size-body);
+  color: var(--text-primary);
+}
+
+.search-placeholder {
+  color: var(--text-tertiary);
+}
+
+.search-hint {
+  display: block;
+  color: var(--text-secondary);
+  font-size: var(--font-size-note);
+  margin: calc(var(--spacing-sm) * -1) 0 var(--spacing-md);
 }
 
 /* 夏令营列表 */
@@ -72,7 +148,7 @@
   justify-content: center;
   padding: var(--spacing-lg);
   color: var(--text-tertiary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .loading-text {
@@ -83,7 +159,7 @@
   text-align: center;
   padding: var(--spacing-lg);
   color: var(--text-tertiary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 /* 响应式设计 */

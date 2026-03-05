@@ -1,11 +1,36 @@
 // 夏令营详情页
 import { campService } from '../../../services/camp'
 import { progressService } from '../../../services/progress'
-import { normalizeAnnouncementType } from '../../../services/announcement'
+import { normalizeAnnouncementType, ANNOUNCEMENT_TYPES } from '../../../services/announcement'
+
+const PROGRESS_STATUS_LABELS = {
+  followed: '已关注',
+  preparing: '准备材料中',
+  submitted: '已提交',
+  waiting_admission: '待入营名单',
+  admitted: '已入营',
+  waiting_outstanding: '待优秀营员结果',
+  outstanding_published: '优秀营员已发布'
+}
+
+const PROCESS_PHASE_BY_PROGRESS_STATUS = {
+  followed: ['register', 'material'],
+  preparing: ['material', 'register'],
+  submitted: ['review', 'activity', 'result_admission'],
+  waiting_admission: ['result_admission'],
+  admitted: ['outstanding', 'result_admission'],
+  waiting_outstanding: ['outstanding', 'result_admission'],
+  outstanding_published: ['outstanding', 'result_admission']
+}
+const REMINDER_REFRESH_TOKEN_KEY = 'myRemindersRefreshToken'
+const PROGRESS_FOLLOW_REFRESH_TOKEN_KEY = 'progressFollowRefreshToken'
 
 Page({
   data: {
     campId: '',
+    entryAnnouncementType: '',
+    debugEnabled: false,
+    debugTraceId: '',
     campDetail: {
       id: '',
       universityId: '',
@@ -20,28 +45,79 @@ Page({
       startDate: '',
       endDate: '',
       location: '',
-      requirements: {},
+      requirements: {
+        hardConstraints: [],
+        softSuggestions: [],
+        uncertainItems: [],
+        linkedMaterialTitles: [],
+        profileComparison: null
+      },
       materials: [],
       process: [],
-      contact: {},
+      contact: null,
+      progressChangeEvents: [],
+      changeCompareCards: [],
+      riskHints: [],
+      transparencyMeta: null,
+      profileComparison: {
+        hasProfile: false,
+        status: 'unknown',
+        label: '未知',
+        description: '未检测到已填写档案，无法自动判断是否满足申请条件',
+        counts: { satisfied: 0, pending: 0, unknown: 0 }
+      },
+      latestExtraction: null,
+      lastCrawledAt: '',
       status: '',
+      progressStatus: '',
+      progressStatusLabel: '',
+      progressId: '',
       hasReminder: false,
       hasProgress: false
     },
     loading: true,
-    showCopySuccess: false
+    showCopySuccess: false,
+    lastProgressFollowRefreshToken: 0,
+    expandHardConstraints: false,
+    expandSoftSuggestions: false,
+    expandUncertainItems: false,
+    expandMaterials: false,
+    expandChanges: false
   },
 
   onLoad(options) {
     if (options.id) {
-      this.setData({ campId: options.id });
+      const entryAnnouncementType = this.resolveEntryAnnouncementType(options)
+      const debugEnabled = this.isDevelopEnv()
+      const debugTraceId = `${Date.now()}_${options.id}`
+      this._debugEnabled = debugEnabled
+      this._debugTraceId = debugTraceId
+      this.setData({
+        campId: options.id,
+        entryAnnouncementType,
+        debugEnabled,
+        debugTraceId,
+        lastProgressFollowRefreshToken: Number(
+          wx.getStorageSync(PROGRESS_FOLLOW_REFRESH_TOKEN_KEY) || 0
+        )
+      });
+      this.debugLog('onLoad', {
+        traceId: debugTraceId,
+        options,
+        resolvedEntryAnnouncementType: entryAnnouncementType
+      })
       this.loadCampDetail();
     }
   },
 
+  onShow() {
+    this.refreshProfileComparison()
+    this.syncFollowStateOnShow()
+  },
+
   async loadCampDetail() {
     // 加载夏令营详情
-    this.setData({ loading: true });
+    this.setData({ loading: true })
 
     try {
       if (this.shouldUseRemoteCampApi()) {
@@ -49,10 +125,19 @@ Page({
           showLoading: false,
           showError: false
         })
-        const normalized = this.normalizeCampDetail(detail)
+        this.debugLog('detail:remote:raw', this.buildTypeSnapshot(detail))
+        const normalized = this.applyEntryAnnouncementType(this.normalizeCampDetail(detail))
+        this.debugLog('detail:remote:final', this.buildTypeSnapshot(normalized))
+        this.assertAnnouncementTypeConsistency('remote', detail, normalized)
+        const detailWithProgress = await this.withProgressFlag(normalized)
         this.setData({
-          campDetail: this.withProgressFlag(normalized),
-          loading: false
+          campDetail: detailWithProgress,
+          loading: false,
+          expandHardConstraints: false,
+          expandSoftSuggestions: false,
+          expandUncertainItems: false,
+          expandMaterials: false,
+          expandChanges: false
         })
         return
       }
@@ -61,21 +146,44 @@ Page({
     }
 
     const mockDetail = this.getMockDetail()
+    this.debugLog('detail:mock:raw', this.buildTypeSnapshot(mockDetail))
+    const normalizedMock = this.applyEntryAnnouncementType(this.normalizeCampDetail(mockDetail))
+    this.debugLog('detail:mock:final', this.buildTypeSnapshot(normalizedMock))
+    this.assertAnnouncementTypeConsistency('mock', mockDetail, normalizedMock)
+    const mockWithProgress = await this.withProgressFlag(normalizedMock)
     this.setData({
-      campDetail: this.withProgressFlag(mockDetail),
-      loading: false
+      campDetail: mockWithProgress,
+      loading: false,
+      expandHardConstraints: false,
+      expandSoftSuggestions: false,
+      expandUncertainItems: false,
+      expandMaterials: false,
+      expandChanges: false
     })
   },
 
-  withProgressFlag(detail) {
+  async withProgressFlag(detail) {
     const list = wx.getStorageSync('progressFallbackList') || []
     const reminderCampIds = wx.getStorageSync('reminderCampIds') || []
-    const exists = list.some(item => item.campId === detail.id)
+    const exists = list.some(item => String(item.campId) === String(detail.id))
     const hasReminder = reminderCampIds.includes(detail.id)
+    const progressState = await this.resolveProgressState(detail.id)
+    const timeline = this.decorateProcessTimeline(
+      detail.process,
+      {
+        ...detail,
+        progressStatus: progressState.status || ''
+      }
+    )
+
     return {
       ...detail,
-      hasProgress: detail.hasProgress || exists,
-      hasReminder: detail.hasReminder || hasReminder
+      hasProgress: Boolean(detail.hasProgress || exists || progressState.status),
+      hasReminder: detail.hasReminder || hasReminder,
+      progressId: progressState.progressId || detail.progressId || '',
+      progressStatus: progressState.status || '',
+      progressStatusLabel: progressState.statusLabel || '',
+      process: timeline
     }
   },
 
@@ -86,11 +194,1043 @@ Page({
       universityName: detail.universityName || detail.university?.name || '',
       universityLogo: detail.universityLogo || detail.university?.logo || '',
     })
+    normalized.publishDate = this.normalizeDisplayDate(normalized.publishDate)
+    normalized.deadline = this.normalizeDisplayDate(normalized.deadline)
+    normalized.startDate = this.normalizeDisplayDate(normalized.startDate)
+    normalized.endDate = this.normalizeDisplayDate(normalized.endDate)
     if (!normalized.universityLogo) {
       normalized.universityLogo = this.getUniversityLogo(normalized.universityId, normalized.universityName)
     }
-    normalized.materials = this.enrichMaterials(normalized.materials || [])
+    normalized.requirements = this.normalizeRequirements(normalized.requirements, normalized.confidence)
+    normalized.materials = this.enrichMaterials(
+      this.normalizeMaterials(normalized.materials),
+      normalized.requirements?.linkedMaterialTitles || []
+    )
+    normalized.process = this.normalizeProcess(normalized.process, normalized)
+    normalized.contact = this.normalizeContact(normalized.contact)
+    normalized.changeCompareCards = this.normalizeChangeCompareCards(normalized.progressChangeEvents || [])
+    normalized.riskHints = this.buildRiskHints(normalized)
+    normalized.profileComparison = normalized.requirements?.profileComparison || this.buildProfileComparison([], null)
+    normalized.transparencyMeta = this.buildTransparencyMeta(normalized)
     return normalized
+  },
+
+  normalizeEntryAnnouncementType(rawType) {
+    if (!rawType) return ''
+    const value = String(rawType).trim().toLowerCase().replace(/-/g, '_')
+    if (value === ANNOUNCEMENT_TYPES.PRE_RECOMMENDATION || value === ANNOUNCEMENT_TYPES.SUMMER_CAMP) {
+      return value
+    }
+    if (/预推免|推免/.test(value)) {
+      return ANNOUNCEMENT_TYPES.PRE_RECOMMENDATION
+    }
+    if (/summer|夏令营|暑期/.test(value)) {
+      return ANNOUNCEMENT_TYPES.SUMMER_CAMP
+    }
+    return ''
+  },
+
+  resolveEntryAnnouncementType(options = {}) {
+    const rawType = this.safeDecodeQueryValue(options.announcementType || '')
+    const fromRawType = this.normalizeEntryAnnouncementType(rawType)
+    if (fromRawType) {
+      return fromRawType
+    }
+
+    const title = this.safeDecodeQueryValue(options.title || options.campTitle || '')
+    return this.normalizeEntryAnnouncementType(title)
+  },
+
+  safeDecodeQueryValue(value) {
+    if (typeof value !== 'string' || !value) {
+      return ''
+    }
+    try {
+      return decodeURIComponent(value)
+    } catch (error) {
+      return value
+    }
+  },
+
+  applyEntryAnnouncementType(detail) {
+    if (!detail || typeof detail !== 'object') {
+      return detail
+    }
+
+    const normalizedDetail = normalizeAnnouncementType(detail)
+    const entryAnnouncementType = this.data.entryAnnouncementType
+    if (!entryAnnouncementType || normalizedDetail.announcementType === entryAnnouncementType) {
+      return normalizedDetail
+    }
+
+    const normalized = normalizeAnnouncementType({
+      ...normalizedDetail,
+      announcementType: entryAnnouncementType
+    })
+    return {
+      ...normalizedDetail,
+      announcementType: normalized.announcementType,
+      announcementTypeLabel: normalized.announcementTypeLabel
+    }
+  },
+
+  isDevelopEnv() {
+    try {
+      const accountInfo = wx.getAccountInfoSync()
+      return accountInfo?.miniProgram?.envVersion === 'develop'
+    } catch (error) {
+      return false
+    }
+  },
+
+  debugLog(step, payload = {}) {
+    const enabled = this._debugEnabled || this.data.debugEnabled
+    if (!enabled) {
+      return
+    }
+    const traceId = this._debugTraceId || this.data.debugTraceId || 'no-trace-id'
+    console.log(`[camp-detail-debug][${traceId}][${step}]`, payload)
+  },
+
+  buildTypeSnapshot(source = {}) {
+    if (!source || typeof source !== 'object') {
+      return {
+        entryAnnouncementType: this.data.entryAnnouncementType || '',
+        rawAnnouncementType: '',
+        rawAnnouncementTypeAlias: '',
+        announcementTypeLabel: '',
+        title: ''
+      }
+    }
+
+    return {
+      entryAnnouncementType: this.data.entryAnnouncementType || '',
+      rawAnnouncementType: source.announcementType || '',
+      rawAnnouncementTypeAlias: source.announcement_type || source.type || source.noticeType || '',
+      announcementTypeLabel: source.announcementTypeLabel || source.announcement_type_label || '',
+      title: source.title || ''
+    }
+  },
+
+  assertAnnouncementTypeConsistency(path, rawDetail, finalDetail) {
+    const enabled = this._debugEnabled || this.data.debugEnabled
+    if (!enabled) {
+      return
+    }
+
+    const entryType = this.data.entryAnnouncementType || ''
+    const rawType = this.normalizeEntryAnnouncementType(
+      rawDetail?.announcementType ||
+      rawDetail?.announcement_type ||
+      rawDetail?.type ||
+      rawDetail?.noticeType ||
+      rawDetail?.title ||
+      ''
+    )
+    const finalType = finalDetail?.announcementType || ''
+    const isConsistent = !entryType || entryType === finalType
+
+    if (!isConsistent) {
+      console.error('[camp-detail-debug][assert-failed]', {
+        traceId: this._debugTraceId || this.data.debugTraceId || '',
+        path,
+        entryType,
+        rawType,
+        finalType,
+        rawTitle: rawDetail?.title || '',
+        finalTitle: finalDetail?.title || ''
+      })
+      return
+    }
+
+    this.debugLog('assert-pass', {
+      path,
+      entryType,
+      rawType,
+      finalType
+    })
+  },
+
+  async resolveProgressState(campId) {
+    const fallback = this.getProgressStatusFromFallback(campId)
+
+    if (!this.shouldUseRemoteProgressApi()) {
+      return fallback
+    }
+
+    try {
+      const remote = await this.getProgressStatusFromRemote(campId)
+      if (remote.status) {
+        return remote
+      }
+    } catch (error) {
+      // 远端失败回落到本地
+    }
+
+    return fallback
+  },
+
+  async getProgressStatusFromRemote(campId) {
+    const result = await progressService.getProgressList({ page: 1, limit: 200, status: 'all' }, {
+      showLoading: false,
+      showError: false
+    })
+    const list = Array.isArray(result?.data) ? result.data : []
+    const matched = list.find(item => {
+      const remoteCampId = item?.camp?.id || item?.campId || ''
+      return String(remoteCampId) === String(campId)
+    })
+
+    if (!matched?.status) {
+      return { progressId: '', status: '', statusLabel: '' }
+    }
+
+    return {
+      progressId: matched.id || '',
+      status: matched.status,
+      statusLabel: PROGRESS_STATUS_LABELS[matched.status] || matched.status
+    }
+  },
+
+  getProgressStatusFromFallback(campId) {
+    const fallbackList = wx.getStorageSync('progressFallbackList') || []
+    const matched = fallbackList.find(item => String(item.campId) === String(campId))
+    if (!matched?.status) {
+      return { progressId: '', status: '', statusLabel: '' }
+    }
+
+    return {
+      progressId: matched.id || '',
+      status: matched.status,
+      statusLabel: PROGRESS_STATUS_LABELS[matched.status] || matched.statusText || matched.status
+    }
+  },
+
+  normalizeStructuredData(value, fallback) {
+    if (value === null || value === undefined) {
+      return fallback
+    }
+
+    if (typeof value !== 'string') {
+      return value
+    }
+
+    const trimmed = value.trim()
+    if (!trimmed) {
+      return fallback
+    }
+
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        return JSON.parse(trimmed)
+      } catch (error) {
+        return fallback
+      }
+    }
+
+    return value
+  },
+
+  normalizeRequirements(rawRequirements, defaultConfidence = 0.76) {
+    const source = this.normalizeStructuredData(rawRequirements, null)
+    const profile = this.getStudentProfile()
+    const fallbackConfidence = this.normalizeConfidence(defaultConfidence)
+
+    if (!source) {
+      return {
+        hardConstraints: [],
+        softSuggestions: [],
+        uncertainItems: [],
+        linkedMaterialTitles: [],
+        profileComparison: this.buildProfileComparison([], profile)
+      }
+    }
+
+    const hardConstraints = []
+    const softSuggestions = []
+    const uncertainItems = []
+    const pushEntry = (bucket, entry) => {
+      if (!entry || !entry.content) return
+      bucket.push(entry)
+    }
+
+    if (Array.isArray(source)) {
+      source.forEach((item, index) => {
+        const entry = this.normalizeRequirementEntry(item, {
+          fallbackTitle: `条件${index + 1}`,
+          fallbackSource: 'rule',
+          fallbackConfidence
+        })
+        this.pushRequirementByText(entry, hardConstraints, softSuggestions, uncertainItems)
+      })
+    } else if (typeof source !== 'object') {
+      const entry = this.normalizeRequirementEntry(source, {
+        fallbackTitle: '申请条件',
+        fallbackSource: 'rule',
+        fallbackConfidence
+      })
+      this.pushRequirementByText(entry, hardConstraints, softSuggestions, uncertainItems)
+    } else {
+      const explicitHard = this.normalizeRequirementBucket(source.hardConstraints || source.hard_constraints, {
+        bucketLabel: '硬性门槛',
+        fallbackSource: source.source || source.extractionSource || 'rule',
+        fallbackConfidence: this.normalizeConfidence(source.confidence || fallbackConfidence)
+      })
+      const explicitSoft = this.normalizeRequirementBucket(source.softSuggestions || source.soft_suggestions, {
+        bucketLabel: '软性建议',
+        fallbackSource: source.source || source.extractionSource || 'rule',
+        fallbackConfidence: this.normalizeConfidence(source.confidence || fallbackConfidence)
+      })
+      const explicitUncertain = this.normalizeRequirementBucket(source.uncertainItems || source.uncertain_items, {
+        bucketLabel: '不确定项',
+        fallbackSource: source.source || source.extractionSource || 'rule',
+        fallbackConfidence: this.normalizeConfidence(source.confidence || fallbackConfidence)
+      })
+
+      if (explicitHard.length > 0 || explicitSoft.length > 0 || explicitUncertain.length > 0) {
+        explicitHard.forEach(entry => pushEntry(hardConstraints, entry))
+        explicitSoft.forEach(entry => pushEntry(softSuggestions, entry))
+        explicitUncertain.forEach(entry => pushEntry(uncertainItems, entry))
+      } else {
+        const usedKeys = new Set()
+        const appendByKeys = (keys = [], title = '') => {
+          for (const key of keys) {
+            const value = source[key]
+            const text = this.toDisplayText(value)
+            if (!text) continue
+            const entry = this.normalizeRequirementEntry({
+              title: title || key,
+              content: text,
+              sourceSnippet: `${title || key}: ${text}`,
+              source: 'rule',
+              confidence: fallbackConfidence
+            }, {
+              fallbackTitle: title || key,
+              fallbackSource: 'rule',
+              fallbackConfidence
+            })
+            pushEntry(hardConstraints, entry)
+            usedKeys.add(key)
+            return
+          }
+        }
+
+        appendByKeys(['education', 'degree', '学历要求'], '学历要求')
+        appendByKeys(['gpa', 'gradeRank', 'grade_rank', 'rank', '成绩要求'], '成绩要求')
+        appendByKeys(['english', '英语要求'], '英语要求')
+        appendByKeys(['major', 'majorRequirement', '专业要求'], '专业要求')
+
+        const sourceOther = source.other
+        if (Array.isArray(sourceOther)) {
+          sourceOther.forEach((item, index) => {
+            const entry = this.normalizeRequirementEntry(item, {
+              fallbackTitle: `补充说明${index + 1}`,
+              fallbackSource: 'rule',
+              fallbackConfidence
+            })
+            this.pushRequirementByText(entry, hardConstraints, softSuggestions, uncertainItems)
+          })
+          usedKeys.add('other')
+        } else {
+          const otherText = this.toDisplayText(sourceOther)
+          if (otherText) {
+            const entry = this.normalizeRequirementEntry({
+              title: '补充说明',
+              content: otherText
+            }, {
+              fallbackTitle: '补充说明',
+              fallbackSource: 'rule',
+              fallbackConfidence
+            })
+            this.pushRequirementByText(entry, hardConstraints, softSuggestions, uncertainItems)
+            usedKeys.add('other')
+          }
+        }
+
+        Object.keys(source).forEach(key => {
+          if (usedKeys.has(key)) return
+          if (['source', 'extractionSource', 'confidence'].indexOf(key) > -1) return
+          const text = this.toDisplayText(source[key])
+          if (!text) return
+          const entry = this.normalizeRequirementEntry({
+            title: key,
+            content: text,
+            source: 'rule',
+            confidence: fallbackConfidence
+          }, {
+            fallbackTitle: key,
+            fallbackSource: 'rule',
+            fallbackConfidence
+          })
+          this.pushRequirementByText(entry, hardConstraints, softSuggestions, uncertainItems)
+        })
+      }
+    }
+
+    const allEntries = []
+      .concat(hardConstraints)
+      .concat(softSuggestions)
+      .concat(uncertainItems)
+
+    const linkedMaterialTitles = this.collectLinkedMaterialTitles(allEntries)
+    const comparedHardConstraints = hardConstraints.map(item => {
+      const compare = this.compareRequirementWithProfile(item, profile)
+      return {
+        ...item,
+        matchStatus: compare.status,
+        matchStatusLabel: compare.label,
+        matchReason: compare.reason || ''
+      }
+    })
+
+    return {
+      hardConstraints: comparedHardConstraints,
+      softSuggestions,
+      uncertainItems,
+      linkedMaterialTitles,
+      profileComparison: this.buildProfileComparison(comparedHardConstraints, profile)
+    }
+  },
+
+  normalizeRequirementBucket(value, options = {}) {
+    const source = this.normalizeStructuredData(value, [])
+    if (!source) return []
+    const list = Array.isArray(source) ? source : [source]
+    return list
+      .map((item, index) => this.normalizeRequirementEntry(item, {
+        fallbackTitle: `${options.bucketLabel || '条件'}${index + 1}`,
+        fallbackSource: options.fallbackSource || 'rule',
+        fallbackConfidence: this.normalizeConfidence(options.fallbackConfidence)
+      }))
+      .filter(item => item && item.content)
+  },
+
+  normalizeRequirementEntry(rawEntry, options = {}) {
+    const fallbackTitle = options.fallbackTitle || '申请条件'
+    const fallbackSource = options.fallbackSource || 'rule'
+    const fallbackConfidence = this.normalizeConfidence(options.fallbackConfidence)
+
+    if (typeof rawEntry === 'string') {
+      const content = rawEntry.trim()
+      if (!content) return null
+      return {
+        title: fallbackTitle,
+        content,
+        sourceSnippet: content,
+        extractionSource: fallbackSource,
+        confidence: fallbackConfidence,
+        linkedMaterials: this.extractLinkedMaterialsFromText(content)
+      }
+    }
+
+    if (rawEntry === null || rawEntry === undefined) {
+      return null
+    }
+
+    if (typeof rawEntry !== 'object') {
+      const content = this.toDisplayText(rawEntry)
+      if (!content) return null
+      return {
+        title: fallbackTitle,
+        content,
+        sourceSnippet: content,
+        extractionSource: fallbackSource,
+        confidence: fallbackConfidence,
+        linkedMaterials: this.extractLinkedMaterialsFromText(content)
+      }
+    }
+
+    const title = this.pickFirstText(rawEntry, ['title', 'name', 'field', 'label']) || fallbackTitle
+    const content = this.pickFirstText(rawEntry, ['content', 'value', 'text', 'requirement']) || ''
+    if (!content) {
+      return null
+    }
+    const sourceSnippet = this.pickFirstText(rawEntry, ['sourceSnippet', 'source_snippet', 'snippet']) || `${title}: ${content}`
+    const extractionSource = this.pickFirstText(rawEntry, ['source', 'extractionSource', 'extractor']) || fallbackSource
+    const confidence = this.normalizeConfidence(rawEntry.confidence || rawEntry.score || fallbackConfidence)
+    const linkedMaterials = this.normalizeMaterialRefs(rawEntry.materialRefs || rawEntry.materials || []).concat(
+      this.extractLinkedMaterialsFromText(`${title} ${content}`)
+    )
+
+    return {
+      title,
+      content,
+      sourceSnippet,
+      extractionSource,
+      confidence,
+      linkedMaterials: this.uniqueStrings(linkedMaterials)
+    }
+  },
+
+  normalizeMaterialRefs(value) {
+    if (!value) return []
+    const list = Array.isArray(value) ? value : [value]
+    return list
+      .map(item => this.toDisplayText(item))
+      .filter(Boolean)
+  },
+
+  pushRequirementByText(entry, hardConstraints, softSuggestions, uncertainItems) {
+    if (!entry || !entry.content) return
+    const text = `${entry.title} ${entry.content}`.toLowerCase()
+    if (/待定|另行通知|以官网为准|择优|视情况|可能/.test(text)) {
+      uncertainItems.push(entry)
+      return
+    }
+    if (/优先|建议|加分|鼓励|推荐/.test(text)) {
+      softSuggestions.push(entry)
+      return
+    }
+    hardConstraints.push(entry)
+  },
+
+  extractLinkedMaterialsFromText(text = '') {
+    const source = String(text || '')
+    if (!source) return []
+    const dictionary = [
+      { name: '个人简历', patterns: ['简历', 'cv'] },
+      { name: '成绩单', patterns: ['成绩单', '成绩证明'] },
+      { name: '英语成绩证明', patterns: ['英语', 'cet', '六级', '雅思', '托福'] },
+      { name: '推荐信', patterns: ['推荐信', '推荐函'] },
+      { name: '个人陈述', patterns: ['个人陈述', '自述', 'ps'] },
+      { name: '研究计划', patterns: ['研究计划', '计划书', 'proposal'] },
+      { name: '获奖证书', patterns: ['获奖', '证书', '奖项'] }
+    ]
+    const matched = []
+    dictionary.forEach(entry => {
+      if (entry.patterns.some(pattern => source.toLowerCase().indexOf(pattern.toLowerCase()) > -1)) {
+        matched.push(entry.name)
+      }
+    })
+    return this.uniqueStrings(matched)
+  },
+
+  collectLinkedMaterialTitles(entries = []) {
+    const titles = []
+    entries.forEach((entry) => {
+      const current = Array.isArray(entry?.linkedMaterials) ? entry.linkedMaterials : []
+      current.forEach(name => {
+        const text = this.toDisplayText(name)
+        if (text) {
+          titles.push(text)
+        }
+      })
+    })
+    return this.uniqueStrings(titles)
+  },
+
+  buildProfileComparison(hardConstraints = [], profile = null) {
+    if (!profile) {
+      return {
+        hasProfile: false,
+        status: 'unknown',
+        label: '未知',
+        description: '未检测到已填写档案，无法自动判断是否满足申请条件',
+        counts: { satisfied: 0, pending: 0, unknown: hardConstraints.length }
+      }
+    }
+
+    const counts = { satisfied: 0, pending: 0, unknown: 0 }
+    hardConstraints.forEach(item => {
+      const status = item?.matchStatus || 'unknown'
+      if (status === 'satisfied') counts.satisfied += 1
+      else if (status === 'pending') counts.pending += 1
+      else counts.unknown += 1
+    })
+
+    let status = 'unknown'
+    let label = '未知'
+    let description = '当前档案与申请条件匹配信息不足，建议手动核对官网原文'
+
+    if (counts.pending > 0) {
+      status = 'pending'
+      label = '待补充'
+      description = `发现 ${counts.pending} 条硬性门槛待补充，建议优先完善后再申请`
+    } else if (hardConstraints.length > 0 && counts.satisfied === hardConstraints.length) {
+      status = 'satisfied'
+      label = '已满足申请条件'
+      description = '已识别到的硬性门槛均满足，建议继续核对材料与流程节点'
+    }
+
+    return { hasProfile: true, status, label, description, counts }
+  },
+
+  compareRequirementWithProfile(item, rawProfile) {
+    const profile = this.normalizeStudentProfile(rawProfile)
+    if (!profile) {
+      return { status: 'unknown', label: '未知', reason: '未填写档案' }
+    }
+
+    const content = `${item?.title || ''} ${item?.content || ''}`.toLowerCase()
+    if (!content) {
+      return { status: 'unknown', label: '未知', reason: '' }
+    }
+
+    if (/英语|cet|雅思|托福|六级/.test(content)) {
+      const threshold = this.extractEnglishThreshold(content)
+      const candidate = this.extractProfileEnglishScore(profile)
+      if (!candidate || !threshold) {
+        return { status: 'unknown', label: '未知', reason: '缺少可比对的英语分数信息' }
+      }
+      if (candidate >= threshold) {
+        return { status: 'satisfied', label: '已满足', reason: `当前英语分数 ${candidate}，门槛 ${threshold}` }
+      }
+      return { status: 'pending', label: '待补充', reason: `当前英语分数 ${candidate}，低于门槛 ${threshold}` }
+    }
+
+    if (/前\d+%|top\s?\d+%|排名|gpa|成绩/.test(content)) {
+      const threshold = this.extractRankThreshold(content)
+      const rankPercent = this.extractProfileRankPercent(profile)
+      if (threshold === null || rankPercent === null) {
+        return { status: 'unknown', label: '未知', reason: '缺少可比对的成绩排名信息' }
+      }
+      if (rankPercent <= threshold) {
+        return { status: 'satisfied', label: '已满足', reason: `当前排名前 ${rankPercent}% ，门槛前 ${threshold}%` }
+      }
+      return { status: 'pending', label: '待补充', reason: `当前排名前 ${rankPercent}% ，门槛前 ${threshold}%` }
+    }
+
+    if (/本科|学历|学位/.test(content)) {
+      const degree = profile.education || ''
+      if (!degree) {
+        return { status: 'unknown', label: '未知', reason: '缺少学历档案信息' }
+      }
+      if (content.indexOf('本科') > -1 && degree.indexOf('本科') > -1) {
+        return { status: 'satisfied', label: '已满足', reason: `学历为${degree}` }
+      }
+      return { status: 'unknown', label: '未知', reason: '需手动核对学历要求' }
+    }
+
+    if (/专业/.test(content)) {
+      const major = (profile.major || '').toLowerCase()
+      if (!major) {
+        return { status: 'unknown', label: '未知', reason: '缺少专业档案信息' }
+      }
+      if (content.indexOf(major) > -1) {
+        return { status: 'satisfied', label: '已满足', reason: `专业匹配：${profile.major}` }
+      }
+      return { status: 'unknown', label: '未知', reason: '专业匹配存在歧义，建议人工核对' }
+    }
+
+    return { status: 'unknown', label: '未知', reason: '暂不支持自动判断该条门槛' }
+  },
+
+  normalizeStudentProfile(profile) {
+    if (!profile || typeof profile !== 'object') {
+      return null
+    }
+    const normalized = {
+      education: this.toDisplayText(profile.education || profile.degree || profile.educationLevel),
+      major: this.toDisplayText(profile.major || profile.majorName),
+      englishScore: Number(profile.englishScore || profile.cet6 || profile.english || 0),
+      rankPercent: Number(profile.rankPercent || profile.gradeRankPercent || profile.rank || 0)
+    }
+    if (!normalized.education && !normalized.major && !normalized.englishScore && !normalized.rankPercent) {
+      return null
+    }
+    return normalized
+  },
+
+  getStudentProfile() {
+    const candidates = [
+      wx.getStorageSync('baoyanStudentProfile'),
+      wx.getStorageSync('studentProfile'),
+      wx.getStorageSync('userProfile')
+    ]
+    for (const value of candidates) {
+      if (!value) continue
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value)
+          if (parsed && typeof parsed === 'object') {
+            return parsed
+          }
+        } catch (error) {
+          // ignore
+        }
+      } else if (typeof value === 'object') {
+        return value
+      }
+    }
+    return null
+  },
+
+  extractEnglishThreshold(content = '') {
+    const normalized = String(content || '').toLowerCase()
+    const explicit = normalized.match(/(?:cet[-\s]?6|六级)[^\d]{0,6}(\d{3})/)
+    if (explicit && explicit[1]) {
+      return Number(explicit[1])
+    }
+    const generic = normalized.match(/(\d{3})\s*分/)
+    if (generic && generic[1]) {
+      return Number(generic[1])
+    }
+    return null
+  },
+
+  extractProfileEnglishScore(profile = {}) {
+    const score = Number(profile.englishScore || 0)
+    if (!Number.isFinite(score) || score <= 0) return null
+    return score
+  },
+
+  extractRankThreshold(content = '') {
+    const normalized = String(content || '').toLowerCase()
+    const match = normalized.match(/(?:前|top)\s*(\d{1,2})\s*%/)
+    if (match && match[1]) {
+      return Number(match[1])
+    }
+    return null
+  },
+
+  extractProfileRankPercent(profile = {}) {
+    const rankPercent = Number(profile.rankPercent || 0)
+    if (!Number.isFinite(rankPercent) || rankPercent <= 0) return null
+    return rankPercent
+  },
+
+  normalizeConfidence(value) {
+    const number = Number(value)
+    if (!Number.isFinite(number)) {
+      return 0.76
+    }
+    if (number < 0) return 0
+    if (number > 1) return 1
+    return Number(number.toFixed(2))
+  },
+
+  uniqueStrings(list = []) {
+    const seen = new Set()
+    const result = []
+    list.forEach((item) => {
+      const text = this.toDisplayText(item)
+      if (!text || seen.has(text)) return
+      seen.add(text)
+      result.push(text)
+    })
+    return result
+  },
+
+  normalizeMaterials(rawMaterials) {
+    const source = this.normalizeStructuredData(rawMaterials, [])
+
+    if (!source) {
+      return []
+    }
+
+    if (Array.isArray(source)) {
+      return source
+    }
+
+    if (typeof source === 'object') {
+      return [source]
+    }
+
+    const text = String(source).trim()
+    if (!text) {
+      return []
+    }
+
+    return text
+      .split(/[\n；;]/)
+      .map(item => item.trim())
+      .filter(Boolean)
+  },
+
+  normalizeProcess(rawProcess, detail = {}) {
+    const source = this.normalizeStructuredData(rawProcess, [])
+    let steps = []
+
+    if (Array.isArray(source)) {
+      steps = source
+    } else if (source && typeof source === 'object') {
+      steps = [source]
+    } else if (typeof source === 'string' && source.trim()) {
+      steps = source
+        .split(/[\n；;]|->|→/)
+        .map(item => item.trim())
+        .filter(Boolean)
+    }
+
+    if (steps.length === 0) {
+      steps = this.buildDefaultProcess(detail)
+    }
+
+    return steps
+      .map((item, index) => this.normalizeProcessStep(item, index, detail))
+      .filter(item => item && item.action)
+  },
+
+  normalizeProcessStep(rawStep, index, detail = {}) {
+    if (rawStep === null || rawStep === undefined) {
+      return null
+    }
+
+    if (typeof rawStep === 'string') {
+      const action = rawStep.trim()
+      if (!action) return null
+      const phase = this.inferProcessPhase(action)
+      return {
+        step: index + 1,
+        action,
+        phase,
+        deadline: '',
+        note: '',
+        period: ''
+      }
+    }
+
+    if (typeof rawStep !== 'object') {
+      const text = this.toDisplayText(rawStep)
+      if (!text) return null
+      const phase = this.inferProcessPhase(text)
+      return {
+        step: index + 1,
+        action: text,
+        phase,
+        deadline: '',
+        note: '',
+        period: ''
+      }
+    }
+
+    const action = this.pickFirstText(rawStep, ['action', 'title', 'name', 'step']) || `步骤${index + 1}`
+    const deadline = this.pickFirstText(rawStep, ['deadline', 'deadlineAt', 'date', 'time']) || ''
+    const note = this.pickFirstText(rawStep, ['note', 'description', 'desc', 'remark']) || ''
+    const period = this.pickFirstText(rawStep, ['period', 'timeRange', 'range']) || ''
+    const phase = this.inferProcessPhase(`${action} ${note} ${period}`)
+
+    return {
+      step: Number(rawStep.step) || index + 1,
+      action,
+      phase,
+      deadline,
+      note,
+      period
+    }
+  },
+
+  buildDefaultProcess(detail = {}) {
+    const deadline = detail.deadline || ''
+    const startDate = detail.startDate || ''
+    const endDate = detail.endDate || ''
+    const isPreRecommendation = detail.announcementType === ANNOUNCEMENT_TYPES.PRE_RECOMMENDATION
+
+    if (isPreRecommendation) {
+      return [
+        { step: 1, action: '网上预报名', deadline },
+        { step: 2, action: '提交预推免材料', deadline },
+        { step: 3, action: '资格审核', note: '等待院系通知审核结果' },
+        { step: 4, action: '复试/面试考核', note: '具体安排以院系通知为准' },
+        { step: 5, action: '拟录取结果公布', note: '请持续关注学校研究生院通知' }
+      ]
+    }
+
+    return [
+      { step: 1, action: '网上报名', deadline },
+      { step: 2, action: '提交报名材料', deadline },
+      { step: 3, action: '资格审核', note: '审核通过后进入营期环节' },
+      { step: 4, action: '夏令营活动', period: `${startDate || '待定'} 至 ${endDate || '待定'}` },
+      { step: 5, action: '结果公布', note: '关注入营名单/优秀营员结果通知' }
+    ]
+  },
+
+  normalizeContact(rawContact) {
+    const source = this.normalizeStructuredData(rawContact, null)
+    if (!source) {
+      return null
+    }
+
+    if (typeof source !== 'object' || Array.isArray(source)) {
+      const text = this.toDisplayText(source)
+      if (!text) return null
+      return {
+        email: '',
+        phone: '',
+        address: '',
+        other: [text],
+        hasData: true
+      }
+    }
+
+    const usedKeys = new Set()
+    const pick = (...keys) => {
+      for (const key of keys) {
+        const text = this.toDisplayText(source[key])
+        if (text) {
+          usedKeys.add(key)
+          return text
+        }
+      }
+      return ''
+    }
+
+    const email = pick('email', 'mail', '邮箱')
+    const phone = pick('phone', 'mobile', 'tel', 'telephone', '电话')
+    const address = pick('address', 'location', '地址')
+    const other = []
+
+    Object.keys(source).forEach(key => {
+      if (usedKeys.has(key)) return
+      const text = this.toDisplayText(source[key])
+      if (!text) return
+      other.push(`${key}: ${text}`)
+    })
+
+    const hasData = Boolean(email || phone || address || other.length > 0)
+    if (!hasData) {
+      return null
+    }
+
+    return {
+      email,
+      phone,
+      address,
+      other,
+      hasData
+    }
+  },
+
+  decorateProcessTimeline(processList = [], detail = {}) {
+    const list = Array.isArray(processList) ? processList : []
+    if (list.length === 0) {
+      return []
+    }
+
+    const currentIndex = this.resolveCurrentProcessIndex(list, detail)
+    return list.map((item, index) => {
+      let stageStatus = 'pending'
+      let stageLabel = '待开始'
+
+      if (index < currentIndex) {
+        stageStatus = 'done'
+        stageLabel = '已完成'
+      } else if (index === currentIndex) {
+        stageStatus = 'current'
+        stageLabel = '当前'
+      } else if (index === currentIndex + 1) {
+        stageStatus = 'next'
+        stageLabel = '下一步'
+      }
+
+      return {
+        ...item,
+        stageStatus,
+        stageLabel
+      }
+    })
+  },
+
+  resolveCurrentProcessIndex(processList = [], detail = {}) {
+    const statusIndex = this.resolveCurrentProcessIndexByProgress(processList, detail.progressStatus)
+    if (statusIndex > -1) {
+      return statusIndex
+    }
+
+    const timelineIndex = this.resolveCurrentProcessIndexByTimeline(processList, detail)
+    if (timelineIndex > -1) {
+      return timelineIndex
+    }
+
+    return 0
+  },
+
+  resolveCurrentProcessIndexByProgress(processList = [], progressStatus = '') {
+    if (!progressStatus) {
+      return -1
+    }
+
+    const preferredPhases = PROCESS_PHASE_BY_PROGRESS_STATUS[progressStatus] || []
+    for (const phase of preferredPhases) {
+      const index = this.getFirstProcessIndexByPhase(processList, phase)
+      if (index > -1) {
+        return index
+      }
+    }
+
+    if (progressStatus === 'outstanding_published') {
+      return Math.max(0, processList.length - 1)
+    }
+    if (progressStatus === 'admitted' || progressStatus === 'waiting_outstanding') {
+      return Math.max(0, processList.length - 2)
+    }
+    if (progressStatus === 'submitted' || progressStatus === 'waiting_admission') {
+      return Math.min(2, Math.max(0, processList.length - 1))
+    }
+    if (progressStatus === 'preparing') {
+      return Math.min(1, Math.max(0, processList.length - 1))
+    }
+
+    return -1
+  },
+
+  resolveCurrentProcessIndexByTimeline(processList = [], detail = {}) {
+    const now = Date.now()
+    const deadlineTs = this.parseTimestamp(detail.deadline)
+    const startTs = this.parseTimestamp(detail.startDate)
+    const endTs = this.parseTimestamp(detail.endDate)
+
+    if (endTs && now > endTs) {
+      return this.getFirstProcessIndexByPhase(processList, 'result_admission', processList.length - 1)
+    }
+
+    if (startTs && now >= startTs && (!endTs || now <= endTs)) {
+      return this.getFirstProcessIndexByPhase(processList, 'activity', this.getFirstProcessIndexByPhase(processList, 'review', 0))
+    }
+
+    if (deadlineTs && now <= deadlineTs) {
+      return this.getFirstProcessIndexByPhase(processList, 'register', this.getFirstProcessIndexByPhase(processList, 'material', 0))
+    }
+
+    if (deadlineTs && now > deadlineTs) {
+      return this.getFirstProcessIndexByPhase(processList, 'review', this.getFirstProcessIndexByPhase(processList, 'result_admission', 0))
+    }
+
+    return 0
+  },
+
+  getFirstProcessIndexByPhase(processList = [], phase = '', fallback = -1) {
+    const index = processList.findIndex(item => item.phase === phase)
+    return index > -1 ? index : fallback
+  },
+
+  inferProcessPhase(text = '') {
+    const value = String(text || '')
+    if (!value) return 'general'
+
+    if (/优秀营员|outstanding/i.test(value)) return 'outstanding'
+    if (/入营|录取|名单|结果|公布|通知|admission|result/i.test(value)) return 'result_admission'
+    if (/审核|资格审核|材料审核/.test(value)) return 'review'
+    if (/夏令营活动|活动|营期|考核|复试|面试|笔试|review|interview/i.test(value)) return 'activity'
+    if (/材料|提交|上传|附件|推荐信|简历/.test(value)) return 'material'
+    if (/预报名|报名|网申|申请|注册/.test(value)) return 'register'
+    return 'general'
+  },
+
+  parseTimestamp(value) {
+    if (!value) return 0
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) {
+      return 0
+    }
+    return parsed.getTime()
+  },
+
+  pickFirstText(source = {}, keys = []) {
+    for (const key of keys) {
+      const value = this.toDisplayText(source[key])
+      if (value) {
+        return value
+      }
+    }
+    return ''
+  },
+
+  toDisplayText(value) {
+    if (value === null || value === undefined) return ''
+    if (typeof value === 'string') return value.trim()
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+    return ''
   },
 
   getUniversityLogo(universityId, universityName) {
@@ -212,7 +1352,7 @@ Page({
         major: '计算机相关专业',
         other: ['有科研经历优先', '有竞赛获奖优先']
       },
-      materials: this.enrichMaterials([
+      materials: [
         '个人简历',
         '成绩单',
         '英语成绩证明',
@@ -220,13 +1360,53 @@ Page({
         '推荐信',
         '个人陈述',
         '研究计划'
-      ]),
+      ],
       process,
       contact: {
         email: 'admission@cs.tsinghua.edu.cn',
         phone: '010-12345678',
         address: '北京市海淀区清华大学计算机科学与技术系'
       },
+      progressChangeEvents: [
+        {
+          id: `mock_change_${currentCamp.id}_1`,
+          eventType: 'deadline',
+          fieldName: 'deadline',
+          oldValue: '2026-03-15',
+          newValue: currentCamp.deadline,
+          sourceType: 'crawler',
+          sourceUrl: `https://example.com/camp/${currentCamp.id}`,
+          sourceUpdatedAt: '2026-03-01T10:00:00.000Z',
+          confidenceLabel: 'high',
+          confidenceScore: 0.86,
+          changedAt: '2026-03-01T10:01:00.000Z'
+        },
+        {
+          id: `mock_change_${currentCamp.id}_2`,
+          eventType: 'materials',
+          fieldName: 'materials',
+          oldValue: '["个人简历","成绩单","推荐信"]',
+          newValue: '["个人简历","成绩单","推荐信","英语成绩证明"]',
+          sourceType: 'crawler',
+          sourceUrl: `https://example.com/camp/${currentCamp.id}`,
+          sourceUpdatedAt: '2026-03-01T10:00:00.000Z',
+          confidenceLabel: 'medium',
+          confidenceScore: 0.74,
+          changedAt: '2026-03-01T10:01:30.000Z'
+        }
+      ],
+      latestExtraction: {
+        id: `extract_mock_${currentCamp.id}`,
+        provider: 'deepseek',
+        model: 'deepseek-chat',
+        extractionVersion: 'deepseek-fallback-v1',
+        confidenceScore: 0.84,
+        status: 'success',
+        triggerReasons: ['missing_requirements'],
+        createdAt: '2026-03-01T10:00:00.000Z'
+      },
+      lastCrawledAt: '2026-03-01T10:00:00.000Z',
+      updatedAt: '2026-03-01T10:02:00.000Z',
       status: 'published',
       hasReminder: false,
       hasProgress: false
@@ -246,12 +1426,97 @@ Page({
     return this.shouldUseRemoteCampApi()
   },
 
+  refreshProfileComparison() {
+    const detail = this.data.campDetail || {}
+    if (!detail.id || this.data.loading) {
+      return
+    }
+    const nextRequirements = this.normalizeRequirements(detail.requirements, detail.confidence)
+    const nextComparison = nextRequirements?.profileComparison || this.buildProfileComparison([], this.getStudentProfile())
+    this.setData({
+      'campDetail.requirements': nextRequirements,
+      'campDetail.profileComparison': nextComparison
+    })
+  },
+
+  async syncFollowStateOnShow() {
+    const campId = this.data.campDetail?.id || this.data.campId
+    if (!campId) return
+
+    const latestToken = Number(wx.getStorageSync(PROGRESS_FOLLOW_REFRESH_TOKEN_KEY) || 0)
+    const previousToken = Number(this.data.lastProgressFollowRefreshToken || 0)
+    if (latestToken <= previousToken) {
+      return
+    }
+
+    this.setData({
+      lastProgressFollowRefreshToken: latestToken
+    })
+
+    try {
+      const progressState = await this.resolveProgressState(campId)
+      const reminderCampIds = wx.getStorageSync('reminderCampIds') || []
+      const hasReminder = Array.isArray(reminderCampIds)
+        ? reminderCampIds.includes(campId)
+        : false
+      const nextCampDetail = {
+        ...this.data.campDetail,
+        hasProgress: Boolean(progressState.status),
+        hasReminder,
+        progressId: progressState.progressId || '',
+        progressStatus: progressState.status || '',
+        progressStatusLabel: progressState.statusLabel || ''
+      }
+      nextCampDetail.process = this.decorateProcessTimeline(nextCampDetail.process, nextCampDetail)
+      this.setData({ campDetail: nextCampDetail })
+    } catch (error) {
+      // 同步失败时保持当前显示状态
+    }
+  },
+
+  touchProgressFollowRefreshToken() {
+    const token = Date.now()
+    wx.setStorageSync(PROGRESS_FOLLOW_REFRESH_TOKEN_KEY, token)
+    this.setData({ lastProgressFollowRefreshToken: token })
+  },
+
+  onJumpSection(event) {
+    const target = event?.currentTarget?.dataset?.target
+    if (!target) return
+    wx.pageScrollTo({
+      selector: `#${target}`,
+      duration: 260
+    })
+  },
+
+  onToggleExpand(event) {
+    const key = event?.currentTarget?.dataset?.key
+    if (!key) return
+    this.setData({
+      [key]: !this.data[key]
+    })
+  },
+
+  handleGoProfile() {
+    wx.navigateTo({
+      url: '/packageProfile/pages/profile/index'
+    })
+  },
+
   handleSetReminder() {
     // 设置提醒
     const { campDetail } = this.data;
     wx.navigateTo({
       url: `/packageReminder/pages/reminder-create/index?campId=${campDetail.id}&title=${encodeURIComponent(campDetail.title)}&deadline=${campDetail.deadline}&universityName=${encodeURIComponent(campDetail.universityName)}`
     });
+  },
+
+  async handleToggleProgress() {
+    if (this.data.campDetail.hasProgress) {
+      await this.handleRemoveFromProgress()
+      return
+    }
+    await this.handleAddToProgress()
   },
 
   async handleAddToProgress() {
@@ -266,12 +1531,17 @@ Page({
           showLoading: false,
           showError: false
         })
+        const nextCampDetail = {
+          ...this.data.campDetail,
+          hasProgress: true,
+          progressStatus: 'followed',
+          progressStatusLabel: PROGRESS_STATUS_LABELS.followed
+        }
+        nextCampDetail.process = this.decorateProcessTimeline(nextCampDetail.process, nextCampDetail)
         this.setData({
-          campDetail: {
-            ...this.data.campDetail,
-            hasProgress: true
-          }
+          campDetail: nextCampDetail
         })
+        this.touchProgressFollowRefreshToken()
         this.showFollowAddedNotice()
         return
       }
@@ -300,19 +1570,85 @@ Page({
       wx.setStorageSync('progressFallbackList', fallbackList)
     }
 
-    this.setData({
-      campDetail: {
-        ...this.data.campDetail,
-        hasProgress: true
-      }
-    })
+    const nextCampDetail = {
+      ...this.data.campDetail,
+      hasProgress: true,
+      progressStatus: 'followed',
+      progressStatusLabel: PROGRESS_STATUS_LABELS.followed
+    }
+    nextCampDetail.process = this.decorateProcessTimeline(nextCampDetail.process, nextCampDetail)
+    this.setData({ campDetail: nextCampDetail })
+    this.touchProgressFollowRefreshToken()
     this.showFollowAddedNotice()
+  },
+
+  async handleRemoveFromProgress() {
+    const campId = this.data.campDetail.id
+    if (!campId) return
+
+    const confirm = await new Promise((resolve) => {
+      wx.showModal({
+        title: '取消关注',
+        content: '取消后将停止该公告的关注与提醒，你可后续再次加入关注。',
+        confirmText: '确认取消',
+        cancelText: '继续关注',
+        success: (res) => resolve(Boolean(res.confirm)),
+        fail: () => resolve(false)
+      })
+    })
+
+    if (!confirm) return
+
+    wx.showLoading({ title: '处理中...' })
+    try {
+      if (this.shouldUseRemoteProgressApi()) {
+        await progressService.unfollowCamp(campId, {
+          showLoading: false,
+          showError: false
+        })
+      }
+
+      this.syncLocalFollowRemoval(campId)
+      const nextCampDetail = {
+        ...this.data.campDetail,
+        hasProgress: false,
+        hasReminder: false,
+        progressId: '',
+        progressStatus: '',
+        progressStatusLabel: ''
+      }
+      nextCampDetail.process = this.decorateProcessTimeline(nextCampDetail.process, nextCampDetail)
+      this.setData({ campDetail: nextCampDetail })
+      this.touchProgressFollowRefreshToken()
+      wx.showToast({ title: '已取消关注', icon: 'success' })
+    } catch (error) {
+      wx.showToast({ title: '取消关注失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  syncLocalFollowRemoval(campId) {
+    const normalizedCampId = String(campId || '')
+    const fallbackList = wx.getStorageSync('progressFallbackList') || []
+    const nextFallbackList = Array.isArray(fallbackList)
+      ? fallbackList.filter((item) => String(item?.campId || '') !== normalizedCampId)
+      : []
+    wx.setStorageSync('progressFallbackList', nextFallbackList)
+
+    const reminderCampIds = wx.getStorageSync('reminderCampIds') || []
+    const nextReminderCampIds = Array.isArray(reminderCampIds)
+      ? reminderCampIds.filter((id) => String(id || '') !== normalizedCampId)
+      : []
+    wx.setStorageSync('reminderCampIds', nextReminderCampIds)
+    wx.setStorageSync(REMINDER_REFRESH_TOKEN_KEY, Date.now())
+    wx.setStorageSync(PROGRESS_FOLLOW_REFRESH_TOKEN_KEY, Date.now())
   },
 
   showFollowAddedNotice() {
     wx.showModal({
       title: '已添加关注',
-      content: '已添加关注，后续入营名单公布、优秀学员公布等信息将通过微信订阅消息实时提醒你',
+      content: '已添加关注，并默认开启该公告的全部通知开关。后续入营名单、结果与关键信息变更会自动提醒，可在“关注与订阅”中单独调整。',
       showCancel: false,
       confirmText: '我知道了'
     })
@@ -356,7 +1692,7 @@ Page({
     });
   },
 
-  enrichMaterials(materials) {
+  enrichMaterials(materials, linkedMaterialTitles = []) {
     const presets = {
       '个人简历': '包含教育背景、科研/项目/竞赛经历、技能与荣誉。',
       '成绩单': '大一至当前的完整成绩单，需学校盖章或教务系统证明。',
@@ -367,19 +1703,229 @@ Page({
       '研究计划': '拟研究方向、问题、方法与预期成果（简要）。'
     }
 
+    const linkedSet = new Set((linkedMaterialTitles || []).map(item => this.toDisplayText(item)))
     return materials.map(item => {
       if (!item) return null
       if (typeof item === 'string') {
+        const linkedBy = this.matchMaterialLink(item, linkedSet)
         return {
           title: item,
-          detail: presets[item] || ''
+          detail: presets[item] || '',
+          isHighlighted: linkedBy.matched,
+          highlightReason: linkedBy.reason
         }
       }
       const title = item.title || item.name || ''
+      const linkedBy = this.matchMaterialLink(title, linkedSet)
       return {
         title,
-        detail: item.detail || item.description || presets[title] || ''
+        detail: item.detail || item.description || presets[title] || '',
+        isHighlighted: linkedBy.matched,
+        highlightReason: linkedBy.reason
       }
     }).filter(Boolean)
+  },
+
+  matchMaterialLink(title = '', linkedSet = new Set()) {
+    const normalized = this.toDisplayText(title)
+    if (!normalized) {
+      return { matched: false, reason: '' }
+    }
+    if (linkedSet.has(normalized)) {
+      return { matched: true, reason: '申请条件已提及此材料' }
+    }
+    const linkedArray = Array.from(linkedSet)
+    const fuzzy = linkedArray.find(item =>
+      normalized.indexOf(item) > -1 || item.indexOf(normalized) > -1
+    )
+    if (fuzzy) {
+      return { matched: true, reason: `申请条件关联：${fuzzy}` }
+    }
+    return { matched: false, reason: '' }
+  },
+
+  normalizeChangeCompareCards(events = []) {
+    if (!Array.isArray(events) || events.length === 0) {
+      return []
+    }
+    return events
+      .slice()
+      .sort((a, b) => this.parseTimestamp(b?.sourceUpdatedAt || b?.createdAt || b?.changedAt) - this.parseTimestamp(a?.sourceUpdatedAt || a?.createdAt || a?.changedAt))
+      .slice(0, 6)
+      .map((event, index) => {
+        const beforeText = this.formatChangeValue(event?.oldValueParsed || event?.oldValue)
+        const afterText = this.formatChangeValue(event?.newValueParsed || event?.newValue)
+        return {
+          id: event?.id || `change_${index}`,
+          fieldLabel: this.mapFieldNameToLabel(event?.fieldName, event?.eventType),
+          eventTypeLabel: this.mapEventTypeLabel(event?.eventType),
+          beforeText: beforeText || '（无）',
+          afterText: afterText || '（无）',
+          changedAtText: this.formatDateTime(event?.sourceUpdatedAt || event?.createdAt || event?.changedAt),
+          confidenceLabel: event?.confidenceLabel || '',
+          sourceTypeLabel: event?.sourceType || '',
+          sourceUrl: event?.sourceUrl || ''
+        }
+      })
+  },
+
+  formatChangeValue(value) {
+    if (value === null || value === undefined) return ''
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if (!trimmed) return ''
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          return this.formatChangeValue(JSON.parse(trimmed))
+        } catch (error) {
+          return trimmed
+        }
+      }
+      return trimmed
+    }
+    if (Array.isArray(value)) {
+      const text = value
+        .map(item => this.formatChangeValue(item))
+        .filter(Boolean)
+        .join('；')
+      return text
+    }
+    if (typeof value === 'object') {
+      const segments = Object.keys(value)
+        .slice(0, 6)
+        .map(key => {
+          const text = this.formatChangeValue(value[key])
+          if (!text) return ''
+          return `${key}: ${text}`
+        })
+        .filter(Boolean)
+      return segments.join('；')
+    }
+    return String(value)
+  },
+
+  mapFieldNameToLabel(fieldName = '', eventType = '') {
+    const field = String(fieldName || '')
+    const map = {
+      announcementType: '公告类型',
+      title: '公告标题',
+      sourceUrl: '原文链接',
+      publishDate: '发布日期',
+      deadline: '报名截止时间',
+      startDate: '开始时间',
+      endDate: '结束时间',
+      requirements: '申请条件',
+      materials: '所需材料',
+      process: '流程安排',
+      contact: '联系方式'
+    }
+    if (map[field]) return map[field]
+    if (eventType === 'deadline') return '关键时间节点'
+    if (eventType === 'materials') return '材料/条件信息'
+    if (eventType === 'admission_result') return '入营结果'
+    if (eventType === 'outstanding_result') return '优秀营员结果'
+    return '公告信息'
+  },
+
+  mapEventTypeLabel(eventType = '') {
+    const map = {
+      deadline: '时间变更',
+      materials: '内容变更',
+      admission_result: '入营名单变更',
+      outstanding_result: '优秀营员结果变更'
+    }
+    return map[eventType] || '公告变更'
+  },
+
+  buildRiskHints(detail = {}) {
+    const hints = []
+    const requirements = detail.requirements || {}
+    const hardConstraints = Array.isArray(requirements.hardConstraints) ? requirements.hardConstraints : []
+    const uncertainItems = Array.isArray(requirements.uncertainItems) ? requirements.uncertainItems : []
+
+    const hasEnglishRule = hardConstraints.some(item => /英语|cet|六级|雅思|托福/i.test(`${item.title} ${item.content}`))
+    if (!hasEnglishRule) {
+      hints.push({
+        type: 'warning',
+        title: '英语门槛未明确',
+        content: '建议尽快向学院确认英语要求。'
+      })
+    }
+
+    if (!detail.deadline) {
+      hints.push({
+        type: 'high',
+        title: '截止时间待定',
+        content: '建议开启提醒并每日复核官网公告。'
+      })
+    }
+
+    if (uncertainItems.length > 0) {
+      hints.push({
+        type: 'warning',
+        title: '存在不确定表述',
+        content: '出现“择优/另行通知”等措辞，建议按高标准准备。'
+      })
+    }
+
+    if (!detail.contact || !detail.contact.hasData) {
+      hints.push({
+        type: 'warning',
+        title: '联系方式不完整',
+        content: '建议到学院官网补充确认咨询渠道。'
+      })
+    }
+
+    if (Array.isArray(detail.changeCompareCards) && detail.changeCompareCards.some(item => item.fieldLabel === '报名截止时间')) {
+      hints.push({
+        type: 'high',
+        title: '近期存在截止时间变更',
+        content: '建议近期每天复核公告，避免错过调整。'
+      })
+    }
+
+    return hints.slice(0, 4)
+  },
+
+  buildTransparencyMeta(detail = {}) {
+    const confidenceScore = this.normalizeConfidence(detail.confidence)
+    const crawledAt = detail.lastCrawledAt || detail.updatedAt || ''
+    const updatedAt = detail.updatedAt || ''
+    return {
+      sourceUrl: detail.sourceUrl || '',
+      crawledAtText: this.formatDateTime(crawledAt),
+      updatedAtText: this.formatDateTime(updatedAt),
+      confidenceScore,
+      confidenceLabel: this.getConfidenceLabel(confidenceScore)
+    }
+  },
+
+  getConfidenceLabel(score = 0) {
+    if (score >= 0.8) return '高'
+    if (score >= 0.55) return '中'
+    return '低'
+  },
+
+  normalizeDisplayDate(value) {
+    if (!value) return ''
+    const timestamp = this.parseTimestamp(value)
+    if (!timestamp) return this.toDisplayText(value)
+    const date = new Date(timestamp)
+    const year = date.getFullYear()
+    const month = `${date.getMonth() + 1}`.padStart(2, '0')
+    const day = `${date.getDate()}`.padStart(2, '0')
+    return `${year}-${month}-${day}`
+  },
+
+  formatDateTime(value) {
+    const timestamp = this.parseTimestamp(value)
+    if (!timestamp) return '待补充'
+    const date = new Date(timestamp)
+    const year = date.getFullYear()
+    const month = `${date.getMonth() + 1}`.padStart(2, '0')
+    const day = `${date.getDate()}`.padStart(2, '0')
+    const hour = `${date.getHours()}`.padStart(2, '0')
+    const minute = `${date.getMinutes()}`.padStart(2, '0')
+    return `${year}-${month}-${day} ${hour}:${minute}`
   },
 });

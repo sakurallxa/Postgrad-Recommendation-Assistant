@@ -1,37 +1,39 @@
 /* 首页样式 */
 
 .container {
-  padding: var(--spacing-lg);
-  background-color: var(--background-light);
+  padding: calc(var(--spacing-lg) + 2px) var(--spacing-lg) calc(var(--spacing-xl) + 10px);
+  background-color: var(--surface-page);
   min-height: 100vh;
 }
 
 /* 问候区 */
 .greeting-card {
-  background: linear-gradient(135deg, var(--primary-light) 0%, var(--background-white) 100%);
+  background: var(--surface-card-bg-soft);
+  border: 1px solid rgba(26, 115, 232, 0.14);
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-xl);
   margin-bottom: var(--spacing-lg);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-2);
 }
 
 .greeting-text {
-  font-size: 20px;
+  font-size: var(--font-size-hero);
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: var(--spacing-sm);
   display: block;
+  line-height: var(--line-height-tight);
 }
 
 .stats-text {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: var(--line-height-relaxed);
 }
 
 /* 区块通用样式 */
 .section {
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: calc(var(--spacing-xl) + 2px);
 }
 
 .section-header {
@@ -57,32 +59,39 @@
 }
 
 .follow-entry-card {
-  background: linear-gradient(145deg, #ffffff 0%, #f4f8ff 100%);
-  border: 1px solid rgba(26, 115, 232, 0.16);
+  background: var(--surface-card-bg-soft);
+  border: 1px solid var(--surface-card-border);
   border-radius: var(--border-radius-md);
   padding: var(--spacing-md);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.follow-entry-card:active {
+  transform: translateY(-1px);
+  box-shadow: var(--surface-card-shadow-active);
 }
 
 .follow-entry-summary {
   display: block;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 10px;
+  margin-bottom: var(--grid-2);
+  line-height: var(--line-height-normal);
 }
 
 .follow-entry-desc {
-  font-size: 13px;
+  font-size: var(--font-size-note);
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: var(--line-height-relaxed);
 }
 
 .follow-entry-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 2px;
+  gap: var(--grid-2);
+  margin-top: var(--grid-1);
 }
 
 .follow-entry-tag {
@@ -90,7 +99,7 @@
   align-items: center;
   justify-content: center;
   min-height: 28px;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--primary-dark);
   background: rgba(26, 115, 232, 0.1);
   border: 1px solid rgba(26, 115, 232, 0.2);
@@ -109,26 +118,33 @@
 }
 
 .section-title {
-  font-size: 18px;
+  font-size: var(--font-size-title);
   font-weight: 600;
   color: var(--text-primary);
+  line-height: var(--line-height-tight);
 }
 
 .section-subtext {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   margin-top: -6px;
   margin-bottom: var(--spacing-sm);
+  line-height: var(--line-height-normal);
 }
 
 .section-more {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--primary-color);
   display: flex;
   align-items: center;
   margin-left: auto;
   flex-shrink: 0;
   white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
+.section-more:active {
+  opacity: 0.75;
 }
 
 .arrow-right {
@@ -144,12 +160,19 @@
 .urgent-card {
   display: flex;
   align-items: center;
-  background-color: var(--background-white);
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
   border-radius: var(--border-radius-md);
   box-shadow: var(--shadow-2);
   padding: var(--spacing-lg);
   width: 100%;
   margin-bottom: var(--spacing-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.urgent-card:active {
+  transform: translateY(-1px);
+  box-shadow: var(--surface-card-shadow-active);
 }
 
 .countdown {
@@ -166,7 +189,7 @@
 }
 
 .countdown-unit {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 500;
   margin-left: var(--spacing-xs);
 }
@@ -199,7 +222,7 @@
 .university-name {
   display: inline-flex;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   font-weight: 600;
   color: var(--primary-color);
   background: linear-gradient(135deg, var(--primary-light) 0%, rgba(74, 144, 226, 0.15) 100%);
@@ -214,7 +237,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--font-size-caption);
   font-weight: 600;
   height: 20px;
   padding: 0 7px;
@@ -242,7 +265,7 @@
 }
 
 .camp-title {
-  font-size: 14px;
+  font-size: var(--font-size-body);
   font-weight: 400;
   color: var(--text-primary);
   display: -webkit-box;
@@ -250,13 +273,14 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin-bottom: var(--spacing-xs);
-  line-height: 1.4;
+  line-height: var(--line-height-normal);
 }
 
 .deadline {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-tertiary);
   display: block;
+  line-height: var(--line-height-normal);
 }
 
 /* 筛选栏 */
@@ -275,7 +299,7 @@
 
 .filter-label {
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: var(--font-size-note);
   color: var(--text-secondary);
   line-height: 30px;
 }
@@ -287,12 +311,12 @@
 
 .filter-item {
   display: inline-flex;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
   padding: 6px 16px;
   border-radius: var(--border-radius-full);
-  background-color: var(--background-white);
-  border: 1px solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(95, 99, 104, 0.24);
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
@@ -302,7 +326,7 @@
 .filter-item.active {
   color: var(--primary-color);
   border-color: var(--primary-color);
-  background-color: var(--primary-light);
+  background-color: var(--surface-chip-bg);
   font-weight: 500;
 }
 
@@ -317,7 +341,7 @@
   justify-content: center;
   padding: var(--spacing-lg);
   color: var(--text-tertiary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .loading-text {
@@ -328,21 +352,23 @@
   text-align: center;
   padding: var(--spacing-lg);
   color: var(--text-tertiary);
-  font-size: 14px;
+  font-size: var(--font-size-body);
 }
 
 .my-camps-empty {
-  background: var(--background-white);
+  background: var(--surface-card-bg-soft);
   border-radius: var(--border-radius-md);
-  border: 1px solid rgba(26, 115, 232, 0.14);
+  border: 1px solid var(--surface-card-border);
   padding: var(--spacing-lg);
   text-align: center;
+  box-shadow: var(--shadow-1);
 }
 
 .my-camps-empty-text {
   display: block;
-  font-size: 14px;
+  font-size: var(--font-size-body);
   color: var(--text-secondary);
+  line-height: var(--line-height-normal);
 }
 
 .my-camps-empty-action {
@@ -354,54 +380,109 @@
   border-radius: var(--border-radius-full);
   color: var(--primary-color);
   border: 1px solid var(--primary-color);
-  font-size: 13px;
+  font-size: var(--font-size-note);
 }
 
 .opportunity-pool-card {
-  background: var(--background-white);
-  border-radius: var(--border-radius-md);
-  border: 1px solid rgba(95, 99, 104, 0.14);
-  padding: var(--spacing-md);
+  background: linear-gradient(160deg, #ffffff 0%, #f6f9ff 100%);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid rgba(26, 115, 232, 0.18);
+  padding: var(--spacing-lg);
+  box-shadow: 0 8px 22px rgba(26, 115, 232, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.opportunity-pool-card:active {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(26, 115, 232, 0.14);
 }
 
 .opportunity-pool-desc {
   display: block;
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-note);
+  color: #4f5661;
+  margin-bottom: var(--spacing-md);
+  line-height: var(--line-height-relaxed);
 }
 
 .opportunity-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .opportunity-item {
-  border: 1px solid rgba(26, 115, 232, 0.12);
-  border-radius: var(--border-radius-sm);
-  padding: 8px 10px;
-  background: #fbfdff;
+  border: 1px solid rgba(26, 115, 232, 0.16);
+  border-radius: var(--border-radius-md);
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.opportunity-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .opportunity-university {
-  display: inline-block;
-  font-size: 12px;
-  color: var(--primary-color);
-  margin-bottom: 4px;
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  color: #1a5fc4;
+  background: rgba(26, 115, 232, 0.1);
+  border: 1px solid rgba(26, 115, 232, 0.2);
+  border-radius: 12px;
+  padding: 2px 8px;
+}
+
+.opportunity-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.opportunity-type-badge.summer-camp {
+  color: #185abc;
+  background: rgba(45, 108, 223, 0.08);
+  border-color: rgba(45, 108, 223, 0.25);
+}
+
+.opportunity-type-badge.pre-recommendation {
+  color: #b05a00;
+  background: rgba(255, 167, 38, 0.12);
+  border-color: rgba(255, 167, 38, 0.35);
 }
 
 .opportunity-title {
   display: block;
-  font-size: 13px;
+  font-size: var(--font-size-body);
+  font-weight: 500;
   color: var(--text-primary);
-  line-height: 1.4;
+  line-height: var(--line-height-normal);
+}
+
+.opportunity-deadline {
+  display: block;
+  margin-top: 6px;
+  font-size: var(--font-size-caption);
+  color: var(--text-tertiary);
+  line-height: var(--line-height-normal);
 }
 
 .opportunity-empty {
   display: block;
-  font-size: 13px;
+  font-size: var(--font-size-note);
   color: var(--text-tertiary);
+  line-height: var(--line-height-normal);
 }
 
 /* 响应式设计 */

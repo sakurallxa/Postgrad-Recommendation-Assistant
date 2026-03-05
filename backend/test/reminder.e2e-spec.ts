@@ -92,6 +92,18 @@ describe('ReminderModule (integration)', () => {
     expect(result.campId).toBe(campId);
   });
 
+  it('创建提醒 - 传入 content 也应成功（兼容字段）', async () => {
+    const result = await reminderService.create(userId, {
+      campId,
+      remindTime: '2026-06-25T00:00:00.000Z',
+      content: '请在截止前完成提交',
+    });
+
+    expect(result.id).toBeDefined();
+    expect(result.userId).toBe(userId);
+    expect(result.campId).toBe(campId);
+  });
+
   it('获取提醒列表 - 返回分页结构', async () => {
     await prisma.reminder.create({
       data: {

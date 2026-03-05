@@ -1,5 +1,6 @@
 // 我的提醒页
 import { reminderService } from '../../../services/reminder'
+import { normalizeAnnouncementType } from '../../../services/announcement'
 
 Page({
   data: {
@@ -56,6 +57,11 @@ Page({
       
       // 格式化提醒数据
       const formattedReminders = result.data.map(item => ({
+        ...(normalizeAnnouncementType({
+          announcementType: item.announcementType || item.camp?.announcementType || item.camp?.announcement_type || '',
+          title: item.camp?.title || '',
+          sourceUrl: item.camp?.sourceUrl || ''
+        })),
         id: item.id,
         campId: item.campId,
         campTitle: item.camp?.title || '未知夏令营/预推免',
@@ -138,8 +144,24 @@ Page({
   // 查看夏令营详情
   onViewCamp(e) {
     const campId = e.currentTarget.dataset.campId;
+    const announcementType = e.currentTarget.dataset.announcementType || '';
+    const title = e.currentTarget.dataset.title || '';
+    if (!campId) {
+      wx.showToast({
+        title: '公告信息缺失',
+        icon: 'none'
+      });
+      return;
+    }
+    const query = [`id=${encodeURIComponent(campId || '')}`];
+    if (announcementType) {
+      query.push(`announcementType=${encodeURIComponent(announcementType)}`);
+    }
+    if (title) {
+      query.push(`title=${encodeURIComponent(title)}`);
+    }
     wx.navigateTo({
-      url: `/packageCamp/pages/camp-detail/index?id=${campId}`
+      url: `/packageCamp/pages/camp-detail/index?${query.join('&')}`
     });
   },
 

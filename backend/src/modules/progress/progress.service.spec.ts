@@ -32,10 +32,24 @@ describe('ProgressService', () => {
       createMany: jest.fn(),
     },
     progressChangeEvent: {
+      findUnique: jest.fn(),
       create: jest.fn(),
+    },
+    campWatchSubscription: {
+      findMany: jest.fn(),
+      upsert: jest.fn(),
     },
     campInfo: {
       findUnique: jest.fn(),
+    },
+    userSelection: {
+      findMany: jest.fn(),
+    },
+    userProfile: {
+      findMany: jest.fn(),
+    },
+    reminder: {
+      findMany: jest.fn(),
     },
     $transaction: jest.fn(),
   };
@@ -77,6 +91,7 @@ describe('ProgressService', () => {
       id: 'camp_1',
       title: '测试夏令营',
     });
+    mockPrismaService.progressChangeEvent.findUnique.mockResolvedValue(null);
     mockPrismaService.progressChangeEvent.create.mockResolvedValue({
       id: 'evt_1',
       campId: 'camp_1',
@@ -95,20 +110,38 @@ describe('ProgressService', () => {
           outstandingResultChanged: true,
         },
       },
+    ]);
+    mockPrismaService.campWatchSubscription.findMany.mockResolvedValue([
       {
-        id: 'p_2',
+        id: 'w_1',
+        userId: 'u_1',
+        campId: 'camp_1',
+        enabled: true,
+        inAppEnabled: true,
+        wechatEnabled: false,
+        deadlineChanged: true,
+        materialsChanged: true,
+        admissionResultChanged: true,
+        outstandingResultChanged: true,
+      },
+      {
+        id: 'w_2',
         userId: 'u_2',
         campId: 'camp_1',
-        subscription: {
-          enabled: true,
-          deadlineChanged: false,
-          materialsChanged: true,
-          admissionResultChanged: true,
-          outstandingResultChanged: true,
-        },
+        enabled: true,
+        inAppEnabled: true,
+        wechatEnabled: false,
+        deadlineChanged: false,
+        materialsChanged: true,
+        admissionResultChanged: true,
+        outstandingResultChanged: true,
       },
     ]);
-    mockPrismaService.progressAlert.createMany.mockResolvedValue({ count: 1 });
+    mockPrismaService.reminder.findMany.mockResolvedValue([]);
+    mockPrismaService.progressAlert.findUnique.mockResolvedValue(null);
+    mockPrismaService.progressAlert.create.mockResolvedValue({ id: 'a_1' });
+    mockPrismaService.userSelection.findMany.mockResolvedValue([]);
+    mockPrismaService.userProfile.findMany.mockResolvedValue([]);
 
     const result = await service.createChangeEvent({
       campId: 'camp_1',
@@ -121,6 +154,6 @@ describe('ProgressService', () => {
     });
 
     expect(result.notifiedUsers).toBe(1);
-    expect(mockPrismaService.progressAlert.createMany).toHaveBeenCalledTimes(1);
+    expect(mockPrismaService.progressAlert.create).toHaveBeenCalledTimes(1);
   });
 });

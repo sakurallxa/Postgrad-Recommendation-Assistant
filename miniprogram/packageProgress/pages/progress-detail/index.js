@@ -1,4 +1,10 @@
 import { progressService } from '../../../services/progress'
+import { normalizeAnnouncementType } from '../../../services/announcement'
+
+const PROGRESS_FALLBACK_LIST_KEY = 'progressFallbackList'
+const REMINDER_CAMP_IDS_KEY = 'reminderCampIds'
+const REMINDER_REFRESH_TOKEN_KEY = 'myRemindersRefreshToken'
+const PROGRESS_FOLLOW_REFRESH_TOKEN_KEY = 'progressFollowRefreshToken'
 
 const STATUS_LABELS = {
   followed: '已关注',
@@ -10,32 +16,70 @@ const STATUS_LABELS = {
   outstanding_published: '优秀营员已发布'
 }
 
-const NEXT_STATUS_OPTIONS = {
-  followed: ['preparing', 'submitted'],
-  preparing: ['followed', 'submitted'],
-  submitted: ['waiting_admission', 'admitted'],
-  waiting_admission: ['submitted', 'admitted'],
-  admitted: ['waiting_outstanding'],
-  waiting_outstanding: ['admitted', 'outstanding_published'],
-  outstanding_published: ['waiting_outstanding']
+const DISPLAY_STAGE_LABELS = {
+  followed: '进行中',
+  preparing: '进行中',
+  submitted: '进行中',
+  waiting_admission: '待名单',
+  admitted: '待结果',
+  waiting_outstanding: '待结果',
+  outstanding_published: '已出结果'
 }
+
+const DEFAULT_SUBSCRIPTION = {
+  enabled: true,
+  deadlineChanged: true,
+  materialsChanged: true,
+  admissionResultChanged: true,
+  outstandingResultChanged: true
+}
+
+const TIMELINE_STEPS = [
+  {
+    key: 'followed',
+    title: '已关注',
+    statuses: ['followed', 'preparing'],
+    pendingDesc: '等待开始跟进该公告'
+  },
+  {
+    key: 'submitted',
+    title: '已提交材料',
+    statuses: ['submitted', 'waiting_admission'],
+    pendingDesc: '尚未提交申请材料'
+  },
+  {
+    key: 'admitted',
+    title: '已入营/已准入',
+    statuses: ['admitted', 'waiting_outstanding'],
+    pendingDesc: '等待入营名单结果'
+  },
+  {
+    key: 'outstanding_published',
+    title: '已出结果',
+    statuses: ['outstanding_published'],
+    pendingDesc: '等待最终结果发布'
+  }
+]
 
 Page({
   data: {
     progressId: '',
     loading: true,
+    followRemoving: false,
     progress: null,
     statusLogs: [],
-    nextStatusOptions: [],
-    subscription: {
-      enabled: true,
-      deadlineChanged: true,
-      materialsChanged: true,
-      admissionResultChanged: true,
-      outstandingResultChanged: true
-    },
-    alerts: [],
-    useFallback: false
+    timelineSteps: [],
+    displayTimelineSteps: [],
+    timelineExpanded: false,
+    timelineHiddenCount: 0,
+    timelinePendingCount: 0,
+    timelineSummary: '',
+    subscription: DEFAULT_SUBSCRIPTION,
+    subscriptionExpanded: false,
+    subscriptionSummary: '',
+    subscriptionSaving: false,
+    useFallback: false,
+    confirmAction: null
   },
 
   onLoad(options) {
@@ -68,25 +112,35 @@ Page({
       item => item.id === this.data.progressId
     )
     if (fallback) {
+      const statusLogs = this.normalizeFallbackStatusLogs(fallback.statusLogs || [])
+      const normalizedAnnouncement = normalizeAnnouncementType({
+        announcementType: fallback.announcementType || fallback.announcement_type || '',
+        announcementTypeLabel: fallback.announcementTypeLabel || fallback.announcement_type_label || '',
+        title: fallback.campTitle || ''
+      })
       this.setData({
         progress: {
           id: fallback.id,
+          campId: fallback.campId || '',
           status: fallback.status,
-          statusText: fallback.statusText,
+          stageText: fallback.stageText || this.getDisplayStage(fallback.status),
           nextAction: fallback.nextAction,
+          announcementType: normalizedAnnouncement.announcementType,
+          announcementTypeLabel: normalizedAnnouncement.announcementTypeLabel,
           camp: {
             title: fallback.campTitle,
             university: { name: fallback.universityName },
             deadline: fallback.deadlineText
           },
-          statusLogs: []
+          statusLogs
         },
-        nextStatusOptions: this.getNextStatusOptions(fallback.status),
-        statusLogs: [],
-        alerts: [],
+        statusLogs,
+        timelineSteps: this.buildTimelineSteps(fallback.status, statusLogs),
+        confirmAction: this.getConfirmAction(fallback.status),
         loading: false,
         useFallback: true
       })
+      this.refreshDensityViewState()
       return true
     }
     return false
@@ -105,7 +159,7 @@ Page({
     }
 
     try {
-      const [progressDetail, subscriptionResult, alertsResult] = await Promise.all([
+      const [progressDetail, subscriptionResult] = await Promise.all([
         progressService.getProgressDetail(this.data.progressId, {
           showLoading: false,
           showError: false
@@ -113,27 +167,26 @@ Page({
         progressService.getSubscription(this.data.progressId, {
           showLoading: false,
           showError: false
-        }),
-        progressService.getAlerts({ page: 1, limit: 50, status: 'pending' }, {
-          showLoading: false,
-          showError: false
         })
       ])
 
       const progress = this.normalizeProgress(progressDetail)
-      const alerts = (alertsResult.data || [])
-        .filter(item => item.progressId === this.data.progressId)
-        .map(item => this.normalizeAlert(item))
+      const timelineSteps = this.buildTimelineSteps(progress.status, progress.statusLogs || [])
+      const subscription = {
+        ...DEFAULT_SUBSCRIPTION,
+        ...(subscriptionResult || {})
+      }
 
       this.setData({
         progress,
         statusLogs: progress.statusLogs || [],
-        nextStatusOptions: this.getNextStatusOptions(progress.status),
-        subscription: subscriptionResult || this.data.subscription,
-        alerts,
+        timelineSteps,
+        confirmAction: this.getConfirmAction(progress.status),
+        subscription,
         loading: false,
         useFallback: false
       })
+      this.refreshDensityViewState()
     } catch (error) {
       const loaded = this.loadFallbackDetail()
       if (!loaded) {
@@ -145,26 +198,170 @@ Page({
 
   normalizeProgress(progress) {
     const status = progress.status || 'followed'
+    const normalizedAnnouncement = normalizeAnnouncementType({
+      announcementType: progress.announcementType ||
+        progress.announcement_type ||
+        progress.camp?.announcementType ||
+        progress.camp?.announcement_type ||
+        '',
+      announcementTypeLabel: progress.announcementTypeLabel ||
+        progress.announcement_type_label ||
+        progress.camp?.announcementTypeLabel ||
+        progress.camp?.announcement_type_label ||
+        '',
+      title: progress.camp?.title || progress.title || ''
+    })
+
     return {
       ...progress,
+      campId: progress.campId || progress.camp?.id || '',
       status,
-      statusText: STATUS_LABELS[status] || status,
+      stageText: this.getDisplayStage(status),
+      announcementType: normalizedAnnouncement.announcementType,
+      announcementTypeLabel: normalizedAnnouncement.announcementTypeLabel,
       nextAction: progress.nextAction || this.defaultNextAction(status),
-      statusLogs: (progress.statusLogs || []).map(log => ({
-        ...log,
-        fromStatusText: log.fromStatus ? STATUS_LABELS[log.fromStatus] || log.fromStatus : '初始',
-        toStatusText: STATUS_LABELS[log.toStatus] || log.toStatus,
-        changedAtText: this.formatDateTime(log.changedAt)
-      }))
+      statusLogs: this.normalizeStatusLogs(progress.statusLogs || [])
     }
   },
 
-  normalizeAlert(item) {
-    return {
-      ...item,
-      scheduledAtText: this.formatDateTime(item.scheduledAt),
-      confidenceLabel: item.confidenceLabel || item.event?.confidenceLabel || ''
+  resolveCampId() {
+    return String(
+      this.data.progress?.campId ||
+      this.data.progress?.camp?.id ||
+      ''
+    )
+  },
+
+  syncLocalFollowRemoval(campId, progressId) {
+    const normalizedCampId = String(campId || '')
+    const normalizedProgressId = String(progressId || this.data.progressId || '')
+
+    const fallbackList = wx.getStorageSync(PROGRESS_FALLBACK_LIST_KEY) || []
+    const nextFallbackList = Array.isArray(fallbackList)
+      ? fallbackList.filter((item) => {
+        const sameProgress = normalizedProgressId && String(item?.id || '') === normalizedProgressId
+        const sameCamp = normalizedCampId && String(item?.campId || '') === normalizedCampId
+        return !sameProgress && !sameCamp
+      })
+      : []
+    wx.setStorageSync(PROGRESS_FALLBACK_LIST_KEY, nextFallbackList)
+
+    if (normalizedCampId) {
+      const reminderCampIds = wx.getStorageSync(REMINDER_CAMP_IDS_KEY) || []
+      const nextReminderCampIds = Array.isArray(reminderCampIds)
+        ? reminderCampIds.filter((id) => String(id || '') !== normalizedCampId)
+        : []
+      wx.setStorageSync(REMINDER_CAMP_IDS_KEY, nextReminderCampIds)
     }
+
+    const refreshAt = Date.now()
+    wx.setStorageSync(REMINDER_REFRESH_TOKEN_KEY, refreshAt)
+    wx.setStorageSync(PROGRESS_FOLLOW_REFRESH_TOKEN_KEY, refreshAt)
+  },
+
+  async onCancelFollow() {
+    if (this.data.followRemoving) return
+
+    const confirmed = await new Promise((resolve) => {
+      wx.showModal({
+        title: '取消关注',
+        content: '取消后将停止该公告的关注与提醒，可后续再次关注。',
+        confirmText: '确认取消',
+        cancelText: '继续关注',
+        success: (res) => resolve(Boolean(res.confirm)),
+        fail: () => resolve(false)
+      })
+    })
+    if (!confirmed) return
+
+    const progressId = this.data.progressId
+    const campId = this.resolveCampId()
+
+    this.setData({ followRemoving: true })
+    wx.showLoading({ title: '处理中...' })
+
+    try {
+      if (!this.data.useFallback) {
+        if (progressId) {
+          try {
+            await progressService.removeProgress(progressId, {
+              showLoading: false,
+              showError: false
+            })
+          } catch (error) {
+            if (campId) {
+              await progressService.unfollowCamp(campId, {
+                showLoading: false,
+                showError: false
+              })
+            } else {
+              throw error
+            }
+          }
+        } else if (campId) {
+          await progressService.unfollowCamp(campId, {
+            showLoading: false,
+            showError: false
+          })
+        } else {
+          throw new Error('缺少公告信息')
+        }
+      }
+
+      this.syncLocalFollowRemoval(campId, progressId)
+      wx.showToast({ title: '已取消关注', icon: 'success' })
+      setTimeout(() => {
+        if (getCurrentPages().length > 1) {
+          wx.navigateBack()
+        } else {
+          wx.reLaunch({
+            url: '/packageProgress/pages/progress-list/index'
+          })
+        }
+      }, 200)
+    } catch (error) {
+      wx.showToast({ title: '取消关注失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+      this.setData({ followRemoving: false })
+    }
+  },
+
+  getConfirmAction(status) {
+    if (status === 'followed' || status === 'preparing') {
+      return { status: 'submitted', label: '确认已提交材料' }
+    }
+    if (status === 'submitted' || status === 'waiting_admission') {
+      return { status: 'admitted', label: '确认已入营' }
+    }
+    if (status === 'admitted' || status === 'waiting_outstanding') {
+      return { status: 'outstanding_published', label: '确认结果已发布' }
+    }
+    return null
+  },
+
+  normalizeFallbackStatusLogs(logs = []) {
+    return this.normalizeStatusLogs(logs.map((log, index) => ({
+      ...log,
+      id: log.id || `fallback-log-${index}`,
+      changedAt: log.changedAt || log.changedAtText || ''
+    })))
+  },
+
+  normalizeStatusLogs(logs = []) {
+    return logs
+      .map(log => ({
+        ...log,
+        fromStatusText: log.fromStatus ? STATUS_LABELS[log.fromStatus] || log.fromStatus : '初始',
+        toStatusText: STATUS_LABELS[log.toStatus] || log.toStatus || '未知',
+        changedAtText: log.changedAtText || this.formatDateTime(log.changedAt),
+        changedAtTs: this.toTimestamp(log.changedAt || log.changedAtText)
+      }))
+      .sort((a, b) => (a.changedAtTs || 0) - (b.changedAtTs || 0))
+  },
+
+  getDisplayStage(status) {
+    return DISPLAY_STAGE_LABELS[status] || '进行中'
   },
 
   defaultNextAction(status) {
@@ -180,13 +377,6 @@ Page({
     return map[status] || '持续跟进'
   },
 
-  getNextStatusOptions(status) {
-    return (NEXT_STATUS_OPTIONS[status] || []).map(value => ({
-      value,
-      label: STATUS_LABELS[value] || value
-    }))
-  },
-
   formatDateTime(value) {
     if (!value) return '未知'
     const date = new Date(value)
@@ -199,80 +389,194 @@ Page({
     return `${y}-${m}-${d} ${h}:${min}`
   },
 
-  async onSwitchStatus(e) {
-    const status = e.currentTarget.dataset.status
-    if (this.data.useFallback) {
-      wx.showToast({ title: '离线模式下不可更新', icon: 'none' })
-      return
-    }
-    wx.showLoading({ title: '更新中...' })
-    try {
-      await progressService.updateProgressStatus(this.data.progressId, { status }, {
-        showLoading: false
-      })
-      await this.loadData()
-      wx.showToast({ title: '状态已更新', icon: 'success' })
-    } catch (error) {
-      wx.showToast({ title: '更新失败', icon: 'none' })
-    } finally {
-      wx.hideLoading()
-    }
+  toTimestamp(value) {
+    if (!value) return 0
+    const date = new Date(value)
+    const ts = date.getTime()
+    return Number.isNaN(ts) ? 0 : ts
   },
 
-  onSubscriptionChange(e) {
-    const key = e.currentTarget.dataset.key
-    const value = e.detail.value
+  resolveTimelineIndex(status) {
+    const index = TIMELINE_STEPS.findIndex(step => step.statuses.includes(status))
+    return index > -1 ? index : 0
+  },
+
+  buildSubscriptionSummary(subscription = DEFAULT_SUBSCRIPTION) {
+    const total = 4
+    if (!subscription.enabled) {
+      return '总开关已关闭'
+    }
+    let enabledCount = 0
+    if (subscription.deadlineChanged) enabledCount += 1
+    if (subscription.materialsChanged) enabledCount += 1
+    if (subscription.admissionResultChanged) enabledCount += 1
+    if (subscription.outstandingResultChanged) enabledCount += 1
+    return `${enabledCount}/${total} 项已开启`
+  },
+
+  buildTimelineSummary(timelineSteps = []) {
+    if (!Array.isArray(timelineSteps) || timelineSteps.length === 0) {
+      return '暂无进展记录'
+    }
+    const doneCount = timelineSteps.filter(item => item.state === 'done').length
+    const currentCount = timelineSteps.filter(item => item.state === 'current').length
+    if (currentCount > 0 && doneCount > 0) {
+      return `已完成 ${doneCount} 项，当前 1 项`
+    }
+    if (currentCount > 0) {
+      return '当前进行中'
+    }
+    if (doneCount > 0) {
+      return `已完成 ${doneCount} 项`
+    }
+    return `共 ${timelineSteps.length} 个阶段`
+  },
+
+  buildDisplayTimelineSteps(timelineSteps = [], expanded = false) {
+    if (!Array.isArray(timelineSteps)) return []
+    if (expanded) {
+      return [...timelineSteps]
+    }
+    const compact = timelineSteps.filter(item => item.state !== 'pending')
+    return compact.length > 0 ? compact : timelineSteps.slice(0, 1)
+  },
+
+  refreshDensityViewState() {
+    const timelineSteps = this.data.timelineSteps || []
+    const timelineExpanded = Boolean(this.data.timelineExpanded)
+    const displayTimelineSteps = this.buildDisplayTimelineSteps(timelineSteps, timelineExpanded)
+    const pendingCount = timelineSteps.filter(item => item.state === 'pending').length
     this.setData({
-      subscription: {
-        ...this.data.subscription,
-        [key]: value
+      displayTimelineSteps,
+      timelineHiddenCount: Math.max(0, timelineSteps.length - displayTimelineSteps.length),
+      timelinePendingCount: pendingCount,
+      timelineSummary: this.buildTimelineSummary(timelineSteps),
+      subscriptionSummary: this.buildSubscriptionSummary(this.data.subscription)
+    })
+  },
+
+  onToggleSubscriptionExpanded() {
+    this.setData({
+      subscriptionExpanded: !this.data.subscriptionExpanded
+    })
+  },
+
+  onToggleTimelineExpanded() {
+    const timelineExpanded = !this.data.timelineExpanded
+    this.setData({
+      timelineExpanded,
+      displayTimelineSteps: this.buildDisplayTimelineSteps(this.data.timelineSteps || [], timelineExpanded)
+    })
+  },
+
+  buildTimelineSteps(currentStatus, statusLogs = []) {
+    const currentIndex = this.resolveTimelineIndex(currentStatus)
+    const logsByStatus = {}
+    statusLogs.forEach(log => {
+      if (!log?.toStatus) return
+      if (!logsByStatus[log.toStatus]) {
+        logsByStatus[log.toStatus] = log
+      }
+    })
+
+    return TIMELINE_STEPS.map((step, index) => {
+      const state = index < currentIndex ? 'done' : index === currentIndex ? 'current' : 'pending'
+      const statusText = state === 'done' ? '已完成' : state === 'current' ? '进行中' : '未开始'
+      const matchedLog = step.statuses
+        .map(status => logsByStatus[status])
+        .find(Boolean)
+      const timeText = matchedLog?.changedAtText || '--'
+      const desc = matchedLog?.note ||
+        (state === 'current'
+          ? `当前状态：${STATUS_LABELS[currentStatus] || currentStatus || '进行中'}`
+          : step.pendingDesc)
+
+      return {
+        key: step.key,
+        title: step.title,
+        state,
+        statusText,
+        timeText,
+        desc
       }
     })
   },
 
-  async onSaveSubscription() {
+  async onSubscriptionChange(e) {
+    const key = e.currentTarget.dataset.key
+    const value = e.detail.value
+    if (!key) return
+
+    if (this.data.subscriptionSaving) {
+      return
+    }
+
     if (this.data.useFallback) {
       wx.showToast({ title: '离线模式下不可更新', icon: 'none' })
       return
     }
-    wx.showLoading({ title: '保存中...' })
+
+    const previousSubscription = {
+      ...this.data.subscription
+    }
+    const patchData = {
+      [key]: value
+    }
+    const nextSubscription = {
+      ...previousSubscription,
+      [key]: value
+    }
+
+    if (key !== 'enabled' && value && !nextSubscription.enabled) {
+      nextSubscription.enabled = true
+      patchData.enabled = true
+    }
+
+    this.setData({
+      subscription: nextSubscription,
+      subscriptionSaving: true,
+      subscriptionSummary: this.buildSubscriptionSummary(nextSubscription)
+    })
     try {
-      await progressService.updateSubscription(this.data.progressId, this.data.subscription, {
+      await progressService.updateSubscription(this.data.progressId, patchData, {
+        showLoading: false,
+        showError: false
+      })
+      this.setData({
+        subscriptionSaving: false,
+        subscriptionSummary: this.buildSubscriptionSummary(nextSubscription)
+      })
+    } catch (error) {
+      this.setData({
+        subscription: previousSubscription,
+        subscriptionSaving: false,
+        subscriptionSummary: this.buildSubscriptionSummary(previousSubscription)
+      })
+      wx.showToast({ title: '更新失败，已恢复', icon: 'none' })
+    }
+  },
+
+  async onConfirmNextStep() {
+    if (this.data.useFallback) {
+      wx.showToast({ title: '离线模式下不可更新', icon: 'none' })
+      return
+    }
+    const action = this.data.confirmAction
+    if (!action || !action.status) return
+
+    wx.showLoading({ title: '确认中...' })
+    try {
+      await progressService.confirmProgressStep(this.data.progressId, {
+        status: action.status
+      }, {
         showLoading: false
       })
-      wx.showToast({ title: '订阅已更新', icon: 'success' })
+      wx.showToast({ title: '已确认', icon: 'success' })
+      this.loadData()
     } catch (error) {
-      wx.showToast({ title: '保存失败', icon: 'none' })
+      wx.showToast({ title: '确认失败', icon: 'none' })
     } finally {
       wx.hideLoading()
-    }
-  },
-
-  async onHandleAlert(e) {
-    if (this.data.useFallback) return
-    const alertId = e.currentTarget.dataset.id
-    try {
-      await progressService.handleAlert(alertId, {
-        showLoading: false
-      })
-      await this.loadData()
-      wx.showToast({ title: '已处理', icon: 'success' })
-    } catch (error) {
-      wx.showToast({ title: '操作失败', icon: 'none' })
-    }
-  },
-
-  async onSnoozeAlert(e) {
-    if (this.data.useFallback) return
-    const alertId = e.currentTarget.dataset.id
-    try {
-      await progressService.snoozeAlert(alertId, { hours: 24 }, {
-        showLoading: false
-      })
-      await this.loadData()
-      wx.showToast({ title: '已延后24小时', icon: 'success' })
-    } catch (error) {
-      wx.showToast({ title: '操作失败', icon: 'none' })
     }
   }
 })

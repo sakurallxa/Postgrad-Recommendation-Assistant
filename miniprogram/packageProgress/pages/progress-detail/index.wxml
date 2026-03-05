@@ -4,82 +4,143 @@
   <view class="loading" wx:if="{{loading}}">加载中...</view>
 
   <view wx:else>
-    <view class="card">
-      <text class="title">{{progress.camp.title}}</text>
-      <text class="meta">{{progress.camp.university.name}}</text>
-      <text class="meta">截止：{{progress.camp.deadline || '待定'}}</text>
-      <view class="status-row">
-        <text class="status-label">当前状态</text>
-        <text class="status-value">{{progress.statusText}}</text>
+    <view class="hero-card">
+      <view class="hero-header">
+        <text class="hero-title">{{progress.camp.title}}</text>
+        <view wx:if="{{progress.announcementTypeLabel}}" class="announcement-chip {{progress.announcementType === 'pre_recommendation' ? 'pre' : 'summer'}}">
+          <text class="announcement-chip-text">{{progress.announcementTypeLabel}}</text>
+        </view>
       </view>
-      <text class="next-action">下一步：{{progress.nextAction}}</text>
-    </view>
 
-    <view class="section">
-      <text class="section-title">状态切换</text>
-      <view class="chip-row">
-        <view
-          wx:for="{{nextStatusOptions}}"
-          wx:key="value"
-          class="chip"
-          data-status="{{item.value}}"
-          bindtap="onSwitchStatus"
-        >
-          切到{{item.label}}
+      <view class="hero-meta-line">
+        <text class="hero-meta-pill">{{progress.camp.university.name}}</text>
+        <text class="hero-meta-pill">截止 {{progress.camp.deadline || '待定'}}</text>
+      </view>
+
+      <view class="hero-stage-wrap">
+        <view class="hero-stage-row">
+          <text class="hero-stage-label">当前阶段</text>
+          <text class="hero-stage-value">{{progress.stageText}}</text>
+        </view>
+        <view class="hero-stage-row next-action-row" wx:if="{{progress.nextAction}}">
+          <text class="hero-stage-label">建议下一步</text>
+          <text class="hero-next-action">{{progress.nextAction}}</text>
+        </view>
+        <view class="stage-confirm-box" wx:if="{{confirmAction}}">
+          <text class="stage-confirm-label">阶段确认</text>
+          <view class="stage-confirm-btn" bindtap="onConfirmNextStep">{{confirmAction.label}}</view>
+        </view>
+      </view>
+
+      <view class="hero-cancel-wrap">
+        <view class="follow-manage-btn {{followRemoving ? 'disabled' : ''}}" bindtap="onCancelFollow">
+          {{followRemoving ? '处理中...' : '取消关注'}}
         </view>
       </view>
     </view>
 
     <view class="section">
-      <text class="section-title">变更订阅</text>
-      <view class="switch-row">
-        <text>开启订阅</text>
-        <switch checked="{{subscription.enabled}}" data-key="enabled" bindchange="onSubscriptionChange" />
+      <view class="section-header">
+        <view class="section-header-main">
+          <text class="section-title">通知订阅设置</text>
+          <text class="section-subtitle">{{subscriptionSummary}}</text>
+        </view>
+        <view class="section-fold-btn" bindtap="onToggleSubscriptionExpanded">{{subscriptionExpanded ? '收起' : '展开'}}</view>
       </view>
-      <view class="switch-row">
-        <text>截止时间变更</text>
-        <switch checked="{{subscription.deadlineChanged}}" data-key="deadlineChanged" bindchange="onSubscriptionChange" />
+      <view class="switch-row switch-parent-row">
+        <view class="switch-parent-main">
+          <text class="switch-parent-title">开启通知</text>
+          <text class="switch-parent-desc">总开关</text>
+        </view>
+        <switch
+          disabled="{{subscriptionSaving}}"
+          checked="{{subscription.enabled}}"
+          data-key="enabled"
+          bindchange="onSubscriptionChange"
+        />
       </view>
-      <view class="switch-row">
-        <text>材料要求变更</text>
-        <switch checked="{{subscription.materialsChanged}}" data-key="materialsChanged" bindchange="onSubscriptionChange" />
+      <view class="switch-children {{!subscription.enabled ? 'disabled' : ''}}" wx:if="{{subscriptionExpanded}}">
+        <view class="switch-row child-row {{!subscription.enabled ? 'disabled' : ''}}">
+          <view class="child-label-wrap">
+            <text class="child-dot">•</text>
+            <text class="child-label">截止时间提醒</text>
+          </view>
+          <switch
+            disabled="{{subscriptionSaving || !subscription.enabled}}"
+            checked="{{subscription.deadlineChanged}}"
+            data-key="deadlineChanged"
+            bindchange="onSubscriptionChange"
+          />
+        </view>
+        <view class="switch-row child-row {{!subscription.enabled ? 'disabled' : ''}}">
+          <view class="child-label-wrap">
+            <text class="child-dot">•</text>
+            <text class="child-label">材料要求变更</text>
+          </view>
+          <switch
+            disabled="{{subscriptionSaving || !subscription.enabled}}"
+            checked="{{subscription.materialsChanged}}"
+            data-key="materialsChanged"
+            bindchange="onSubscriptionChange"
+          />
+        </view>
+        <view class="switch-row child-row {{!subscription.enabled ? 'disabled' : ''}}">
+          <view class="child-label-wrap">
+            <text class="child-dot">•</text>
+            <text class="child-label">入营名单通知</text>
+          </view>
+          <switch
+            disabled="{{subscriptionSaving || !subscription.enabled}}"
+            checked="{{subscription.admissionResultChanged}}"
+            data-key="admissionResultChanged"
+            bindchange="onSubscriptionChange"
+          />
+        </view>
+        <view class="switch-row child-row {{!subscription.enabled ? 'disabled' : ''}}">
+          <view class="child-label-wrap">
+            <text class="child-dot">•</text>
+            <text class="child-label">优秀营员结果通知</text>
+          </view>
+          <switch
+            disabled="{{subscriptionSaving || !subscription.enabled}}"
+            checked="{{subscription.outstandingResultChanged}}"
+            data-key="outstandingResultChanged"
+            bindchange="onSubscriptionChange"
+          />
+        </view>
       </view>
-      <view class="switch-row">
-        <text>入营名单变更</text>
-        <switch checked="{{subscription.admissionResultChanged}}" data-key="admissionResultChanged" bindchange="onSubscriptionChange" />
-      </view>
-      <view class="switch-row">
-        <text>优秀营员结果变更</text>
-        <switch checked="{{subscription.outstandingResultChanged}}" data-key="outstandingResultChanged" bindchange="onSubscriptionChange" />
-      </view>
-      <button class="primary-btn" bindtap="onSaveSubscription">保存订阅设置</button>
     </view>
 
     <view class="section">
-      <text class="section-title">提醒事项</text>
-      <view class="empty" wx:if="{{alerts.length === 0}}">暂无待处理提醒</view>
-      <view class="alert-item" wx:for="{{alerts}}" wx:key="id">
-        <view class="alert-title-row">
-          <text class="alert-title">{{item.title}}</text>
-          <text class="confidence {{item.confidenceLabel}}">{{item.confidenceLabel || 'medium'}}</text>
+      <view class="section-header">
+        <view class="section-header-main">
+          <text class="section-title">状态进展</text>
+          <text class="section-subtitle">{{timelineSummary}}</text>
         </view>
-        <text class="alert-content">{{item.content}}</text>
-        <text class="alert-time">{{item.scheduledAtText}}</text>
-        <view class="action-row">
-          <button class="line-btn" data-id="{{item.id}}" bindtap="onSnoozeAlert">明天提醒</button>
-          <button class="fill-btn" data-id="{{item.id}}" bindtap="onHandleAlert">已处理</button>
+        <view class="section-fold-btn" wx:if="{{timelinePendingCount > 0}}" bindtap="onToggleTimelineExpanded">
+          {{timelineExpanded ? '收起' : '展开'}}
         </view>
       </view>
-    </view>
-
-    <view class="section">
-      <text class="section-title">状态记录</text>
-      <view class="empty" wx:if="{{statusLogs.length === 0}}">暂无状态变更记录</view>
-      <view class="log-item" wx:for="{{statusLogs}}" wx:key="id">
-        <text class="log-status">{{item.fromStatusText}} → {{item.toStatusText}}</text>
-        <text class="log-time">{{item.changedAtText}}</text>
-        <text class="log-note" wx:if="{{item.note}}">{{item.note}}</text>
+      <view class="timeline" wx:if="{{timelineSteps.length > 0}}">
+        <view class="timeline-item {{item.state}}" wx:for="{{displayTimelineSteps}}" wx:key="key">
+          <view class="timeline-axis">
+            <view class="timeline-dot {{item.state}}"></view>
+            <view class="timeline-line" wx:if="{{index !== displayTimelineSteps.length - 1}}"></view>
+          </view>
+          <view class="timeline-body">
+            <view class="timeline-head">
+              <text class="timeline-title">{{item.title}}</text>
+              <text class="timeline-state">{{item.statusText}}</text>
+            </view>
+            <text class="timeline-time" wx:if="{{item.timeText && item.timeText !== '--'}}">{{item.timeText}}</text>
+            <text class="timeline-desc">{{item.desc}}</text>
+          </view>
+        </view>
+        <view class="timeline-collapsed-tip" wx:if="{{!timelineExpanded && timelinePendingCount > 0}}">
+          已隐藏 {{timelinePendingCount}} 个未开始阶段
+        </view>
       </view>
+      <view class="empty" wx:else>暂无状态变更记录</view>
     </view>
   </view>
 </view>
