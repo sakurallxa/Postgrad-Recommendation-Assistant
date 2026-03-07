@@ -1420,7 +1420,7 @@ export class CrawlerService {
     const normalizedTitle = (payload.title || '')
       .toLowerCase()
       .replace(/\s+/g, '')
-      .replace(/[【】\[\]()（）\-_]/g, '');
+      .replace(/[【】[\]()（）_-]/g, '');
     const year = this.extractBestYear(payload);
     const raw = [
       payload.universityId || '',

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as os from 'os';
 import { PrismaService } from '../../modules/prisma/prisma.service';
 import { RedisService } from './redis.service';
 
@@ -122,7 +123,7 @@ export class MonitoringService {
    */
   async collectSystemMetrics(): Promise<SystemMetrics> {
     const usage = process.memoryUsage();
-    const totalMemory = require('os').totalmem();
+    const totalMemory = os.totalmem();
 
     const metrics: SystemMetrics = {
       timestamp: new Date().toISOString(),

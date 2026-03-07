@@ -2155,7 +2155,7 @@ export class ProgressService {
     const name = String(value || '').trim();
     if (!name) return false;
     if (/名单|公示|结果|通知|优秀营员|入营|序号|姓名/i.test(name)) return false;
-    if (/^[\u4e00-\u9fa5]{2,6}[\*xX]?$/.test(name)) return true;
+    if (/^[\u4e00-\u9fa5]{2,6}[*xX]?$/.test(name)) return true;
     if (/^[a-zA-Z][a-zA-Z\s]{1,30}$/.test(name)) return true;
     return false;
   }
