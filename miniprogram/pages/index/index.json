@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "保研信息助手",
+  "navigationBarTitleText": "保研汪",
   "usingComponents": {
     "camp-card": "../../components/business/camp-card/index",
     "empty-state": "../../components/base/empty/index"

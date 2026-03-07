@@ -86,21 +86,6 @@ Page({
     })
   },
 
-  // 跳转到我的提醒
-  navigateToReminders() {
-    wx.switchTab({
-      url: '/pages/my-reminders/index'
-    })
-  },
-
-  // 跳转到通知与关注设置
-  navigateToProgress() {
-    wx.setStorageSync('notificationCenterActiveTab', 'progress')
-    wx.switchTab({
-      url: '/pages/my-reminders/index'
-    })
-  },
-
   // 跳转到个人保研档案
   navigateToProfile() {
     wx.navigateTo({

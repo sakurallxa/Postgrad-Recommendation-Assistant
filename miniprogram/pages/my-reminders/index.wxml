@@ -244,42 +244,41 @@
             <text wx:for="{{task.attentionMessages}}" wx:key="*this" class="task-attention-item">{{item}}</text>
           </view>
 
-          <view class="task-actions">
-            <button
-              class="action-btn secondary"
-              size="mini"
+          <view class="school-task-text-actions task-text-actions">
+            <view
+              class="text-action secondary"
               bindtap="onViewCamp"
               data-camp-id="{{task.campId}}"
               data-announcement-type="{{task.announcementType}}"
               data-title="{{task.campTitle}}"
             >
               查看详情
-            </button>
-            <button
+            </view>
+            <view class="text-action-divider" wx:if="{{task.canQuickConfirm}}"></view>
+            <view
               wx:if="{{task.canQuickConfirm}}"
-              class="action-btn primary"
-              size="mini"
+              class="text-action primary"
               bindtap="onQuickConfirm"
               data-action-token="{{task.actionToken}}"
             >
               {{task.actionLabel || '立即确认'}}
-            </button>
-            <button
-              class="action-btn secondary"
-              size="mini"
+            </view>
+            <view class="text-action-divider"></view>
+            <view
+              class="text-action secondary"
               bindtap="onSnoozeReminder"
               data-reminder-id="{{task.id}}"
             >
               稍后提醒
-            </button>
-            <button
-              class="action-btn {{task.isHandled ? 'warning' : 'primary'}}"
-              size="mini"
+            </view>
+            <view class="text-action-divider"></view>
+            <view
+              class="text-action {{task.isHandled ? 'warning' : 'primary'}}"
               bindtap="onToggleHandled"
               data-reminder-id="{{task.id}}"
             >
               {{task.isHandled ? '取消已查看' : '标记已查看'}}
-            </button>
+            </view>
           </view>
         </view>
       </view>

@@ -36,24 +36,6 @@
       <view class="menu-arrow">→</view>
     </view>
     
-    <view class="menu-item" bindtap="navigateToReminders">
-      <view class="menu-icon">🔔</view>
-      <view class="menu-content">
-        <text class="menu-title">我的提醒</text>
-        <text class="menu-desc">查看和管理设置的提醒</text>
-      </view>
-      <view class="menu-arrow">→</view>
-    </view>
-
-    <view class="menu-item" bindtap="navigateToProgress">
-      <view class="menu-icon">📌</view>
-      <view class="menu-content">
-        <text class="menu-title">通知与关注设置</text>
-        <text class="menu-desc">管理公告关注与通知策略</text>
-      </view>
-      <view class="menu-arrow">→</view>
-    </view>
-    
     <view class="menu-item" bindtap="handleFeedback">
       <view class="menu-icon">💬</view>
       <view class="menu-content">

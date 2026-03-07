@@ -172,7 +172,7 @@ export class ReminderScheduler {
         page: `/pages/camp/detail?id=${camp.id}`,
         data: {
           thing1: { value: camp.title },
-          time2: { value: this.formatDate(camp.deadline) },
+          time4: { value: this.formatDate(camp.deadline) },
           thing3: { value: camp.university.name },
         },
       };
@@ -251,7 +251,7 @@ export class ReminderScheduler {
         data: {
           thing1: { value: campTitle.slice(0, 20) },
           thing3: { value: `${universityName} ${changeField}`.slice(0, 20) },
-          time2: { value: this.formatDate(changeTime) },
+          time4: { value: this.formatDate(changeTime) },
         },
       };
 

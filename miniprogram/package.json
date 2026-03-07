@@ -1,7 +1,7 @@
 {
   "name": "baoyan-miniprogram",
   "version": "1.0.0",
-  "description": "保研信息助手小程序",
+  "description": "保研汪小程序",
   "main": "app.js",
   "dependencies": {
     "mobx-miniprogram": "^4.13.2",

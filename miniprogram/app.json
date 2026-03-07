@@ -57,7 +57,7 @@
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#ffffff",
-    "navigationBarTitleText": "保研信息助手",
+    "navigationBarTitleText": "保研汪",
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
@@ -74,7 +74,7 @@
       },
       {
         "pagePath": "pages/my-reminders/index",
-        "text": "我的提醒",
+        "text": "通知中心",
         "iconPath": "assets/images/icons/tab-reminder.png",
         "selectedIconPath": "assets/images/icons/tab-reminder-active.png"
       },

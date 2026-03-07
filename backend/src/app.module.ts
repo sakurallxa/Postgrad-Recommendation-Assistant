@@ -12,8 +12,10 @@ import { ProgressModule } from './modules/progress/progress.module';
 import { CommonModule } from './common/common.module';
 import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { HealthController } from './health.controller';
 
 @Module({
+  controllers: [HealthController],
   imports: [
     // 配置模块
     ConfigModule.forRoot({
