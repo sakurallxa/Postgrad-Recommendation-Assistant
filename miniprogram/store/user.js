@@ -56,6 +56,7 @@ class UserStore {
     this.isLoggedIn = false
     this.selection = null
     wx.removeStorageSync('token')
+    wx.removeStorageSync('refreshToken')
   }
 
   initFromStorage() {

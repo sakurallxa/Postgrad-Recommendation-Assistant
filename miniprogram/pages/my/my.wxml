@@ -6,7 +6,7 @@
     </view>
     <view class="user-details">
       <text class="user-name">{{userInfo.nickname || '未登录'}}</text>
-      <text class="user-openid">{{userInfo.openid ? '已登录' : '点击登录'}}</text>
+      <text class="user-openid">{{isLoggedIn ? '已登录' : '点击登录'}}</text>
     </view>
     <button wx:if="{{!isLoggedIn}}" class="login-btn" bindtap="handleLogin">
       微信登录

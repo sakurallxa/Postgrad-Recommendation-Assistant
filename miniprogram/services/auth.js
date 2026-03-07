@@ -3,18 +3,25 @@ import { http } from './http'
 export const authService = {
   async login(code) {
     try {
-      // 模拟API请求
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // 模拟返回数据
+      const res = await http.post('/auth/wx-login', { code }, { showLoading: false })
+      const accessToken = res?.accessToken || ''
+      if (!accessToken) {
+        throw new Error('登录响应缺少 accessToken')
+      }
+
+      if (res?.refreshToken) {
+        wx.setStorageSync('refreshToken', res.refreshToken)
+      }
+
       return {
-        token: 'mock-token-' + Date.now(),
-        openid: 'mock-openid-' + Date.now(),
-        isNewUser: true,
+        token: accessToken,
+        refreshToken: res?.refreshToken || '',
+        expiresIn: res?.expiresIn || '',
         userInfo: {
-          id: '1',
-          nickname: '保研er',
-          avatar: ''
+          id: res?.user?.id || '',
+          nickname: '微信用户',
+          avatar: '',
+          openid: ''
         }
       }
     } catch (error) {
@@ -24,10 +31,20 @@ export const authService = {
   },
 
   async refreshToken() {
-    return http.post('/auth/token', { token: wx.getStorageSync('token') })
+    const refreshToken = wx.getStorageSync('refreshToken')
+    if (!refreshToken) {
+      throw new Error('缺少 refreshToken')
+    }
+    return http.post('/auth/refresh', null, {
+      showLoading: false,
+      header: {
+        Authorization: `Bearer ${refreshToken}`
+      }
+    })
   },
 
   async logout() {
-    return http.post('/auth/logout')
+    wx.removeStorageSync('refreshToken')
+    return Promise.resolve(true)
   }
 }

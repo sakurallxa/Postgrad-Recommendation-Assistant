@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsNumber, Min, Max, IsIn } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, Max, IsIn } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
@@ -13,13 +14,15 @@ export type SortField = typeof ALLOWED_SORT_FIELDS[number];
 export class QueryUniversityDto {
   @ApiProperty({ description: '页码', required: false, default: 1 })
   @IsOptional()
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
   @Min(1)
   page?: number = 1;
 
   @ApiProperty({ description: '每页数量', required: false, default: 20 })
   @IsOptional()
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
   @Min(1)
   @Max(100)
   limit?: number = 20;

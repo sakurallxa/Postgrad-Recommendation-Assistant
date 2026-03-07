@@ -83,7 +83,7 @@ class HttpClient {
           data,
           header: headers,
           success: (res) => {
-            if (res.statusCode === 200) {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
               resolve(res.data)
             } else if (this.shouldUseFallbackRequest({
               statusCode: res.statusCode,
@@ -103,7 +103,7 @@ class HttpClient {
                 data,
                 header: headers,
                 success: (fallbackRes) => {
-                  if (fallbackRes.statusCode === 200) {
+                  if (fallbackRes.statusCode >= 200 && fallbackRes.statusCode < 300) {
                     resolve(fallbackRes.data)
                   } else if (fallbackRes.statusCode === 401) {
                     this.handleUnauthorized()
@@ -129,11 +129,16 @@ class HttpClient {
         })
       })
 
-      if (response.code !== 0) {
-        throw new Error(response.message || '请求失败')
+      const hasBusinessCode = response && Object.prototype.hasOwnProperty.call(response, 'code')
+      if (hasBusinessCode) {
+        if (response.code !== 0) {
+          throw new Error(response.message || '请求失败')
+        }
+        return response.data
       }
 
-      return response.data
+      // 兼容标准REST响应（无 code/data 包裹）
+      return response
     } catch (error) {
       if (showError) {
         wx.showToast({
