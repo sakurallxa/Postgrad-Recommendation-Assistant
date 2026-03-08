@@ -9,12 +9,22 @@ describe('AuthModule (integration)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let authService: AuthService;
+  let originalEnv: Record<string, string | undefined>;
 
   beforeAll(async () => {
+    originalEnv = {
+      NODE_ENV: process.env.NODE_ENV,
+      JWT_SECRET: process.env.JWT_SECRET,
+      ALLOW_MOCK_WECHAT_LOGIN: process.env.ALLOW_MOCK_WECHAT_LOGIN,
+      WECHAT_APPID: process.env.WECHAT_APPID,
+      WECHAT_SECRET: process.env.WECHAT_SECRET,
+    };
+
+    process.env.NODE_ENV = 'test';
     process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key';
     process.env.ALLOW_MOCK_WECHAT_LOGIN = 'true';
-    delete process.env.WECHAT_APPID;
-    delete process.env.WECHAT_SECRET;
+    process.env.WECHAT_APPID = 'wx_appid_placeholder';
+    process.env.WECHAT_SECRET = 'test-wechat-secret';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -33,6 +43,13 @@ describe('AuthModule (integration)', () => {
 
   afterAll(async () => {
     await app.close();
+    Object.entries(originalEnv).forEach(([key, value]) => {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    });
   });
 
   it('微信登录 - 新用户成功', async () => {

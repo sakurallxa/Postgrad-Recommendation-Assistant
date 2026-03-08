@@ -10,8 +10,7 @@ describe('ProgressModule HTTP (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let jwtService: JwtService;
-  let http: request.SuperTest<request.Test> | null = null;
-  let httpUnavailableReason: string | null = null;
+  let http: request.SuperTest<request.Test>;
   let authToken: string;
   let userId: string;
   let campId: string;
@@ -29,11 +28,11 @@ describe('ProgressModule HTTP (e2e)', () => {
 
     try {
       await app.listen(0, '127.0.0.1');
-      http = request(app.getHttpServer());
     } catch (error) {
-      http = null;
-      httpUnavailableReason = error?.message || 'http_unavailable';
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new Error(`progress-http.e2e 启动失败，无法监听本地端口: ${reason}`);
     }
+    http = request(app.getHttpServer());
   });
 
   beforeEach(async () => {
@@ -91,31 +90,15 @@ describe('ProgressModule HTTP (e2e)', () => {
     await app.close();
   });
 
-  function getHttpOrSkip() {
-    if (!http) {
-      return null;
-    }
-    return http;
-  }
-
   it('Guard: 未带 token 访问受保护接口应返回 401', async () => {
-    const client = getHttpOrSkip();
-    if (!client) {
-      console.warn(`[progress-http.e2e] skip: ${httpUnavailableReason}`);
-      return;
-    }
-    const res = await client.get('/api/v1/progress');
+    const res = await http.get('/api/v1/progress');
 
     expect(res.status).toBe(401);
     expect(res.body.code).toBe(1003);
   });
 
   it('Guard: 非法 token 应返回 401', async () => {
-    const client = getHttpOrSkip();
-    if (!client) {
-      return;
-    }
-    const res = await client
+    const res = await http
       .get('/api/v1/progress')
       .set('Authorization', 'Bearer invalid-token');
 
@@ -124,11 +107,7 @@ describe('ProgressModule HTTP (e2e)', () => {
   });
 
   it('DTO: 创建进展 campId 非 UUID 应返回 400', async () => {
-    const client = getHttpOrSkip();
-    if (!client) {
-      return;
-    }
-    const res = await client
+    const res = await http
       .post('/api/v1/progress')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
@@ -141,11 +120,7 @@ describe('ProgressModule HTTP (e2e)', () => {
   });
 
   it('Pipe: 列表分页参数非数字应返回 400', async () => {
-    const client = getHttpOrSkip();
-    if (!client) {
-      return;
-    }
-    const res = await client
+    const res = await http
       .get('/api/v1/progress?page=abc&limit=10')
       .set('Authorization', `Bearer ${authToken}`);
 
@@ -154,11 +129,7 @@ describe('ProgressModule HTTP (e2e)', () => {
   });
 
   it('HTTP 主链路: 创建并查询进展成功', async () => {
-    const client = getHttpOrSkip();
-    if (!client) {
-      return;
-    }
-    const createRes = await client
+    const createRes = await http
       .post('/api/v1/progress')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
@@ -171,7 +142,7 @@ describe('ProgressModule HTTP (e2e)', () => {
     expect(createRes.body.id).toBeDefined();
     expect(createRes.body.status).toBe('followed');
 
-    const listRes = await client
+    const listRes = await http
       .get('/api/v1/progress?page=1&limit=20')
       .set('Authorization', `Bearer ${authToken}`);
 
@@ -181,11 +152,7 @@ describe('ProgressModule HTTP (e2e)', () => {
   });
 
   it('Pipe: status 更新接口 progressId 非 UUID 应返回 400', async () => {
-    const client = getHttpOrSkip();
-    if (!client) {
-      return;
-    }
-    const res = await client
+    const res = await http
       .patch('/api/v1/progress/not-a-uuid/status')
       .set('Authorization', `Bearer ${authToken}`)
       .send({ status: 'submitted' });
@@ -195,17 +162,13 @@ describe('ProgressModule HTTP (e2e)', () => {
   });
 
   it('DTO: status 非允许值应返回 400', async () => {
-    const client = getHttpOrSkip();
-    if (!client) {
-      return;
-    }
-    const createRes = await client
+    const createRes = await http
       .post('/api/v1/progress')
       .set('Authorization', `Bearer ${authToken}`)
       .send({ campId, status: 'followed' });
     const progressId = createRes.body.id;
 
-    const res = await client
+    const res = await http
       .patch(`/api/v1/progress/${progressId}/status`)
       .set('Authorization', `Bearer ${authToken}`)
       .send({ status: 'invalid-status' });
@@ -215,17 +178,13 @@ describe('ProgressModule HTTP (e2e)', () => {
   });
 
   it('业务校验: 非法状态流转应返回 400', async () => {
-    const client = getHttpOrSkip();
-    if (!client) {
-      return;
-    }
-    const createRes = await client
+    const createRes = await http
       .post('/api/v1/progress')
       .set('Authorization', `Bearer ${authToken}`)
       .send({ campId, status: 'followed' });
     const progressId = createRes.body.id;
 
-    const res = await client
+    const res = await http
       .patch(`/api/v1/progress/${progressId}/status`)
       .set('Authorization', `Bearer ${authToken}`)
       .send({ status: 'waiting_admission' });
@@ -235,17 +194,13 @@ describe('ProgressModule HTTP (e2e)', () => {
   });
 
   it('HTTP 主链路: 合法状态流转与订阅更新成功', async () => {
-    const client = getHttpOrSkip();
-    if (!client) {
-      return;
-    }
-    const createRes = await client
+    const createRes = await http
       .post('/api/v1/progress')
       .set('Authorization', `Bearer ${authToken}`)
       .send({ campId, status: 'followed' });
     const progressId = createRes.body.id;
 
-    const statusRes = await client
+    const statusRes = await http
       .patch(`/api/v1/progress/${progressId}/status`)
       .set('Authorization', `Bearer ${authToken}`)
       .send({
@@ -255,7 +210,7 @@ describe('ProgressModule HTTP (e2e)', () => {
     expect(statusRes.status).toBe(200);
     expect(statusRes.body.status).toBe('submitted');
 
-    const subRes = await client
+    const subRes = await http
       .patch(`/api/v1/progress/${progressId}/subscription`)
       .set('Authorization', `Bearer ${authToken}`)
       .send({
@@ -268,11 +223,7 @@ describe('ProgressModule HTTP (e2e)', () => {
   });
 
   it('DTO: 创建变更事件缺少必填字段应返回 400', async () => {
-    const client = getHttpOrSkip();
-    if (!client) {
-      return;
-    }
-    const res = await client
+    const res = await http
       .post('/api/v1/progress/events')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
@@ -284,16 +235,12 @@ describe('ProgressModule HTTP (e2e)', () => {
   });
 
   it('HTTP 主链路: 创建变更事件并分发提醒成功', async () => {
-    const client = getHttpOrSkip();
-    if (!client) {
-      return;
-    }
-    await client
+    await http
       .post('/api/v1/progress')
       .set('Authorization', `Bearer ${authToken}`)
       .send({ campId, status: 'followed' });
 
-    const eventRes = await client
+    const eventRes = await http
       .post('/api/v1/progress/events')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
@@ -313,17 +260,13 @@ describe('ProgressModule HTTP (e2e)', () => {
   });
 
   it('ProgressAction DTO + 业务: consume 缺 token 返回 400，未知 token 返回 404', async () => {
-    const client = getHttpOrSkip();
-    if (!client) {
-      return;
-    }
-    const badPayloadRes = await client
+    const badPayloadRes = await http
       .post('/api/v1/progress/actions/consume')
       .send({});
     expect(badPayloadRes.status).toBe(400);
     expect(badPayloadRes.body.code).toBe(1001);
 
-    const unknownRes = await client
+    const unknownRes = await http
       .post('/api/v1/progress/actions/consume')
       .send({ token: 'token_not_exists' });
     expect(unknownRes.status).toBe(404);
