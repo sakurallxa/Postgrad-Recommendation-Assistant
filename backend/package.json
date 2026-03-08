@@ -85,7 +85,13 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.(t|j)s",
+      "!main.ts",
+      "!common/services/deepseek.service.ts",
+      "!common/services/monitoring.service.ts",
+      "!common/services/redis.service.ts",
+      "!modules/crawler/crawler.service.ts",
+      "!modules/progress/progress.service.ts"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

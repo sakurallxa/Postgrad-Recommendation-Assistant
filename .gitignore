@@ -1,6 +1,7 @@
 # 微信小程序
 miniprogram/miniprogram_npm/
 miniprogram/node_modules/
+miniprogram/smoke-report.json
 
 # 依赖目录
 node_modules/
