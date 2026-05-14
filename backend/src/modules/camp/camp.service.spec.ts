@@ -73,7 +73,7 @@ describe('CampService', () => {
 
       // 验证只查询published状态的夏令营
       expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith({
-        where: { status: 'published', subType: { not: 'framework' } },
+        where: { status: 'published', subType: { not: 'framework' }, university: { level: '985' } },
         skip: 0,
         take: 20,
         orderBy: { publishDate: 'desc' },
@@ -145,7 +145,7 @@ describe('CampService', () => {
 
       expect(result.data).toEqual(mockCamps);
       expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith({
-        where: { status: 'published', subType: { not: 'framework' }, majorId },
+        where: { status: 'published', subType: { not: 'framework' }, majorId, university: { level: '985' } },
         skip: 0,
         take: 20,
         orderBy: { publishDate: 'desc' },
@@ -239,7 +239,7 @@ describe('CampService', () => {
 
       expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { status: 'published', subType: { not: 'framework' } },
+          where: { status: 'published', subType: { not: 'framework' }, university: { level: '985' } },
         })
       );
     });
@@ -316,7 +316,7 @@ describe('CampService', () => {
 
       expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { subType: { not: 'framework' } },
+          where: { subType: { not: 'framework' }, university: { level: '985' } },
         }),
       );
     });
@@ -354,6 +354,7 @@ describe('CampService', () => {
             status: 'published',
             subType: { not: 'framework' },
             announcementType: 'summer_camp',
+            university: { level: '985' },
           },
         }),
       );
@@ -374,6 +375,7 @@ describe('CampService', () => {
           where: {
             status: 'published',
             subType: { not: 'framework' },
+            university: { level: '985' },
             OR: [
               { title: { contains: '计算机' } },
               { rawContent: { contains: '计算机' } },

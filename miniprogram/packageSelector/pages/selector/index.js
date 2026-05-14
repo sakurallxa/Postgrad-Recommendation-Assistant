@@ -300,6 +300,12 @@ Page({
     } = this.data;
     
     return universities.filter(university => {
+      // MVP β: 默认仅显示985院校（用户明确要求只关注985）
+      // 注：层次筛选选了别的（如211）则按用户选择展示
+      if (!selectedLevel && university.level !== '985') {
+        return false;
+      }
+
       // 地区筛选
       if (selectedRegion && university.region !== selectedRegion) {
         return false;
@@ -309,17 +315,17 @@ Page({
       if (selectedProvince && university.province !== selectedProvince) {
         return false;
       }
-      
+
       // 层次筛选
       if (selectedLevel && university.level !== selectedLevel) {
         return false;
       }
-      
+
       // 搜索筛选
       if (searchKeyword && !university.name.includes(searchKeyword)) {
         return false;
       }
-      
+
       return true;
     });
   },
@@ -370,13 +376,12 @@ Page({
   },
 
   withSelectionState(university) {
-    // MVP β: 5所重点校（数据完整度有承诺）
-    const PRIORITY_SCHOOLS = ['pku', 'sjtu', 'fudan', 'ustc', 'ruc'];
-    const universityId = (university.id || '').toLowerCase();
+    // MVP β: 5所重点校 - 按学校名称匹配（后端ID是UUID不是slug）
+    const PRIORITY_NAMES = ['北京大学', '上海交通大学', '复旦大学', '中国科学技术大学', '中国人民大学'];
     return {
       ...university,
       isSelected: this.isUniversitySelected(university.id),
-      isPriority: PRIORITY_SCHOOLS.includes(universityId)
+      isPriority: PRIORITY_NAMES.includes(university.name)
     };
   },
 

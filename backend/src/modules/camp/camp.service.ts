@@ -17,8 +17,9 @@ export class CampService {
     keyword?: string;
     actionableOnly?: boolean;
     includeFramework?: boolean;
+    universityLevel?: string;
   }) {
-    const { page, limit, universityId, universityIds, majorId, status, announcementType, year, keyword, actionableOnly, includeFramework } = params;
+    const { page, limit, universityId, universityIds, majorId, status, announcementType, year, keyword, actionableOnly, includeFramework, universityLevel } = params;
     const skip = (page - 1) * limit;
     const andConditions: any[] = [];
 
@@ -44,6 +45,12 @@ export class CampService {
     // 默认隐藏 framework 类（章程/工作办法），用户主动 includeFramework=true 才显示
     if (!includeFramework) {
       where.subType = { not: 'framework' };
+    }
+    // MVP β: 默认只返回985院校的公告，用户指定 universityLevel='all' 才显示全部
+    // 当 universityId/universityIds 已指定具体院校时，跳过 level 过滤（用户已显式选了）
+    if (!universityId && !universityIds?.length && universityLevel !== 'all') {
+      const targetLevel = universityLevel || '985';
+      where.university = { ...(where.university || {}), level: targetLevel };
     }
 
     const normalizedKeyword = typeof keyword === 'string' ? keyword.trim() : '';

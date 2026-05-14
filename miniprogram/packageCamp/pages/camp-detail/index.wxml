@@ -246,6 +246,12 @@
       </view>
     </view>
 
+    <!-- 报错入口（β场景反馈闭环）- 放在正文末尾，避免被fixed的底部操作区遮挡 -->
+    <view class="report-issue-row" bindtap="onTapReportIssue" hover-class="report-issue-hover">
+      <text class="report-issue-icon">⚠</text>
+      <text class="report-issue-text">信息有误？点击反馈</text>
+    </view>
+
     <!-- 底部操作区 -->
     <view class="bottom-action">
       <button
@@ -257,12 +263,6 @@
       <button class="remind-btn" bindtap="handleSetReminder">
         {{campDetail.hasReminder ? '已设置提醒' : '设置提醒'}}
       </button>
-    </view>
-
-    <!-- 报错入口（β场景反馈闭环） -->
-    <view class="report-issue-row" bindtap="onTapReportIssue">
-      <text class="report-issue-icon">⚠</text>
-      <text class="report-issue-text">信息有误？点击反馈</text>
     </view>
   </view>
   

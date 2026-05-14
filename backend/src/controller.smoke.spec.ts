@@ -69,6 +69,7 @@ describe('Controller smoke', () => {
       keyword: '计算机',
       actionableOnly: true,
       includeFramework: false,
+      universityLevel: undefined,
     });
 
     await controller.findAll(1, 20, undefined, undefined, undefined, undefined, undefined, 'invalid');

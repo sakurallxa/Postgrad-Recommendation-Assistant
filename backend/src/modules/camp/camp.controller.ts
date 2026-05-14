@@ -21,6 +21,7 @@ export class CampController {
     @Query('keyword') keyword?: string,
     @Query('actionableOnly') actionableOnly?: string,
     @Query('includeFramework') includeFramework?: string,
+    @Query('universityLevel') universityLevel?: string,
   ) {
     const parsedUniversityIds = universityIds
       ? universityIds.split(',').map(id => id.trim()).filter(Boolean)
@@ -38,6 +39,7 @@ export class CampController {
       keyword,
       actionableOnly: actionableOnly !== 'false',
       includeFramework: includeFramework === 'true',
+      universityLevel,
     });
   }
 
