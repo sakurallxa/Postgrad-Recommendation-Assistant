@@ -246,14 +246,15 @@
       </view>
     </view>
 
-    <!-- 报错入口（β场景反馈闭环）- 放在正文末尾，避免被fixed的底部操作区遮挡 -->
+    <!-- 报错入口（β场景反馈闭环）- 行内显眼版本 -->
     <view class="report-issue-row" bindtap="onTapReportIssue" hover-class="report-issue-hover">
       <text class="report-issue-icon">⚠</text>
       <text class="report-issue-text">信息有误？点击反馈</text>
     </view>
 
-    <!-- 底部操作区 -->
+    <!-- 底部操作区（含反馈链接备份入口）-->
     <view class="bottom-action">
+      <view class="bottom-action-feedback" bindtap="onTapReportIssue" hover-class="bottom-feedback-hover">报错</view>
       <button
         class="progress-btn {{campDetail.hasProgress ? 'danger' : ''}}"
         bindtap="handleToggleProgress"

@@ -951,23 +951,50 @@
   }
 }
 
-/* 报错入口（β场景反馈闭环） */
+/* 报错入口（β场景反馈闭环）- 内联在正文末尾 */
 .report-issue-row {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12rpx;
-  margin: 24rpx 32rpx 180rpx;   /* 下方留出 180rpx 给固定底部按钮 */
-  padding: 24rpx;
-  background: rgba(245, 167, 66, 0.12);
-  border: 2rpx solid rgba(245, 167, 66, 0.3);
-  border-radius: 12rpx;
-  font-size: 26rpx;
+  margin: 32rpx 32rpx 240rpx;   /* 给底部fixed bar留充足空间 */
+  padding: 28rpx;
+  background: linear-gradient(135deg, rgba(245, 167, 66, 0.15), rgba(245, 167, 66, 0.08));
+  border: 2rpx solid rgba(245, 167, 66, 0.4);
+  border-radius: 14rpx;
+  font-size: 28rpx;
   color: #b35e00;
+  font-weight: 500;
+  position: relative;
+  z-index: 50;
 }
 .report-issue-row:active,
 .report-issue-hover {
-  background: rgba(245, 167, 66, 0.22);
+  background: rgba(245, 167, 66, 0.3);
+  transform: scale(0.98);
 }
-.report-issue-icon { font-size: 30rpx; color: #b35e00; }
+.report-issue-icon { font-size: 32rpx; color: #b35e00; }
 .report-issue-text { color: #b35e00; }
+
+/* 调高 bottom-action 的 z-index 并确保它不挡到报错按钮 */
+.bottom-action {
+  z-index: 100;
+  align-items: center;
+}
+
+/* 底部操作区里的"报错"小入口（确保用户在任何位置都能发现并点到） */
+.bottom-action-feedback {
+  flex-shrink: 0;
+  padding: 16rpx 18rpx;
+  font-size: 22rpx;
+  color: #b35e00;
+  background: rgba(245, 167, 66, 0.12);
+  border: 2rpx solid rgba(245, 167, 66, 0.35);
+  border-radius: 10rpx;
+  line-height: 1;
+  align-self: center;
+}
+.bottom-action-feedback:active,
+.bottom-feedback-hover {
+  background: rgba(245, 167, 66, 0.28);
+}

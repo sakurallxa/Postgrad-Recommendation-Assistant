@@ -89,6 +89,15 @@ export class CampService {
           { deadline: { gte: freshnessStart } },
           { startDate: { gte: freshnessStart } },
           { endDate: { gte: freshnessStart } },
+          // 所有日期字段都为 null 的公告：保留（爬虫还没抽取出时间，不能误判为历史）
+          {
+            AND: [
+              { publishDate: null },
+              { deadline: null },
+              { startDate: null },
+              { endDate: null },
+            ],
+          },
         ],
       });
     }
