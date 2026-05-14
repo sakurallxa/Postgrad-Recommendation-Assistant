@@ -117,11 +117,15 @@ Page({
     this.setData({ activeCenterTab: 'risk' })
   },
 
+  hasAuthToken() {
+    return Boolean(wx.getStorageSync('token'))
+  },
+
   async loadProgressOverview() {
     if (this.data.progressLoading) return
     this.setData({ progressLoading: true })
 
-    if (!this.shouldUseRemoteProgressApi()) {
+    if (!this.shouldUseRemoteProgressApi() || !this.hasAuthToken()) {
       this.loadProgressFallbackData()
       return
     }
@@ -272,6 +276,16 @@ Page({
     this.setData({ loading: true })
 
     try {
+      if (!this.hasAuthToken()) {
+        const rawList = this.withDebugMockReminders([])
+        const normalizedReminders = rawList
+          .map(item => this.normalizeReminder(item))
+          .filter(item => item)
+        this.setData({ reminders: normalizedReminders })
+        this.recomputeView()
+        return
+      }
+
       const result = await reminderService.getReminders({ page: 1, limit: 200, status: 'all' })
       const serverList = Array.isArray(result?.data) ? result.data : []
       const rawList = this.withDebugMockReminders(serverList)
@@ -303,9 +317,14 @@ Page({
       return reminders
     }
 
+    const remoteEligibleReminders = reminders.filter(item => this.shouldFetchRemoteCampDetail(item?.campId))
+    if (remoteEligibleReminders.length === 0) {
+      return reminders
+    }
+
     const [alertSignalMap, snapshotSignalMap] = await Promise.all([
-      this.fetchProgressAlertSignals(reminders),
-      this.detectCampSnapshotChanges(reminders)
+      this.fetchProgressAlertSignals(remoteEligibleReminders),
+      this.detectCampSnapshotChanges(remoteEligibleReminders)
     ])
 
     return reminders.map(reminder => this.mergeReminderSignals(
@@ -377,7 +396,9 @@ Page({
       return {}
     }
 
-    const campIdSet = new Set(reminders.map(item => String(item.campId || '')).filter(Boolean))
+    const campIdSet = new Set(reminders
+      .map(item => String(item.campId || ''))
+      .filter(campId => this.shouldFetchRemoteCampDetail(campId)))
     if (campIdSet.size === 0) {
       return {}
     }
@@ -515,7 +536,7 @@ Page({
 
     const campIds = Array.from(new Set(reminders
       .map(item => String(item.campId || ''))
-      .filter(Boolean)))
+      .filter(campId => this.shouldFetchRemoteCampDetail(campId))))
 
     if (campIds.length === 0) {
       return {}
@@ -545,6 +566,15 @@ Page({
 
     wx.setStorageSync(REMINDER_CAMP_SNAPSHOT_MAP_KEY, nextSnapshotMap)
     return signalMap
+  },
+
+  shouldFetchRemoteCampDetail(campId = '') {
+    const normalizedCampId = String(campId || '').trim()
+    if (!normalizedCampId) {
+      return false
+    }
+    // Debug mock reminders use placeholder camp ids that do not exist on the live backend.
+    return !normalizedCampId.startsWith('mock_camp_')
   },
 
   async fetchCampDetailsWithLimit(campIds = [], concurrency = 6) {
@@ -578,15 +608,9 @@ Page({
     if (!detail || typeof detail !== 'object') return null
 
     return {
-      title: String(detail.title || '').trim(),
-      announcementType: String(detail.announcementType || detail.announcement_type || '').trim(),
       deadline: this.normalizeDateValue(detail.deadline),
       startDate: this.normalizeDateValue(detail.startDate),
-      endDate: this.normalizeDateValue(detail.endDate),
-      location: String(detail.location || '').trim(),
-      requirements: this.normalizeStructuredValue(detail.requirements),
-      materials: this.normalizeStructuredValue(detail.materials),
-      process: this.normalizeStructuredValue(detail.process)
+      endDate: this.normalizeDateValue(detail.endDate)
     }
   },
 
@@ -635,15 +659,9 @@ Page({
     }
 
     const watchedFields = [
-      'title',
-      'announcementType',
       'deadline',
       'startDate',
-      'endDate',
-      'location',
-      'requirements',
-      'materials',
-      'process'
+      'endDate'
     ]
 
     const changedFields = watchedFields.filter(field => String(previous[field] || '') !== String(current[field] || ''))
@@ -652,15 +670,9 @@ Page({
 
   buildSnapshotChangeSignal(diff, previous, current) {
     const labelMap = {
-      title: '公告标题',
-      announcementType: '公告类型',
       deadline: '截止时间',
       startDate: '举办开始时间',
-      endDate: '举办结束时间',
-      location: '举办地点',
-      requirements: '申请要求',
-      materials: '材料清单',
-      process: '流程安排'
+      endDate: '举办结束时间'
     }
 
     const changeTypes = diff.changedFields.map(field => labelMap[field]).filter(Boolean)
@@ -668,14 +680,18 @@ Page({
     const deadlineSummary = isDeadlineChanged
       ? `截止时间已更新：${previous.deadline || '未设置'} -> ${current.deadline || '未设置'}`
       : ''
+    const eventType = isDeadlineChanged ? '报名截止' : (changeTypes.length > 0 ? '活动时间' : '')
+    const eventTime = isDeadlineChanged
+      ? (current.deadline || '')
+      : (current.startDate || current.endDate || '')
 
     return {
       sortTs: Date.now(),
       changeTypes,
-      changeSummary: deadlineSummary || `${changeTypes.join('、')}有更新，请尽快核实`,
+      changeSummary: deadlineSummary || `${changeTypes.join('、')}已更新，请尽快核实`,
       changeAt: this.formatMockDateTime(Date.now()),
-      eventType: isDeadlineChanged ? '报名截止' : '',
-      eventTime: isDeadlineChanged ? (current.deadline || '') : ''
+      eventType,
+      eventTime
     }
   },
 
@@ -686,18 +702,12 @@ Page({
     if (forceRemote === true) {
       return true
     }
-    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
-      return false
-    }
     return Boolean(baseUrl)
   },
 
   shouldUseRemoteProgressApi() {
     const app = getApp()
     const baseUrl = app?.globalData?.apiBaseUrl || ''
-    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
-      return false
-    }
     return Boolean(baseUrl)
   },
 
@@ -727,7 +737,13 @@ Page({
       return false
     }
     const setting = wx.getStorageSync(RICH_MOCK_REMINDERS_KEY)
-    return setting !== false
+    if (setting === true) {
+      return true
+    }
+    if (this.shouldUseRemoteCampApi() || this.shouldUseRemoteProgressApi()) {
+      return false
+    }
+    return false
   },
 
   isDevelopEnv() {

@@ -25,6 +25,14 @@ export class CrawlerCampItemDto {
   @IsString()
   announcementType?: string;
 
+  @ApiPropertyOptional({
+    description: '公告子类型：framework=章程/工作办法（无统一截止日），specific=有具体报名时间的招生公告',
+    enum: ['framework', 'specific'],
+  })
+  @IsOptional()
+  @IsString()
+  subType?: string;
+
   @ApiProperty({ description: '院校ID（universities.id）' })
   @IsString()
   universityId: string;
@@ -52,6 +60,11 @@ export class CrawlerCampItemDto {
   @IsOptional()
   @IsString()
   endDate?: string;
+
+  @ApiPropertyOptional({ description: '举办地点' })
+  @IsOptional()
+  @IsString()
+  location?: string;
 
   @ApiPropertyOptional({ description: '申请要求（对象/JSON字符串）' })
   @IsOptional()

@@ -149,12 +149,6 @@ class ReminderService {
     if (!baseUrl) {
       return false
     }
-
-    // 云开发默认域名环境下，提醒接口通常未部署，避免触发无意义404日志
-    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
-      return false
-    }
-
     return true
   }
 

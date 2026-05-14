@@ -54,6 +54,15 @@
   margin-bottom: var(--spacing-md);
 }
 
+.section-header-vertical .section-header.title-with-more {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.section-header-vertical .section-header.title-with-more .section-title {
+  margin-bottom: 0;
+}
+
 .section-header-vertical .filter-bar {
   width: 100%;
 }
@@ -127,7 +136,7 @@
 .section-subtext {
   font-size: var(--font-size-caption);
   color: var(--text-tertiary);
-  margin-top: -6px;
+  margin-top: 2px;
   margin-bottom: var(--spacing-sm);
   line-height: var(--line-height-normal);
 }
@@ -502,4 +511,40 @@
   .section-title {
     font-size: 16px;
   }
+}
+
+/* MVP β: 重点覆盖学校声明（信任管理） */
+.scope-banner {
+  margin: 0 24rpx 24rpx;
+  padding: 24rpx 28rpx;
+  background: linear-gradient(135deg, #fff8e6 0%, #ffefc7 100%);
+  border-radius: 16rpx;
+  border-left: 8rpx solid #f5a742;
+}
+.scope-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 8rpx;
+}
+.scope-banner-icon {
+  font-size: 28rpx;
+}
+.scope-banner-heading {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #b35e00;
+}
+.scope-banner-schools {
+  display: block;
+  font-size: 26rpx;
+  color: #6b3e00;
+  line-height: 1.5;
+  margin-bottom: 8rpx;
+}
+.scope-banner-tip {
+  display: block;
+  font-size: 22rpx;
+  color: #8a6432;
+  line-height: 1.4;
 }

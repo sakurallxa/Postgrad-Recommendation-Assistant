@@ -12,8 +12,7 @@ class HttpClient {
     if (configured) {
       return configured
     }
-    // 兜底值，保证调试环境不触发非法域名
-    return 'https://7072-prod-3gtxp94je7bc33d7-1407249275.tcb.qcloud.la/v1'
+    return 'https://baoyanwang-helper.cn/api/v1'
   }
 
   getFallbackBaseUrl(baseUrl) {
@@ -168,7 +167,7 @@ class HttpClient {
 
   handleUnauthorized() {
     userStore.logout()
-    wx.navigateTo({ url: '/pages/index/index' })
+    wx.switchTab({ url: '/pages/index/index' })
   }
 
   get(url, params, config) {

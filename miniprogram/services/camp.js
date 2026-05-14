@@ -77,6 +77,18 @@ class CampService {
     const { page = 1, limit = 20 } = params
     return http.get('/camps/favorites', { page, limit })
   }
+
+  /**
+   * 提交公告字段错误反馈（β场景核心：用户纠错通道）
+   * @param {string} campId - 公告ID
+   * @param {Object} payload
+   * @param {string} payload.issueType - deadline_wrong|materials_missing|requirements_wrong|link_dead|content_wrong|off_topic|other
+   * @param {string} [payload.description] - 用户补充说明
+   * @returns {Promise} 提交结果
+   */
+  async submitFeedback(campId, payload) {
+    return http.post(`/camps/${campId}/feedback`, payload)
+  }
 }
 
 export const campService = new CampService()

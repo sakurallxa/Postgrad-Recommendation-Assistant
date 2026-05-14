@@ -6,6 +6,215 @@
 
 ---
 
+## 0.1 当前实际生产配置（2026-03-19）
+
+本章节描述当前线上已验证可用的真实部署方式。下面旧章节中的 Linux、PM2、Nginx 方案属于通用参考，不代表当前正在运行的生产实例。
+
+### 当前线上拓扑
+
+- 服务器系统：Windows Server 2022
+- 公网 IP：`111.231.64.155`
+- 生产域名：`https://baoyanwang-helper.cn`
+- 后端监听：`http://127.0.0.1:3000`
+- 反向代理：Caddy
+- 进程托管：NSSM Windows Services
+- 小程序 API Base URL：`https://baoyanwang-helper.cn/api/v1`
+
+### 当前线上关键路径
+
+- 项目目录：`C:\Users\Administrator\project_baoyan`
+- 后端入口：`C:\Users\Administrator\project_baoyan\backend\dist\src\main.js`
+- Caddy 配置：`C:\caddy\Caddyfile`
+- Caddy 证书目录：`C:\caddy\certs`
+- 后端日志：`C:\Users\Administrator\backend.log`
+- Caddy 日志：`C:\Users\Administrator\caddy.log`
+
+### 当前线上 Caddy 配置要点
+
+- 域名：`baoyanwang-helper.cn`
+- 证书模式：固定证书文件，不走在线 ACME 自动签发
+- 原因：此前 DNS 提供方页面干扰了证书挑战流程，导致自动签发不稳定
+- 当前证书文件：
+  - `C:/caddy/certs/baoyanwang-helper.cn.crt`
+  - `C:/caddy/certs/baoyanwang-helper.cn.key`
+
+典型配置如下：
+
+```caddyfile
+https://baoyanwang-helper.cn {
+    tls C:/caddy/certs/baoyanwang-helper.cn.crt C:/caddy/certs/baoyanwang-helper.cn.key
+
+    handle /health {
+        reverse_proxy 127.0.0.1:3000
+    }
+
+    handle /api/* {
+        reverse_proxy 127.0.0.1:3000
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:3000
+    }
+}
+
+http://baoyanwang-helper.cn {
+    redir https://baoyanwang-helper.cn{uri} permanent
+}
+```
+
+### 当前线上 Windows 服务
+
+已验证运行中的服务：
+
+- `baoyan-backend`
+- `baoyan-caddy`
+
+检查命令：
+
+```cmd
+sc query baoyan-backend
+sc query baoyan-caddy
+netstat -ano | findstr LISTENING | findstr :3000
+netstat -ano | findstr LISTENING | findstr :443
+curl.exe -i http://127.0.0.1:3000/health
+curl.exe -i https://baoyanwang-helper.cn/health
+```
+
+预期结果：
+
+- `baoyan-backend` 为 `RUNNING`
+- `baoyan-caddy` 为 `RUNNING`
+- `3000` 和 `443` 都有 `LISTENING`
+- 两个 `/health` 都返回 `200`
+
+### NSSM 服务安装命令
+
+如果服务器重装或服务丢失，可使用下列命令恢复：
+
+```cmd
+cd C:\Users\Administrator\project_baoyan
+
+choco install nssm -y --no-progress
+
+nssm install baoyan-backend "C:\Program Files\nodejs\node.exe" "C:\Users\Administrator\project_baoyan\backend\dist\src\main.js"
+nssm set baoyan-backend AppDirectory "C:\Users\Administrator\project_baoyan\backend"
+nssm set baoyan-backend AppStdout "C:\Users\Administrator\backend.log"
+nssm set baoyan-backend AppStderr "C:\Users\Administrator\backend.log"
+nssm set baoyan-backend Start SERVICE_AUTO_START
+
+nssm install baoyan-caddy "C:\ProgramData\chocolatey\bin\caddy.exe" "run --config C:\caddy\Caddyfile"
+nssm set baoyan-caddy AppDirectory "C:\caddy"
+nssm set baoyan-caddy AppStdout "C:\Users\Administrator\caddy.log"
+nssm set baoyan-caddy AppStderr "C:\Users\Administrator\caddy.log"
+nssm set baoyan-caddy Start SERVICE_AUTO_START
+
+sc start baoyan-backend
+sc start baoyan-caddy
+```
+
+### 后端发布步骤（当前实际可用）
+
+在服务器 `cmd` 执行：
+
+```cmd
+cd C:\Users\Administrator\project_baoyan
+
+npm --prefix backend install
+npm --prefix backend run build
+
+sc stop baoyan-backend
+sc start baoyan-backend
+
+curl.exe -i http://127.0.0.1:3000/health
+curl.exe -i https://baoyanwang-helper.cn/health
+```
+
+### 小程序当前生产配置
+
+当前小程序默认基址已切换为正式域名：
+
+- [`miniprogram/app.js`](/Users/lusansui/Documents/trae_build_project/project_baoyan/miniprogram/app.js)
+- [`miniprogram/services/http.js`](/Users/lusansui/Documents/trae_build_project/project_baoyan/miniprogram/services/http.js)
+
+默认值：
+
+```text
+https://baoyanwang-helper.cn/api/v1
+```
+
+开发者工具验证：
+
+```js
+getApp().globalData.apiBaseUrl
+```
+
+预期输出：
+
+```js
+"https://baoyanwang-helper.cn/api/v1"
+```
+
+### 当前上线验收命令
+
+Mac 本机：
+
+```bash
+curl -Iv https://baoyanwang-helper.cn/health --connect-timeout 8
+```
+
+预期：
+
+- TLS 握手成功
+- 返回 `HTTP/2 200`
+
+开发者工具：
+
+```js
+wx.request({
+  url: 'https://baoyanwang-helper.cn/health',
+  success: r => console.log('health', r.statusCode, r.data),
+  fail: e => console.error(e)
+})
+
+wx.request({
+  url: 'https://baoyanwang-helper.cn/api/v1/camps?page=1&limit=20&status=published',
+  success: r => console.log('camps', r.statusCode, r.data),
+  fail: e => console.error(e)
+})
+```
+
+登录态验证：
+
+```js
+wx.request({
+  url: 'https://baoyanwang-helper.cn/api/v1/user/selection',
+  header: {
+    Authorization: `Bearer ${wx.getStorageSync('token')}`
+  },
+  success: res => console.log('selection =>', res.statusCode, res.data),
+  fail: err => console.error('selection fail =>', err)
+})
+```
+
+### 当前已知注意事项
+
+- 当前 Caddy 使用固定证书文件，后续需要切换到稳定可续期的正式证书方案
+- 如果开发者工具仍请求旧 `tcb.qcloud.la` 域名，先执行：
+
+```js
+wx.clearStorageSync()
+wx.setStorageSync('apiBaseUrl', 'https://baoyanwang-helper.cn/api/v1')
+getApp().globalData.apiBaseUrl = 'https://baoyanwang-helper.cn/api/v1'
+```
+
+- 如果服务掉线，优先检查：
+  - `sc query baoyan-backend`
+  - `sc query baoyan-caddy`
+  - `type C:\Users\Administrator\backend.log`
+  - `type C:\Users\Administrator\caddy.log`
+
+---
+
 ## 0. 上线固定提醒清单（2026-03-01新增）
 
 每次正式上线前，必须先完成以下两项：

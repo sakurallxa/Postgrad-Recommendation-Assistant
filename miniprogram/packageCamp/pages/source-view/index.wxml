@@ -1,0 +1,7 @@
+<view class="source-view-page">
+  <view class="source-tip">
+    <text class="source-tip-text">如页面无法打开，可复制链接后在浏览器查看官网原文。</text>
+    <view class="source-tip-action" bindtap="handleCopyLink">复制原文链接</view>
+  </view>
+  <web-view src="{{url}}"></web-view>
+</view>

@@ -46,9 +46,6 @@ Page({
     const baseUrl = app?.globalData?.apiBaseUrl || ''
     const forceRemote = wx.getStorageSync('forceRemoteProgressApi')
     if (forceRemote === true) return true
-    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
-      return false
-    }
     return Boolean(baseUrl)
   },
 

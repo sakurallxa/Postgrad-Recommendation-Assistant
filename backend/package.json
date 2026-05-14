@@ -22,7 +22,13 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "db:migrate:openid-data": "ts-node scripts/migrate-openid.ts"
+    "db:migrate:openid-data": "ts-node scripts/migrate-openid.ts",
+    "db:sync-universities": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"NodeNext\",\"moduleResolution\":\"NodeNext\"}' node -r ./node_modules/ts-node/register/transpile-only scripts/sync-universities.ts",
+    "db:backfill:university-logos": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"NodeNext\",\"moduleResolution\":\"NodeNext\"}' node -r ./node_modules/ts-node/register/transpile-only scripts/backfill-university-logos.ts",
+    "repair:low-quality-camps": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"NodeNext\",\"moduleResolution\":\"NodeNext\"}' node -r ./node_modules/ts-node/register/transpile-only scripts/reextract-low-quality-camps.ts",
+    "audit:camp-data-quality": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"NodeNext\",\"moduleResolution\":\"NodeNext\"}' node -r ./node_modules/ts-node/register/transpile-only scripts/audit-camp-data-quality.ts",
+    "audit:985-coverage": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"NodeNext\",\"moduleResolution\":\"NodeNext\"}' node -r ./node_modules/ts-node/register/transpile-only scripts/audit-985-coverage.ts",
+    "audit:985-crawler-readiness": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"NodeNext\",\"moduleResolution\":\"NodeNext\"}' node -r ./node_modules/ts-node/register/transpile-only scripts/audit-985-crawler-readiness.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

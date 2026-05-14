@@ -235,7 +235,7 @@ export class ReminderScheduler {
 
       const campTitle = alert.camp?.title || '保研公告';
       const universityName = alert.camp?.university?.name || '院校公告';
-      const changeField = alert.event?.fieldName || alert.title || '公告信息';
+      const changeField = this.resolveProgressChangeLabel(alert.event, alert.title);
       const changeTime = alert.event?.sourceUpdatedAt || alert.createdAt || new Date();
       const actionTokenEnabled = String(
         this.configService.get('WECHAT_ACTION_TOKEN_ENABLED') || 'false',
@@ -293,6 +293,25 @@ export class ReminderScheduler {
         },
       });
     }
+  }
+
+  private resolveProgressChangeLabel(event: any, fallbackTitle?: string): string {
+    const eventType = String(event?.eventType || '').trim();
+    const fieldName = String(event?.fieldName || '').trim();
+
+    if (eventType === 'deadline' || fieldName === 'deadline' || fieldName === 'startDate' || fieldName === 'endDate' || fieldName === 'publishDate') {
+      return '时间更新';
+    }
+    if (eventType === 'admission_result') {
+      return '入营结果更新';
+    }
+    if (eventType === 'outstanding_result') {
+      return '优秀营员结果更新';
+    }
+    if (fallbackTitle && /截止|时间|入营|优秀营员/.test(fallbackTitle)) {
+      return fallbackTitle;
+    }
+    return '公告更新';
   }
 
   private resolveUserOpenid(user: any): string {

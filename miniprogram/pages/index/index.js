@@ -28,7 +28,13 @@ Page({
     universityFilterOptions: [{ label: '全部', value: 'all' }],
     followedUniversitiesPreview: [],
     followedUniversitiesOverflow: 0,
+    myCampsTitle: '我的关注公告',
+    myCampsSubtext: '仅展示已关注院校的公告摘要',
     myCampsEmptyText: '暂无关注结果',
+    followedPreviewCamps: [],
+    campListMoreText: '',
+    showCampListMore: false,
+    isLoggedIn: false,
     // 当前激活的筛选
     activeStatusFilter: 'all',
     activeYearFilter: 'all',
@@ -49,8 +55,13 @@ Page({
 
   onShow() {
     // 页面显示时刷新数据
+    this.setData({ isLoggedIn: this.hasAuthToken() })
     this.loadUserSelection()
     this.refreshData()
+  },
+
+  hasAuthToken() {
+    return Boolean(wx.getStorageSync('token'))
   },
 
   onReachBottom() {
@@ -71,7 +82,8 @@ Page({
       page: 1,
       campList: [],
       allCampList: [],
-      hasMore: true
+      hasMore: true,
+      isLoggedIn: this.hasAuthToken()
     })
     this.initYearFilters()
     this.updateUniversityFilterOptions()
@@ -105,7 +117,7 @@ Page({
 
   async loadUserSelection() {
     try {
-      if (!this.shouldUseRemoteUserApi()) {
+      if (!this.shouldUseRemoteUserApi() || !this.hasAuthToken()) {
         return
       }
       const selection = await http.get('/user/selection', null, {
@@ -147,30 +159,29 @@ Page({
   },
 
   async loadCamps(isRefresh = false) {
+    if (!this.hasAuthToken()) {
+      this.setData({
+        loading: false,
+        loadingMore: false,
+        allCampList: [],
+        campList: [],
+        followedPreviewCamps: [],
+        hasMore: false,
+        stats: {
+          ...this.data.stats,
+          campCount: 0
+        }
+      })
+      this.updateUniversityFilterOptions()
+      return
+    }
+
     const page = isRefresh ? 1 : this.data.page
-    const followedUniversities = this.getFollowedUniversities()
-    const shouldShowEmptyByDefault = this.data.activeUniversityFilter === 'all' && followedUniversities.length === 0
 
     if (isRefresh) {
       this.setData({ loading: true })
     } else {
       this.setData({ loadingMore: true })
-    }
-
-    if (shouldShowEmptyByDefault) {
-      this.setData({
-        allCampList: [],
-        campList: [],
-        hasMore: false,
-        stats: {
-          ...this.data.stats,
-          campCount: 0
-        },
-        loading: false,
-        loadingMore: false
-      })
-      this.updateUniversityFilterOptions()
-      return
     }
 
     try {
@@ -191,6 +202,7 @@ Page({
         this.setData({
           allCampList: mergedList,
           campList: filteredList,
+          followedPreviewCamps: filteredList.slice(0, 5),
           page: page + 1,
           hasMore: Boolean(meta.totalPages ? page < meta.totalPages : normalizedList.length >= this.data.pageSize),
           stats: {
@@ -205,6 +217,7 @@ Page({
         this.setData({
           allCampList: mockList,
           campList: filteredList,
+          followedPreviewCamps: filteredList.slice(0, 5),
           hasMore: false,
           stats: {
             ...this.data.stats,
@@ -220,6 +233,7 @@ Page({
       this.setData({
         allCampList: mockList,
         campList: filteredList,
+        followedPreviewCamps: filteredList.slice(0, 5),
         hasMore: false,
         stats: {
           ...this.data.stats,
@@ -391,11 +405,22 @@ Page({
       activeUniversityFilter: nextActiveUniversityFilter,
       followedUniversitiesPreview: preview,
       followedUniversitiesOverflow: Math.max(0, followed.length - preview.length),
-      myCampsEmptyText: followed.length === 0 ? '暂无关注结果，先关注目标院校' : '暂无匹配夏令营/预推免'
+      isLoggedIn: this.hasAuthToken(),
+      myCampsTitle: '我的关注公告',
+      myCampsSubtext: this.hasAuthToken() ? '仅展示已关注院校的公告摘要' : '登录后展示你已关注院校的公告',
+      campListMoreText: '查看全部已关注公告',
+      showCampListMore: this.hasAuthToken() && this.data.campList.length > 5,
+      myCampsEmptyText: followed.length === 0
+        ? (this.hasAuthToken() ? '暂无关注结果，先关注目标院校' : '登录后可查看已关注院校公告')
+        : '暂无匹配夏令营/预推免'
     })
   },
 
   handleOpenSelector() {
+    if (!this.hasAuthToken()) {
+      this.handleOpenLogin()
+      return
+    }
     wx.navigateTo({
       url: '/packageSelector/pages/selector/index'
     })
@@ -404,6 +429,29 @@ Page({
   handleOpenOpportunityPool() {
     wx.navigateTo({
       url: '/packageCamp/pages/camp-list/index?mode=opportunity'
+    })
+  },
+
+  handleOpenFollowedCamps() {
+    if (!this.hasAuthToken()) {
+      this.handleOpenLogin()
+      return
+    }
+    wx.navigateTo({
+      url: '/packageCamp/pages/camp-list/index?mode=followed'
+    })
+  },
+
+  handleOpenLogin() {
+    wx.showModal({
+      title: '需要先登录',
+      content: '登录后关注院校会保存到你的账号，并用于生成我的关注公告。',
+      confirmText: '去登录',
+      success: (res) => {
+        if (res.confirm) {
+          wx.switchTab({ url: '/pages/my/my' })
+        }
+      }
     })
   },
 
@@ -435,6 +483,9 @@ Page({
   },
 
   getFollowedUniversities() {
+    if (!this.hasAuthToken()) {
+      return []
+    }
     const storeUniversities = selectionStore.selectedUniversities || []
     const localUniversities = wx.getStorageSync('selectedUniversities') || []
     const userSelection = wx.getStorageSync('userSelection') || {}
@@ -453,19 +504,12 @@ Page({
     if (forceRemote === true) {
       return true
     }
-    // 当前云开发域名未部署 camps API，默认走本地数据避免持续404
-    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
-      return false
-    }
     return Boolean(baseUrl)
   },
 
   shouldUseRemoteUserApi() {
     const app = getApp()
     const baseUrl = app?.globalData?.apiBaseUrl || ''
-    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
-      return false
-    }
     return Boolean(baseUrl)
   },
 
@@ -550,12 +594,21 @@ Page({
     if (!item || typeof item !== 'object') {
       return null
     }
-    return normalizeAnnouncementType({
+    const normalized = normalizeAnnouncementType({
       ...item,
       universityName: item.universityName || item.university?.name || '',
       universityLogo: item.universityLogo || item.university?.logo || '',
       universityId: item.universityId || item.university?.id || '',
+      universityWebsite: item.universityWebsite || item.university?.website || ''
     })
+    return {
+      ...normalized,
+      title: this.sanitizeCampTitle(normalized.title),
+      publishDate: this.formatDateOnly(normalized.publishDate),
+      deadline: this.formatDateOnly(normalized.deadline),
+      startDate: this.formatDateOnly(normalized.startDate),
+      endDate: this.formatDateOnly(normalized.endDate)
+    }
   },
 
   sanitizeCampList(list) {
@@ -579,7 +632,7 @@ Page({
           title: item.title,
           deadline: item.deadline,
           daysRemaining,
-          deadlineText: `${item.deadline} 截止`,
+          deadlineText: `${this.formatDateOnly(item.deadline)} 截止`,
           statusClass: daysRemaining <= 3 ? 'urgent' : (daysRemaining <= 7 ? 'warning' : 'normal')
         }
       })
@@ -607,6 +660,8 @@ Page({
       })
       .map(item => ({
         ...item,
+        title: this.sanitizeCampTitle(item.title),
+        deadline: this.formatDateOnly(item.deadline),
         detailUrl: this.buildCampDetailUrl({
           id: item.id,
           announcementType: item.announcementType,
@@ -614,6 +669,50 @@ Page({
         })
       }))
       .slice(0, 5)
+  },
+
+  sanitizeCampTitle(title = '') {
+    const original = String(title || '').trim()
+    let text = original
+    if (!text) return ''
+
+    const genericPattern = /^(首页|正文|通知公告|硕士招生公示|信息公开|招生信息|招生公告)$/u
+    const weakGenericPattern = /^(首页|正文)$/u
+    text = text.replace(/^(?:当前您的位置|您当前的位置|当前位置)[:：]?\s*/u, '')
+    const parts = text.split(/\s*>\s*/).map(item => item.trim()).filter(Boolean)
+    if (parts.length > 1) {
+      const meaningfulParts = parts.filter(item => !genericPattern.test(item))
+      const fallbackParts = parts.filter(item => !weakGenericPattern.test(item))
+      text = meaningfulParts[meaningfulParts.length - 1] || fallbackParts[fallbackParts.length - 1] || parts[parts.length - 1] || text
+    }
+    text = text.replace(
+      /^.+?(?:信息公开|通知公告|招生信息|招生公告|研究生院|研究生招生信息网|研究生招生网站|研招网)\s+(?=.{0,80}(?:夏令营|暑期学校|推免|预推免|推荐免试|免试攻读))/u,
+      ''
+    ).trim()
+    text = text.replace(
+      /^(?:(?:信息公开|通知公告|招生信息|招生公告|研究生院|研究生招生信息网|研究生招生网站|研招网)\s+)+/u,
+      ''
+    ).trim()
+    text = text.replace(/\s*[-|｜_]\s*[^-|｜_]{0,60}(研究生招生网站|研招网|研究生院|招生信息网)$/u, '').trim()
+    text = text.replace(weakGenericPattern, '').trim()
+    return text || parts?.[parts.length - 2] || original
+  },
+
+  formatDateOnly(value) {
+    const text = String(value || '').trim()
+    if (!text) return ''
+    const parsed = new Date(text)
+    if (!Number.isNaN(parsed.getTime())) {
+      const year = parsed.getFullYear()
+      const month = `${parsed.getMonth() + 1}`.padStart(2, '0')
+      const day = `${parsed.getDate()}`.padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+    const match = text.match(/(20\d{2})[-/年](\d{1,2})[-/月](\d{1,2})/)
+    if (match) {
+      return `${match[1]}-${String(match[2]).padStart(2, '0')}-${String(match[3]).padStart(2, '0')}`
+    }
+    return text.replace(/T.*$/, '').replace(/\s+\d{2}:\d{2}.*$/, '')
   },
 
   getMockCamps() {

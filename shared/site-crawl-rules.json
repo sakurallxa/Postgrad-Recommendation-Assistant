@@ -1,0 +1,2580 @@
+{
+  "listPagePatterns": [
+    {
+      "host": "yz.cuc.edu.cn",
+      "path": "/tm/list"
+    },
+    {
+      "host": "yz.bnu.edu.cn",
+      "path": "/list/master_board"
+    },
+    {
+      "host": "yz.bnu.edu.cn",
+      "path": "/list/doctor_board"
+    },
+    {
+      "host": "grd.bit.edu.cn",
+      "path": "/zsgz/"
+    },
+    {
+      "host": "yzb.buaa.edu.cn",
+      "path": "/xlss.htm"
+    },
+    {
+      "host": "yzb.buaa.edu.cn",
+      "path": "/zxsd.htm"
+    },
+    {
+      "host": "gs.whu.edu.cn",
+      "path": "/tzgg/zs.htm"
+    },
+    {
+      "host": "yz.uestc.edu.cn",
+      "path": "/zsxc1/xly.htm"
+    },
+    {
+      "host": "yz.uestc.edu.cn",
+      "path": "/sszs/tzgg.htm"
+    },
+    {
+      "host": "yzb.nankai.edu.cn",
+      "path": "/_t60/2583/list.htm"
+    },
+    {
+      "host": "yzb.nankai.edu.cn",
+      "path": "/_t60/2584/list.htm"
+    },
+    {
+      "host": "yzb.nankai.edu.cn",
+      "path": "/_t60/main.htm"
+    },
+    {
+      "host": "yzb.nankai.edu.cn",
+      "path": "/_t60/"
+    },
+    {
+      "host": "yz.neu.edu.cn",
+      "path": "/5932/list.htm"
+    },
+    {
+      "host": "yjsy.hunnu.edu.cn",
+      "path": "/zsks/sszk1.htm"
+    },
+    {
+      "host": "yjs.nwu.edu.cn",
+      "path": "/zsgz/tmybm.htm"
+    },
+    {
+      "host": "yz.scu.edu.cn",
+      "path": "/zsxx/newslist/ss/gg/1"
+    },
+    {
+      "host": "yz.csu.edu.cn",
+      "path": "/sszs.htm"
+    },
+    {
+      "host": "yz.lzu.edu.cn",
+      "path": "/tongzhigonggao/index.html"
+    },
+    {
+      "host": "yz.lzu.edu.cn",
+      "path": "/shuoshishengzhaosheng/index.html"
+    },
+    {
+      "host": "gra.hnu.edu.cn",
+      "path": "/zsxx/sszs.htm"
+    },
+    {
+      "host": "yz.xjtu.edu.cn",
+      "path": "/info/1082/4277.htm"
+    },
+    {
+      "host": "yz.xjtu.edu.cn",
+      "path": "/info/1086/4070.htm"
+    },
+    {
+      "host": "yz.cau.edu.cn",
+      "path": "/art/2025/7/31/art_41742_1077756.html"
+    }
+  ],
+  "detailAllowRules": [
+    {
+      "host": "yzb.nankai.edu.cn",
+      "pathKeywords": [
+        "/_t60/2025/",
+        "/_t60/2026/",
+        "/c2583a",
+        "/c2584a"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yzb.tju.edu.cn",
+      "pathKeywords": [
+        "/xwzx/zxxx/",
+        "/xwzx/tkss_xw/",
+        "/zszn/bkbd/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "预推免",
+        "预报名",
+        "夏令营",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.bnu.edu.cn",
+      "pathKeywords": [
+        "/detail/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "推免",
+        "推免生",
+        "免试攻读",
+        "夏令营",
+        "优秀大学生",
+        "直博"
+      ]
+    },
+    {
+      "host": "grd.bit.edu.cn",
+      "pathKeywords": [
+        "/zsgz/",
+        "/yyxw2/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "推免",
+        "推免生",
+        "免试攻读",
+        "夏令营",
+        "优秀大学生",
+        "直博"
+      ]
+    },
+    {
+      "host": "yzb.buaa.edu.cn",
+      "pathKeywords": [
+        "/info/1036/",
+        "/xlss",
+        "/zxsd"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "推免",
+        "推免生",
+        "免试攻读",
+        "夏令营",
+        "优秀大学生",
+        "直博"
+      ]
+    },
+    {
+      "host": "gs.whu.edu.cn",
+      "pathKeywords": [
+        "/tzgg/zs",
+        "/info/1062/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "推免",
+        "推免生",
+        "免试攻读",
+        "夏令营",
+        "优秀大学生",
+        "直博"
+      ]
+    },
+    {
+      "host": "wdyz.whu.edu.cn",
+      "pathKeywords": [
+        "/info/1008/",
+        "/info/1003/",
+        "/info/1012/",
+        "/info/1031/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "推免",
+        "推免生",
+        "免试攻读",
+        "夏令营",
+        "优秀大学生",
+        "直博"
+      ]
+    },
+    {
+      "host": "yzb.hit.edu.cn",
+      "pathKeywords": [
+        "/c8816a",
+        "/pagem.htm"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "预报名",
+        "夏令营",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.tongji.edu.cn",
+      "pathKeywords": [
+        "/info/1010/",
+        "/info/1018/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "graduate.sysu.edu.cn",
+      "pathKeywords": [
+        "/article/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "grs.muc.edu.cn",
+      "pathKeywords": [
+        "/yjsyzsw/info/1058/",
+        "/yjsyzsw/info/1060/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.cqu.edu.cn",
+      "pathKeywords": [
+        "/news/",
+        "/ss_fsxz"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.zzu.edu.cn",
+      "pathKeywords": [
+        "/info/1070/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yjszs.nudt.edu.cn",
+      "pathKeywords": [
+        "/detailed.view",
+        "keyId=777"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yzb.hunnu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/article/",
+        "/notice/",
+        "/tzgg/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yjsy.hunnu.edu.cn",
+      "pathKeywords": [
+        "/zsks/sszk",
+        "/info/",
+        "/article/",
+        "/notice/",
+        "/tzgg/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博",
+        "夏令营",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yzb.neu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/article/",
+        "/notice/",
+        "/tzgg/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.neu.edu.cn",
+      "pathKeywords": [
+        "/5932/",
+        "/info/",
+        "/article/",
+        "/notice/",
+        "/tzgg/",
+        "/list.htm"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博",
+        "夏令营",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "www.smmu.edu.cn",
+      "pathKeywords": [
+        "/c463a",
+        "/yjszs/list"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "www.fmmu.edu.cn",
+      "pathKeywords": [
+        "/yjsy/info/1027/",
+        "/yjsy/zsjy/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yzb.nwu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yjs.nwu.edu.cn",
+      "pathKeywords": [
+        "/zsgz/tmybm",
+        "/zsgz/",
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博",
+        "夏令营",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yzb.nwpu.edu.cn",
+      "pathKeywords": [
+        "/new/sy/",
+        "/info/",
+        "/sszs/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.nwsuaf.edu.cn",
+      "pathKeywords": [
+        "/xxgk/",
+        "/xxgk1/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.scu.edu.cn",
+      "pathKeywords": [
+        "/zsxx/newslist/ss/gg/",
+        "/zsxx/Details/",
+        "/sszyml/",
+        "/tms/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.uestc.edu.cn",
+      "pathKeywords": [
+        "/info/1064/",
+        "/info/1007/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预推免",
+        "夏令营",
+        "优秀大学生",
+        "直博"
+      ]
+    },
+    {
+      "host": "graduate.cugb.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.cumtb.edu.cn",
+      "pathKeywords": [
+        "/index/detail.html"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yjsy.cupl.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "gs.cufe.edu.cn",
+      "pathKeywords": [
+        "/info/1028/",
+        "/info/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.swu.edu.cn",
+      "pathKeywords": [
+        "/zsxx/xly_tm/",
+        "/zsxx/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.jnu.edu.cn",
+      "pathKeywords": [
+        "/list.htm",
+        "/33359/",
+        "/33001/",
+        "/32999/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "graschool.ahu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yjszs.hfut.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yjsy.hfut.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yanzhao.bjut.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "graduate.buct.edu.cn",
+      "pathKeywords": [
+        "/yjszsw/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yzb.bjtu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "gs.bjtu.edu.cn",
+      "pathKeywords": [
+        "/recommend/",
+        "/info/",
+        "/notice/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "gs.ustb.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yzxc.ustb.edu.cn",
+      "pathKeywords": [
+        "/xlytm/",
+        "/hdap/",
+        "/xlyhd/",
+        "/info/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预推免",
+        "夏令营",
+        "优秀大学生",
+        "直博"
+      ]
+    },
+    {
+      "host": "graduate.bjfu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "免试攻读研究生",
+        "免试攻读",
+        "推免生",
+        "推免",
+        "预报名",
+        "直博"
+      ]
+    },
+    {
+      "host": "yzb.sjtu.edu.cn",
+      "pathKeywords": [
+        "/xxgs/xlygs",
+        "/xxgs/ytmgs"
+      ],
+      "titleKeywords": [
+        "夏令营公示",
+        "预推免公示",
+        "推免公示"
+      ]
+    },
+    {
+      "host": "yz.tsinghua.edu.cn",
+      "pathKeywords": [
+        "/xlyxx",
+        "/zxgg",
+        "/info/1024/"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "推荐免试",
+        "推免",
+        "优秀大学生",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.ustc.edu.cn",
+      "pathKeywords": [
+        "/article/",
+        "/column/202",
+        "/column/182"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免"
+      ]
+    },
+    {
+      "host": "www.grs.zju.edu.cn",
+      "pathKeywords": [
+        "/yjszs/",
+        "/c28498a"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "推荐免试",
+        "推免",
+        "优秀大学生",
+        "直博"
+      ]
+    },
+    {
+      "host": "yz.cuc.edu.cn",
+      "pathKeywords": [
+        "/tm/",
+        "/article/",
+        "/info/",
+        "/page.htm",
+        "/c8678"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免"
+      ]
+    },
+    {
+      "host": "yjsy.ncepu.edu.cn",
+      "pathKeywords": [
+        "/zsxx/sszsxx/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "推免",
+        "预推免",
+        "夏令营"
+      ]
+    },
+    {
+      "host": "yzb.bupt.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/article/",
+        "/notice/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "推免",
+        "预推免",
+        "夏令营",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "graduate.bfsu.edu.cn",
+      "pathKeywords": [
+        "/info/1048/",
+        "/info/1074/"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "推免",
+        "预推免",
+        "夏令营",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yjsy.uibe.edu.cn",
+      "pathKeywords": [
+        "infoSingleArticle.do",
+        "infoArticleList.do",
+        "columnId=2398",
+        "columnId=403"
+      ],
+      "titleKeywords": [
+        "推荐免试",
+        "推免",
+        "预推免",
+        "夏令营",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "admission.pku.edu.cn",
+      "pathKeywords": [
+        "/xly/",
+        "/tzgg/",
+        "/zsxx/",
+        "/info/",
+        "/detail",
+        "/content"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "econ.pku.edu.cn",
+      "pathKeywords": [
+        "/jxxm/zsxxfb_",
+        "/info/",
+        "/article/"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "www.im.pku.edu.cn",
+      "pathKeywords": [
+        "/zsxm/ssxm/",
+        "/info/",
+        "/article/"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "pgs.ruc.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yz.cau.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "gs.dlut.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yjsy.jlu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "gsao.fudan.edu.cn",
+      "pathKeywords": [
+        "/sszs/",
+        "/info/",
+        "/notice/",
+        "/article/",
+        "/list.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yjsy.ecnu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yzb.nju.edu.cn",
+      "pathKeywords": [
+        "/c47868",
+        "/c47863",
+        "/page.htm",
+        "/pagem.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yzb.seu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "zs.xmu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yz.sdu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "www.yz.sdu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yz.ouc.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "gszs.hust.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "gra.hnu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yz.csu.edu.cn",
+      "pathKeywords": [
+        "/sszs",
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yanzhao.scut.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yz.xjtu.edu.cn",
+      "pathKeywords": [
+        "/info/",
+        "/notice/",
+        "/tzgg/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "ge.lzu.edu.cn",
+      "pathKeywords": [
+        "/tongzhigonggao/",
+        "/info/",
+        "/notice/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "yz.lzu.edu.cn",
+      "pathKeywords": [
+        "/tongzhigonggao/",
+        "/shuoshishengzhaosheng/",
+        "/info/",
+        "/notice/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "geoscience.lzu.edu.cn",
+      "pathKeywords": [
+        "/info/1034/",
+        "/info/",
+        "/notice/",
+        "/article/",
+        "/page.htm"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "推免生",
+        "优秀大学生"
+      ]
+    },
+    {
+      "host": "atmos.lzu.edu.cn",
+      "pathKeywords": [
+        "/tongzhigg/",
+        "/html/",
+        "/info/",
+        "/notice/",
+        "/article/"
+      ],
+      "titleKeywords": [
+        "夏令营",
+        "预推免",
+        "推荐免试",
+        "推免",
+        "推免生",
+        "优秀大学生"
+      ]
+    }
+  ],
+  "blockedDetailHosts": [
+    "202.113.8.92",
+    "hityzb.hit.edu.cn",
+    "yjsglxt.cumtb.edu.cn",
+    "yjsxt.jnu.edu.cn",
+    "sso.scnu.edu.cn",
+    "yjszsgl.csu.edu.cn",
+    "yjszsxt.hnu.edu.cn"
+  ],
+  "blockedLinkPatterns": {
+    "econ.pku.edu.cn": [
+      "/jxxm/zsxxfb_20211202144549787517/389994.htm",
+      "/jxxm/zsxxfb_20211202144549787517/50170econ389994.htm"
+    ],
+    "www.im.pku.edu.cn": [
+      "/zsxm/ssxm/390140.htm"
+    ],
+    "yzb.tju.edu.cn": [
+      "202.113.8.92",
+      "/gstms",
+      "/bszs/"
+    ],
+    "yzb.hit.edu.cn": [
+      "hityzb.hit.edu.cn/zhxy-yjs-zs",
+      "hityzb.hit.edu.cn/zhxy-yjs-zs_v2"
+    ],
+    "yzb.bjtu.edu.cn": [
+      "/gatzs/",
+      "/bszs/",
+      "mba",
+      "emba",
+      "mem",
+      "mpacc",
+      "mta",
+      "maud",
+      "law",
+      "zhibo",
+      "zixun",
+      "fenshuxian",
+      "fushi",
+      "chushi",
+      "diaoji"
+    ],
+    "gs.bjtu.edu.cn": [
+      "mba",
+      "emba",
+      "mem",
+      "mpacc",
+      "mta",
+      "maud",
+      "law",
+      "zixun",
+      "fenshuxian",
+      "fushi",
+      "chushi",
+      "diaoji"
+    ],
+    "yjszsgl.csu.edu.cn": [
+      "/zsgl",
+      "default.aspx"
+    ],
+    "yjszsxt.hnu.edu.cn": [
+      "/zsxt",
+      "default.aspx"
+    ],
+    "yz.csu.edu.cn": [
+      "download.jsp"
+    ],
+    "yz.bnu.edu.cn": [
+      "dd_article_attachment"
+    ],
+    "yzb.buaa.edu.cn": [
+      "download.jsp"
+    ],
+    "geoscience.lzu.edu.cn": [
+      "download.jsp"
+    ],
+    "yz.cau.edu.cn": [
+      "/art/2025/7/31/art_41742_1077756.html"
+    ],
+    "yz.xjtu.edu.cn": [
+      "/info/1082/4277.htm",
+      "/info/1086/4070.htm"
+    ],
+    "yjszs.nudt.edu.cn": [
+      "keyId=777"
+    ]
+  },
+  "titleBlockKeywords": {
+    "yzb.bjtu.edu.cn": [
+      "港澳台",
+      "博士",
+      "调剂",
+      "直播宣讲会",
+      "网上咨询",
+      "初试",
+      "复试",
+      "考点",
+      "分数线",
+      "少干",
+      "录取通知书",
+      "专项计划"
+    ],
+    "gs.bjtu.edu.cn": [
+      "港澳台",
+      "博士",
+      "调剂",
+      "直播宣讲会",
+      "网上咨询",
+      "初试",
+      "复试",
+      "考点",
+      "分数线",
+      "少干",
+      "录取通知书",
+      "专项计划"
+    ],
+    "yz.tsinghua.edu.cn": [
+      "博士",
+      "港澳台",
+      "国际招生",
+      "分数线",
+      "复试",
+      "调剂",
+      "保留入学资格"
+    ],
+    "yz.ustc.edu.cn": [
+      "调剂",
+      "复试",
+      "分数线",
+      "海外一流高校",
+      "博士"
+    ],
+    "www.grs.zju.edu.cn": [
+      "博士",
+      "港澳台",
+      "国际",
+      "调剂",
+      "复试",
+      "分数线"
+    ],
+    "yz.bnu.edu.cn": [
+      "博士招生",
+      "港澳台",
+      "调剂",
+      "复试",
+      "分数线",
+      "硕博连读"
+    ],
+    "grd.bit.edu.cn": [
+      "博士",
+      "港澳台",
+      "调剂",
+      "复试",
+      "分数线",
+      "招生章程",
+      "统考"
+    ],
+    "yzb.buaa.edu.cn": [
+      "博士",
+      "港澳台",
+      "调剂",
+      "复试",
+      "分数线",
+      "统考",
+      "国际"
+    ],
+    "gs.whu.edu.cn": [
+      "博士",
+      "港澳台",
+      "调剂",
+      "复试",
+      "分数线",
+      "统考",
+      "报名系统"
+    ],
+    "wdyz.whu.edu.cn": [
+      "博士",
+      "港澳台",
+      "调剂",
+      "复试",
+      "分数线",
+      "统考",
+      "报名系统"
+    ],
+    "gs.cufe.edu.cn": [
+      "港澳台",
+      "博士",
+      "调剂",
+      "初试",
+      "复试",
+      "分数线",
+      "网上咨询",
+      "招生章程",
+      "缴费"
+    ],
+    "yz.cuc.edu.cn": [
+      "港澳台",
+      "博士",
+      "调剂",
+      "初试",
+      "复试",
+      "成绩",
+      "复核",
+      "报名系统"
+    ],
+    "yjsy.ncepu.edu.cn": [
+      "港澳台",
+      "博士",
+      "调剂",
+      "初试",
+      "复试",
+      "考点",
+      "分数线",
+      "网上咨询"
+    ],
+    "yzxc.ustb.edu.cn": [
+      "港澳台",
+      "博士",
+      "调剂",
+      "初试",
+      "复试",
+      "分数线",
+      "网上咨询"
+    ],
+    "yzb.bupt.edu.cn": [
+      "港澳台",
+      "博士",
+      "调剂",
+      "初试",
+      "复试",
+      "分数线",
+      "招生章程",
+      "网上咨询",
+      "报名系统"
+    ],
+    "graduate.bfsu.edu.cn": [
+      "港澳台",
+      "博士",
+      "调剂",
+      "初试",
+      "复试",
+      "分数线",
+      "网上咨询"
+    ],
+    "yjsy.uibe.edu.cn": [
+      "港澳台",
+      "博士",
+      "调剂",
+      "初试",
+      "复试",
+      "分数线",
+      "网上咨询",
+      "招生章程"
+    ]
+  },
+  "candidateAllowPatterns": {
+    "yzb.tju.edu.cn": [
+      "yzb.tju.edu.cn/xwzx/zxxx/",
+      "yzb.tju.edu.cn/zszn/bkbd/"
+    ],
+    "yz.bnu.edu.cn": [
+      "yz.bnu.edu.cn/detail/"
+    ],
+    "grd.bit.edu.cn": [
+      "grd.bit.edu.cn/zsgz/",
+      "grd.bit.edu.cn/yyxw2/"
+    ],
+    "yzb.buaa.edu.cn": [
+      "yzb.buaa.edu.cn/info/1036/",
+      "yzb.buaa.edu.cn/xlss",
+      "yzb.buaa.edu.cn/zxsd"
+    ],
+    "gs.whu.edu.cn": [
+      "gs.whu.edu.cn/info/1062/",
+      "gs.whu.edu.cn/tzgg/zs"
+    ],
+    "wdyz.whu.edu.cn": [
+      "wdyz.whu.edu.cn/info/1008/",
+      "wdyz.whu.edu.cn/info/1003/",
+      "wdyz.whu.edu.cn/info/1012/",
+      "wdyz.whu.edu.cn/info/1031/"
+    ],
+    "grs.muc.edu.cn": [
+      "grs.muc.edu.cn/yjsyzsw/info/1058/",
+      "grs.muc.edu.cn/yjsyzsw/info/1060/"
+    ],
+    "yz.cqu.edu.cn": [
+      "yz.cqu.edu.cn/news/",
+      "yz.cqu.edu.cn/ss_fsxz"
+    ],
+    "yz.zzu.edu.cn": [
+      "yz.zzu.edu.cn/info/1070/"
+    ],
+    "yjszs.nudt.edu.cn": [
+      "yjszs.nudt.edu.cn/pubweb/homePageList/detailed.view"
+    ],
+    "yzb.hunnu.edu.cn": [
+      "yzb.hunnu.edu.cn/info/",
+      "yzb.hunnu.edu.cn/article/",
+      "yzb.hunnu.edu.cn/notice/",
+      "yzb.hunnu.edu.cn/tzgg/"
+    ],
+    "yjsy.hunnu.edu.cn": [
+      "yjsy.hunnu.edu.cn/zsks/sszk",
+      "yjsy.hunnu.edu.cn/info/",
+      "yjsy.hunnu.edu.cn/article/",
+      "yjsy.hunnu.edu.cn/notice/",
+      "yjsy.hunnu.edu.cn/tzgg/"
+    ],
+    "yzb.neu.edu.cn": [
+      "yzb.neu.edu.cn/info/",
+      "yzb.neu.edu.cn/article/",
+      "yzb.neu.edu.cn/notice/",
+      "yzb.neu.edu.cn/tzgg/"
+    ],
+    "yz.neu.edu.cn": [
+      "yz.neu.edu.cn/5932/",
+      "yz.neu.edu.cn/info/",
+      "yz.neu.edu.cn/article/",
+      "yz.neu.edu.cn/notice/",
+      "yz.neu.edu.cn/tzgg/"
+    ],
+    "www.smmu.edu.cn": [
+      "www.smmu.edu.cn/c463a",
+      "www.smmu.edu.cn/yjszs/list"
+    ],
+    "www.fmmu.edu.cn": [
+      "www.fmmu.edu.cn/yjsy/info/1027/",
+      "www.fmmu.edu.cn/yjsy/zsjy/"
+    ],
+    "yzb.nwu.edu.cn": [
+      "yzb.nwu.edu.cn/info/",
+      "yzb.nwu.edu.cn/notice/",
+      "yzb.nwu.edu.cn/tzgg/",
+      "yzb.nwu.edu.cn/article/"
+    ],
+    "yjs.nwu.edu.cn": [
+      "yjs.nwu.edu.cn/zsgz/tmybm",
+      "yjs.nwu.edu.cn/zsgz/",
+      "yjs.nwu.edu.cn/info/",
+      "yjs.nwu.edu.cn/notice/",
+      "yjs.nwu.edu.cn/tzgg/",
+      "yjs.nwu.edu.cn/article/"
+    ],
+    "yzb.nwpu.edu.cn": [
+      "yzb.nwpu.edu.cn/new/sy/",
+      "yzb.nwpu.edu.cn/info/",
+      "yzb.nwpu.edu.cn/sszs/"
+    ],
+    "yz.nwsuaf.edu.cn": [
+      "yz.nwsuaf.edu.cn/xxgk/",
+      "yz.nwsuaf.edu.cn/xxgk1/"
+    ],
+    "yz.scu.edu.cn": [
+      "yz.scu.edu.cn/zsxx/newslist/ss/gg/",
+      "yz.scu.edu.cn/zsxx/Details/",
+      "yz.scu.edu.cn/sszyml/",
+      "yz.scu.edu.cn/tms/"
+    ],
+    "yz.uestc.edu.cn": [
+      "yz.uestc.edu.cn/info/1064/",
+      "yz.uestc.edu.cn/info/1007/",
+      "yz.uestc.edu.cn/zsxc1/xly.htm",
+      "yz.uestc.edu.cn/sszs/tzgg.htm"
+    ],
+    "graduate.cugb.edu.cn": [
+      "graduate.cugb.edu.cn/info/",
+      "graduate.cugb.edu.cn/notice/",
+      "graduate.cugb.edu.cn/tzgg/"
+    ],
+    "yz.cumtb.edu.cn": [
+      "yz.cumtb.edu.cn/index/detail.html"
+    ],
+    "yjsy.cupl.edu.cn": [
+      "yjsy.cupl.edu.cn/info/",
+      "yjsy.cupl.edu.cn/notice/",
+      "yjsy.cupl.edu.cn/tzgg/"
+    ],
+    "gs.cufe.edu.cn": [
+      "gs.cufe.edu.cn/info/1028/",
+      "gs.cufe.edu.cn/info/"
+    ],
+    "yz.swu.edu.cn": [
+      "yz.swu.edu.cn/zsxx/xly_tm/",
+      "yz.swu.edu.cn/zsxx/"
+    ],
+    "yz.jnu.edu.cn": [
+      "yz.jnu.edu.cn/33359/",
+      "yz.jnu.edu.cn/33001/",
+      "yz.jnu.edu.cn/32999/"
+    ],
+    "graschool.ahu.edu.cn": [
+      "graschool.ahu.edu.cn/info/",
+      "graschool.ahu.edu.cn/notice/",
+      "graschool.ahu.edu.cn/tzgg/"
+    ],
+    "yjszs.hfut.edu.cn": [
+      "yjszs.hfut.edu.cn/info/",
+      "yjszs.hfut.edu.cn/notice/",
+      "yjszs.hfut.edu.cn/tzgg/"
+    ],
+    "yjsy.hfut.edu.cn": [
+      "yjsy.hfut.edu.cn/info/",
+      "yjsy.hfut.edu.cn/notice/",
+      "yjsy.hfut.edu.cn/tzgg/"
+    ],
+    "yanzhao.bjut.edu.cn": [
+      "yanzhao.bjut.edu.cn/info/",
+      "yanzhao.bjut.edu.cn/notice/",
+      "yanzhao.bjut.edu.cn/tzgg/"
+    ],
+    "graduate.buct.edu.cn": [
+      "graduate.buct.edu.cn/yjszsw/",
+      "graduate.buct.edu.cn/page.htm"
+    ],
+    "yzb.bjtu.edu.cn": [
+      "yzb.bjtu.edu.cn/info/",
+      "yzb.bjtu.edu.cn/notice/",
+      "yzb.bjtu.edu.cn/tzgg/"
+    ],
+    "gs.bjtu.edu.cn": [
+      "gs.bjtu.edu.cn/recommend/",
+      "gs.bjtu.edu.cn/info/",
+      "gs.bjtu.edu.cn/notice/"
+    ],
+    "gs.ustb.edu.cn": [
+      "gs.ustb.edu.cn/info/",
+      "gs.ustb.edu.cn/notice/",
+      "gs.ustb.edu.cn/tzgg/"
+    ],
+    "yzxc.ustb.edu.cn": [
+      "yzxc.ustb.edu.cn/xlytm/",
+      "yzxc.ustb.edu.cn/hdap/",
+      "yzxc.ustb.edu.cn/xlyhd/",
+      "yzxc.ustb.edu.cn/info/"
+    ],
+    "graduate.bjfu.edu.cn": [
+      "graduate.bjfu.edu.cn/info/",
+      "graduate.bjfu.edu.cn/notice/",
+      "graduate.bjfu.edu.cn/tzgg/"
+    ],
+    "yzb.sjtu.edu.cn": [
+      "yzb.sjtu.edu.cn/xxgs/xlygs",
+      "yzb.sjtu.edu.cn/xxgs/ytmgs",
+      "yzb.sjtu.edu.cn/post/"
+    ],
+    "yz.tsinghua.edu.cn": [
+      "yz.tsinghua.edu.cn/info/1024/",
+      "yz.tsinghua.edu.cn/xlyxx",
+      "yz.tsinghua.edu.cn/zxgg"
+    ],
+    "yz.ustc.edu.cn": [
+      "yz.ustc.edu.cn/article/",
+      "yz.ustc.edu.cn/column/202",
+      "yz.ustc.edu.cn/column/182"
+    ],
+    "www.grs.zju.edu.cn": [
+      "www.grs.zju.edu.cn/yjszs/",
+      "www.grs.zju.edu.cn/yjszs/2025/0908/c28498a"
+    ],
+    "yz.cuc.edu.cn": [
+      "yz.cuc.edu.cn/tm/",
+      "/article/",
+      "/info/",
+      "/page.htm",
+      "/c8678"
+    ],
+    "yjsy.ncepu.edu.cn": [
+      "yjsy.ncepu.edu.cn/zsxx/sszsxx/"
+    ],
+    "yzb.bupt.edu.cn": [
+      "yzb.bupt.edu.cn/info/",
+      "yzb.bupt.edu.cn/article/",
+      "yzb.bupt.edu.cn/notice/"
+    ],
+    "graduate.bfsu.edu.cn": [
+      "graduate.bfsu.edu.cn/info/1048/",
+      "graduate.bfsu.edu.cn/info/1074/"
+    ],
+    "yjsy.uibe.edu.cn": [
+      "infoSingleArticle.do",
+      "infoArticleList.do",
+      "columnId=2398",
+      "columnId=403"
+    ],
+    "admission.pku.edu.cn": [
+      "admission.pku.edu.cn/xly/",
+      "admission.pku.edu.cn/tzgg/",
+      "admission.pku.edu.cn/zsxx/",
+      "admission.pku.edu.cn/info/"
+    ],
+    "econ.pku.edu.cn": [
+      "econ.pku.edu.cn/jxxm/zsxxfb_",
+      "econ.pku.edu.cn/info/",
+      "econ.pku.edu.cn/article/"
+    ],
+    "www.im.pku.edu.cn": [
+      "www.im.pku.edu.cn/zsxm/ssxm/",
+      "www.im.pku.edu.cn/info/",
+      "www.im.pku.edu.cn/article/"
+    ],
+    "pgs.ruc.edu.cn": [
+      "pgs.ruc.edu.cn/info/",
+      "pgs.ruc.edu.cn/notice/",
+      "pgs.ruc.edu.cn/tzgg/",
+      "pgs.ruc.edu.cn/article/"
+    ],
+    "yz.cau.edu.cn": [
+      "yz.cau.edu.cn/info/",
+      "yz.cau.edu.cn/notice/",
+      "yz.cau.edu.cn/tzgg/",
+      "yz.cau.edu.cn/article/"
+    ],
+    "gs.dlut.edu.cn": [
+      "gs.dlut.edu.cn/info/",
+      "gs.dlut.edu.cn/notice/",
+      "gs.dlut.edu.cn/tzgg/",
+      "gs.dlut.edu.cn/article/"
+    ],
+    "yjsy.jlu.edu.cn": [
+      "yjsy.jlu.edu.cn/info/",
+      "yjsy.jlu.edu.cn/notice/",
+      "yjsy.jlu.edu.cn/tzgg/",
+      "yjsy.jlu.edu.cn/article/"
+    ],
+    "gsao.fudan.edu.cn": [
+      "gsao.fudan.edu.cn/sszs/",
+      "gsao.fudan.edu.cn/info/",
+      "gsao.fudan.edu.cn/notice/",
+      "gsao.fudan.edu.cn/article/",
+      "gsao.fudan.edu.cn/68/02/"
+    ],
+    "yjsy.ecnu.edu.cn": [
+      "yjsy.ecnu.edu.cn/info/",
+      "yjsy.ecnu.edu.cn/notice/",
+      "yjsy.ecnu.edu.cn/tzgg/",
+      "yjsy.ecnu.edu.cn/article/"
+    ],
+    "yzb.nju.edu.cn": [
+      "yzb.nju.edu.cn/c47868",
+      "yzb.nju.edu.cn/c47863",
+      "yzb.nju.edu.cn/page.htm",
+      "yzb.nju.edu.cn/pagem.htm"
+    ],
+    "yzb.seu.edu.cn": [
+      "yzb.seu.edu.cn/info/",
+      "yzb.seu.edu.cn/notice/",
+      "yzb.seu.edu.cn/tzgg/",
+      "yzb.seu.edu.cn/article/"
+    ],
+    "zs.xmu.edu.cn": [
+      "zs.xmu.edu.cn/info/",
+      "zs.xmu.edu.cn/notice/",
+      "zs.xmu.edu.cn/tzgg/",
+      "zs.xmu.edu.cn/article/"
+    ],
+    "yz.sdu.edu.cn": [
+      "yz.sdu.edu.cn/info/",
+      "yz.sdu.edu.cn/notice/",
+      "yz.sdu.edu.cn/tzgg/",
+      "yz.sdu.edu.cn/article/"
+    ],
+    "www.yz.sdu.edu.cn": [
+      "www.yz.sdu.edu.cn/info/",
+      "www.yz.sdu.edu.cn/notice/",
+      "www.yz.sdu.edu.cn/tzgg/",
+      "www.yz.sdu.edu.cn/article/"
+    ],
+    "yz.ouc.edu.cn": [
+      "yz.ouc.edu.cn/info/",
+      "yz.ouc.edu.cn/notice/",
+      "yz.ouc.edu.cn/tzgg/",
+      "yz.ouc.edu.cn/article/"
+    ],
+    "gszs.hust.edu.cn": [
+      "gszs.hust.edu.cn/info/",
+      "gszs.hust.edu.cn/notice/",
+      "gszs.hust.edu.cn/tzgg/",
+      "gszs.hust.edu.cn/article/"
+    ],
+    "gra.hnu.edu.cn": [
+      "gra.hnu.edu.cn/info/",
+      "gra.hnu.edu.cn/notice/",
+      "gra.hnu.edu.cn/tzgg/",
+      "gra.hnu.edu.cn/article/"
+    ],
+    "yz.csu.edu.cn": [
+      "yz.csu.edu.cn/sszs",
+      "yz.csu.edu.cn/info/",
+      "yz.csu.edu.cn/notice/",
+      "yz.csu.edu.cn/tzgg/",
+      "yz.csu.edu.cn/article/"
+    ],
+    "yanzhao.scut.edu.cn": [
+      "yanzhao.scut.edu.cn/info/",
+      "yanzhao.scut.edu.cn/notice/",
+      "yanzhao.scut.edu.cn/tzgg/",
+      "yanzhao.scut.edu.cn/article/"
+    ],
+    "yz.xjtu.edu.cn": [
+      "yz.xjtu.edu.cn/info/",
+      "yz.xjtu.edu.cn/notice/",
+      "yz.xjtu.edu.cn/tzgg/",
+      "yz.xjtu.edu.cn/article/"
+    ],
+    "ge.lzu.edu.cn": [
+      "ge.lzu.edu.cn/tongzhigonggao/",
+      "ge.lzu.edu.cn/info/",
+      "ge.lzu.edu.cn/notice/",
+      "ge.lzu.edu.cn/article/"
+    ],
+    "yz.lzu.edu.cn": [
+      "yz.lzu.edu.cn/tongzhigonggao/",
+      "yz.lzu.edu.cn/shuoshishengzhaosheng/",
+      "yz.lzu.edu.cn/info/",
+      "yz.lzu.edu.cn/notice/",
+      "yz.lzu.edu.cn/article/"
+    ],
+    "geoscience.lzu.edu.cn": [
+      "geoscience.lzu.edu.cn/info/1034/",
+      "geoscience.lzu.edu.cn/info/",
+      "geoscience.lzu.edu.cn/notice/",
+      "geoscience.lzu.edu.cn/article/"
+    ],
+    "atmos.lzu.edu.cn": [
+      "atmos.lzu.edu.cn/html/",
+      "atmos.lzu.edu.cn/tongzhigg/",
+      "atmos.lzu.edu.cn/info/",
+      "atmos.lzu.edu.cn/notice/",
+      "atmos.lzu.edu.cn/article/"
+    ],
+    "sesu.scu.edu.cn": [
+      "sesu.scu.edu.cn/info/"
+    ],
+    "law.scu.edu.cn": [
+      "law.scu.edu.cn/info/"
+    ],
+    "msec.scu.edu.cn": [
+      "msec.scu.edu.cn/info/"
+    ],
+    "ee.scu.edu.cn": [
+      "ee.scu.edu.cn/info/"
+    ],
+    "cs.scu.edu.cn": [
+      "cs.scu.edu.cn/info/"
+    ],
+    "cpse.scu.edu.cn": [
+      "cpse.scu.edu.cn/info/"
+    ],
+    "ccnft.scu.edu.cn": [
+      "ccnft.scu.edu.cn/info/"
+    ],
+    "jcfy.scu.edu.cn": [
+      "jcfy.scu.edu.cn/info/"
+    ],
+    "pharmacy.scu.edu.cn": [
+      "pharmacy.scu.edu.cn/info/"
+    ],
+    "sklb.scu.edu.cn": [
+      "sklb.scu.edu.cn/detail.html"
+    ],
+    "vs.scu.edu.cn": [
+      "vs.scu.edu.cn/info/"
+    ],
+    "720inst.scu.edu.cn": [
+      "720inst.scu.edu.cn/Article/recruit_info"
+    ],
+    "iamp.scu.edu.cn": [
+      "iamp.scu.edu.cn/tzgg/"
+    ],
+    "daoism.scu.edu.cn": [
+      "daoism.scu.edu.cn/info/"
+    ],
+    "idmr.scu.edu.cn": [
+      "idmr.scu.edu.cn/info/"
+    ],
+    "saa.scu.edu.cn": [
+      "saa.scu.edu.cn/info.htm"
+    ],
+    "inelt.scu.edu.cn": [
+      "inelt.scu.edu.cn/info/"
+    ],
+    "ccs.scu.edu.cn": [
+      "ccs.scu.edu.cn/info/"
+    ],
+    "sis.scu.edu.cn": [
+      "sis.scu.edu.cn/news.html"
+    ],
+    "pe.scu.edu.cn": [
+      "pe.scu.edu.cn/info/"
+    ],
+    "atc.scu.edu.cn": [
+      "atc.scu.edu.cn/info/"
+    ],
+    "www.math.pku.edu.cn": [
+      "www.math.pku.edu.cn/zygg/"
+    ],
+    "ss.pku.edu.cn": [
+      "ss.pku.edu.cn/zsxx/zstz/",
+      "ss.pku.edu.cn/admission/admnotice/"
+    ],
+    "stl.pku.edu.cn": [
+      "stl.pku.edu.cn/cn/news/admissions/"
+    ],
+    "ues.pku.edu.cn": [
+      "ues.pku.edu.cn/sytzgg/"
+    ],
+    "www.mse.pku.edu.cn": [
+      "www.mse.pku.edu.cn/info/"
+    ],
+    "www.chem.pku.edu.cn": [
+      "www.chem.pku.edu.cn/tzgg"
+    ],
+    "math.pku.edu.cn": [
+      "math.pku.edu.cn/zygg/"
+    ],
+    "www.ss.pku.edu.cn": [
+      "www.ss.pku.edu.cn/admission/admnotice/",
+      "www.ss.pku.edu.cn/zsxx/zstz/"
+    ],
+    "ele.pku.edu.cn": [
+      "ele.pku.edu.cn/info/"
+    ]
+  },
+  "directDetailPatterns": {
+    "graduate.sysu.edu.cn": [
+      "/article/492"
+    ]
+  },
+  "directDetailFallbacks": {
+    "graduate.sysu.edu.cn": [
+      {
+        "pattern": "/article/492",
+        "title": "中山大学2026年接收推荐免试研究生办法",
+        "publishDate": "2025-09-04T00:00:00",
+        "announcementType": "pre_recommendation",
+        "contentHints": [
+          "按照教育部有关工作要求，中山大学通过推荐免试方式接收全国优秀应届本科毕业生免试攻读博士、硕士学位研究生，工作办法详见附件。"
+        ]
+      }
+    ]
+  },
+  "titleSelectors": {
+    "yz.tongji.edu.cn": [
+      "//h3",
+      "//*[@id='ivs_title']",
+      "//*[contains(@class, 'arti_title')]",
+      "//*[contains(@class, 'Article_Title')]",
+      "//*[contains(@class, 'newsTitle')]",
+      "//h1"
+    ],
+    "yzb.sjtu.edu.cn": [
+      "//*[contains(concat(\" \", normalize-space(@class), \" \"), \" article-title \")]//h3"
+    ]
+  },
+  "linkSelectors": {
+    "yz.tongji.edu.cn": [
+      "//a[contains(@href, \"/info/1010/\")]",
+      "//a[contains(@href, \"/info/1018/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"预报名\")]"
+    ],
+    "graduate.sysu.edu.cn": [
+      "//a[contains(@href, \"/article/\")]",
+      "//div[contains(@class, \"post\") or contains(@class, \"article\") or contains(@class, \"list\")]//a[contains(@href, \"/article/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"免试攻读\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//li[contains(@class, \"list-item\")]//a[contains(@href, \"/article/\")]"
+    ],
+    "yzb.nankai.edu.cn": [
+      "//a[contains(@href, \"/c2583a\")]",
+      "//a[contains(@href, \"/c2584a\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"预报名\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yzb.tju.edu.cn": [
+      "//a[contains(@href, \"/xwzx/zxxx/\")]",
+      "//a[contains(@href, \"/zszn/bkbd/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"预推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yz.bnu.edu.cn": [
+      "//a[contains(@href, \"/detail/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "grd.bit.edu.cn": [
+      "//a[contains(@href, \"/zsgz/\")]",
+      "//a[contains(@href, \"/yyxw2/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yzb.buaa.edu.cn": [
+      "//a[contains(@href, \"/info/1036/\")]",
+      "//a[contains(@href, \"xlss.htm\")]",
+      "//a[contains(@href, \"zxsd.htm\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "gs.whu.edu.cn": [
+      "//a[contains(@href, \"/info/1062/\")]",
+      "//a[contains(@href, \"/tzgg/zs\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "wdyz.whu.edu.cn": [
+      "//a[contains(@href, \"/info/1008/\")]",
+      "//a[contains(@href, \"/info/1003/\")]",
+      "//a[contains(@href, \"/info/1012/\")]",
+      "//a[contains(@href, \"/info/1031/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yzb.hit.edu.cn": [
+      "//a[contains(@href, \"/c8816a\")]",
+      "//a[contains(@href, \"/2025/\") and (contains(text(), \"推免\") or contains(text(), \"免试\") or contains(text(), \"夏令营\"))]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"免试\")]"
+    ],
+    "grs.muc.edu.cn": [
+      "//a[contains(@href, \"/yjsyzsw/info/1058/\")]",
+      "//a[contains(@href, \"/yjsyzsw/info/1060/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yz.cqu.edu.cn": [
+      "//a[contains(@href, \"/news/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yz.zzu.edu.cn": [
+      "//a[contains(@href, \"/info/1070/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yjszs.nudt.edu.cn": [
+      "//a[contains(@href, \"detailed.view\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yzb.hunnu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/article/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yzb.neu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/article/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yz.neu.edu.cn": [
+      "//a[contains(@href, \"/5932/\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/article/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]",
+      "//a[contains(text(), \"夏令营\")]"
+    ],
+    "www.smmu.edu.cn": [
+      "//a[contains(@href, \"/c463a\")]",
+      "//a[contains(@href, \"/yjszs/list\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "www.fmmu.edu.cn": [
+      "//a[contains(@href, \"/yjsy/info/1027/\")]",
+      "//a[contains(@href, \"/yjsy/zsjy/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yzb.nwu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yzb.nwpu.edu.cn": [
+      "//a[contains(@href, \"/new/sy/\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/sszs/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yz.nwsuaf.edu.cn": [
+      "//a[contains(@href, \"/xxgk/\")]",
+      "//a[contains(@href, \"/xxgk1/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yz.scu.edu.cn": [
+      "//a[contains(@href, \"/sszyml/\")]",
+      "//a[contains(@href, \"/tms/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yz.uestc.edu.cn": [
+      "//a[contains(@href, \"/info/1064/\")]",
+      "//a[contains(@href, \"/info/1007/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"预推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "graduate.cugb.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yz.cumtb.edu.cn": [
+      "//a[contains(@href, \"/index/detail.html\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yjsy.cupl.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "gs.cufe.edu.cn": [
+      "//a[contains(@href, \"/info/1028/\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yz.swu.edu.cn": [
+      "//a[contains(@href, \"/zsxx/xly_tm/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yz.jnu.edu.cn": [
+      "//a[contains(@href, \"/33359/\")]",
+      "//a[contains(@href, \"/33001/\")]",
+      "//a[contains(@href, \"/32999/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "graschool.ahu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yjszs.hfut.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yjsy.hfut.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yanzhao.bjut.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "graduate.buct.edu.cn": [
+      "//a[contains(@href, \"/yjszsw/\")]",
+      "//a[contains(@href, \"/page.htm\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yzb.bjtu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "gs.bjtu.edu.cn": [
+      "//a[contains(@href, \"/recommend/\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "gs.ustb.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yzxc.ustb.edu.cn": [
+      "//a[contains(@href, \"/xlytm/\")]",
+      "//a[contains(@href, \"/hdap/\")]",
+      "//a[contains(@href, \"/xlyhd/\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(text(), \"夏令营\") or contains(text(), \"预推免\") or contains(text(), \"推荐免试\")]"
+    ],
+    "graduate.bjfu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(text(), \"推荐免试\")]",
+      "//a[contains(text(), \"推免\")]",
+      "//a[contains(text(), \"免试攻读\")]"
+    ],
+    "yzb.sjtu.edu.cn": [
+      "//a[contains(@href, \"/xxgs/xlygs\")]",
+      "//a[contains(@href, \"/xxgs/ytmgs\")]",
+      "//a[contains(@href, \"/post/\")]",
+      "//a[contains(text(), \"夏令营\") or contains(text(), \"预推免\") or contains(text(), \"推荐免试\")]"
+    ],
+    "yz.tsinghua.edu.cn": [
+      "//a[contains(@href, \"/info/1024/\")]",
+      "//a[contains(@href, \"xlyxx\")]",
+      "//a[contains(text(), \"夏令营\") or contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yz.ustc.edu.cn": [
+      "//*[contains(@onclick, \"/column/202\")]",
+      "//*[contains(@onclick, \"/column/182\")]",
+      "//*[contains(@onclick, \"/article/\")]",
+      "//a[contains(@href, \"/article/\")]",
+      "//a[contains(text(), \"夏令营\") or contains(text(), \"预推免\") or contains(text(), \"推荐免试\")]"
+    ],
+    "www.grs.zju.edu.cn": [
+      "//a[contains(@href, \"/yjszs/\")]",
+      "//a[contains(text(), \"夏令营\") or contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yz.cuc.edu.cn": [
+      "//a[contains(@href, \"/tm/\")]",
+      "//a[contains(@href, \"/article/\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/page.htm\")]",
+      "//a[contains(text(), \"夏令营\") or contains(text(), \"预推免\") or contains(text(), \"推荐免试\")]"
+    ],
+    "yjsy.ncepu.edu.cn": [
+      "//a[contains(@href, \"/zsxx/sszsxx/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\")]"
+    ],
+    "yzb.bupt.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/article/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\")]"
+    ],
+    "graduate.bfsu.edu.cn": [
+      "//a[contains(@href, \"/info/1048/\")]",
+      "//a[contains(@href, \"/info/1074/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\")]"
+    ],
+    "yjsy.uibe.edu.cn": [
+      "//a[contains(@href, \"infoSingleArticle.do\")]",
+      "//a[contains(@href, \"infoArticleList.do\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\")]"
+    ],
+    "admission.pku.edu.cn": [
+      "//a[contains(@href, \"/xly/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(@href, \"/zsxx/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "econ.pku.edu.cn": [
+      "//a[contains(@href, \"/jxxm/zsxxfb_\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "www.im.pku.edu.cn": [
+      "//a[contains(@href, \"/zsxm/ssxm/\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "pgs.ruc.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yz.cau.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "gs.dlut.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yjsy.jlu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "gsao.fudan.edu.cn": [
+      "//a[contains(@href, \"/sszs/\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/list.htm\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yjsy.ecnu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yzb.nju.edu.cn": [
+      "//a[contains(@href, \"/c47868\")]",
+      "//a[contains(@href, \"/c47863\")]",
+      "//a[contains(@href, \"page.htm\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yzb.seu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "zs.xmu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yz.sdu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "www.yz.sdu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yz.ouc.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "gszs.hust.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "gra.hnu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yz.csu.edu.cn": [
+      "//a[contains(@href, \"/sszs\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yanzhao.scut.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yz.xjtu.edu.cn": [
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(@href, \"/notice/\")]",
+      "//a[contains(@href, \"/tzgg/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "ge.lzu.edu.cn": [
+      "//a[contains(@href, \"/tongzhigonggao/\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "yz.lzu.edu.cn": [
+      "//a[contains(@href, \"/tongzhigonggao/\")]",
+      "//a[contains(@href, \"/shuoshishengzhaosheng/\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "geoscience.lzu.edu.cn": [
+      "//a[contains(@href, \"/info/1034/\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ],
+    "atmos.lzu.edu.cn": [
+      "//a[contains(@href, \"/tongzhigg/\")]",
+      "//a[contains(@href, \"/html/\")]",
+      "//a[contains(@href, \"/info/\")]",
+      "//a[contains(text(), \"推荐免试\") or contains(text(), \"推免\") or contains(text(), \"夏令营\") or contains(text(), \"优秀大学生\")]"
+    ]
+  },
+  "contentSelectors": {
+    "yzb.sjtu.edu.cn": [
+      "//*[contains(concat(\" \", normalize-space(@class), \" \"), \" mce-content-body \")]"
+    ]
+  }
+}

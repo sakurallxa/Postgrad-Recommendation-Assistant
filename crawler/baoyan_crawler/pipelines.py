@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+from requests import exceptions as requests_exceptions
 from scrapy.exceptions import DropItem
 
 
@@ -103,7 +104,7 @@ class DatabasePipeline:
 
         timeout_seconds = int(
             settings.get('CRAWLER_INGEST_TIMEOUT_SECONDS')
-            or os.getenv('CRAWLER_INGEST_TIMEOUT_SECONDS', '15')
+            or os.getenv('CRAWLER_INGEST_TIMEOUT_SECONDS', '60')
         )
         batch_size = int(
             settings.get('CRAWLER_INGEST_BATCH_SIZE')
@@ -137,6 +138,7 @@ class DatabasePipeline:
 
     def close_spider(self, spider):
         self._flush(spider, force=True)
+        spider.ingest_summary = dict(self._stats)
         spider.logger.info(
             '[ingest-summary] '
             f"buffered={self._stats['buffered']} "
@@ -176,6 +178,11 @@ class DatabasePipeline:
 
         payload_items = self._buffer[:]
         self._buffer.clear()
+        self._send_batch(spider, payload_items)
+
+    def _send_batch(self, spider, payload_items: List[Dict[str, Any]]):
+        if not payload_items:
+            return
 
         payload = {
             'items': payload_items,
@@ -203,11 +210,46 @@ class DatabasePipeline:
                 )
                 return
 
+            if resp.status_code == 413 and len(payload_items) > 1:
+                midpoint = max(1, len(payload_items) // 2)
+                spider.logger.warning(
+                    f'[ingest] payload too large status=413 count={len(payload_items)} '
+                    f'splitting into {midpoint} and {len(payload_items) - midpoint}'
+                )
+                self._send_batch(spider, payload_items[:midpoint])
+                self._send_batch(spider, payload_items[midpoint:])
+                return
+
+            if resp.status_code >= 500 and len(payload_items) > 1:
+                midpoint = max(1, len(payload_items) // 2)
+                spider.logger.warning(
+                    f'[ingest] retryable server error status={resp.status_code} '
+                    f'count={len(payload_items)} splitting into {midpoint} and {len(payload_items) - midpoint}'
+                )
+                self._send_batch(spider, payload_items[:midpoint])
+                self._send_batch(spider, payload_items[midpoint:])
+                return
+
             self._stats['failed'] += len(payload_items)
             body = resp.text[:400].replace('\n', ' ')
             spider.logger.error(
                 f'[ingest] failed status={resp.status_code} count={len(payload_items)} body={body}'
             )
+        except requests_exceptions.Timeout as exc:
+            if len(payload_items) > 1:
+                midpoint = max(1, len(payload_items) // 2)
+                spider.logger.warning(
+                    f'[ingest] timeout count={len(payload_items)} '
+                    f'splitting into {midpoint} and {len(payload_items) - midpoint} err={exc}'
+                )
+                self._send_batch(spider, payload_items[:midpoint])
+                self._send_batch(spider, payload_items[midpoint:])
+                return
+            self._stats['failed'] += len(payload_items)
+            spider.logger.error(f'[ingest] timeout count={len(payload_items)} err={exc}')
+        except requests_exceptions.RequestException as exc:
+            self._stats['failed'] += len(payload_items)
+            spider.logger.error(f'[ingest] exception count={len(payload_items)} err={exc}')
         except Exception as exc:
             self._stats['failed'] += len(payload_items)
             spider.logger.error(f'[ingest] exception count={len(payload_items)} err={exc}')
@@ -217,12 +259,14 @@ class DatabasePipeline:
         return {
             'title': (item.get('title') or '').strip(),
             'announcementType': item.get('announcement_type') or 'summer_camp',
+            'subType': item.get('sub_type') or 'specific',
             'universityId': item.get('university_id'),
             'sourceUrl': item.get('source_url'),
             'publishDate': _to_iso_datetime(item.get('publish_date')),
             'deadline': _to_iso_datetime(item.get('deadline')),
             'startDate': _to_iso_datetime(item.get('start_date')),
             'endDate': _to_iso_datetime(item.get('end_date')),
+            'location': (item.get('location') or '').strip(),
             'requirements': item.get('requirements') or {},
             'materials': item.get('materials') or [],
             'process': item.get('process') or [],

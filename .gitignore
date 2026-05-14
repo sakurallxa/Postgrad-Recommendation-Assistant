@@ -9,6 +9,7 @@ node_modules/
 # 日志文件
 *.log
 npm-debug.log*
+crawler/logs/
 
 # 编辑器配置
 .idea/
@@ -23,6 +24,10 @@ project.private.config.json
 # 临时文件
 *.tmp
 *.temp
+.pycache/
+.pytest_cache/
+__pycache__/
+crawler/.scrapy/
 
 # 系统文件
 Thumbs.db
@@ -34,7 +39,9 @@ ehthumbs.db
 
 # 本地环境与构建产物（不入库）
 backend/.env
+backend/dev.db
 backend/prisma/dev.db
 backend/dist/
 backend/coverage/
 baoyanwang.jpg
+.claude/

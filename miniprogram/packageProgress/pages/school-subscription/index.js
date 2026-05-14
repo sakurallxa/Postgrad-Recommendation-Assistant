@@ -1,9 +1,10 @@
 import { progressService } from '../../../services/progress'
+import { userStore } from '../../../store/user'
 
 const DEFAULT_SUBSCRIPTION = {
   enabled: true,
   deadlineChanged: true,
-  materialsChanged: true,
+  materialsChanged: false,
   admissionResultChanged: true,
   outstandingResultChanged: true
 }
@@ -30,10 +31,11 @@ Page({
     const baseUrl = app?.globalData?.apiBaseUrl || ''
     const forceRemote = wx.getStorageSync('forceRemoteProgressApi')
     if (forceRemote === true) return true
-    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
-      return false
-    }
     return Boolean(baseUrl)
+  },
+
+  hasAuthToken() {
+    return Boolean(userStore.token || wx.getStorageSync('token'))
   },
 
   formatSchoolItem(item = {}) {
@@ -41,6 +43,7 @@ Page({
       ...DEFAULT_SUBSCRIPTION,
       ...(item.subscription || {})
     }
+    subscription.materialsChanged = false
     return {
       universityId: item.universityId || item.id || '',
       universityName: item.universityName || item.name || '未命名院校',
@@ -50,6 +53,9 @@ Page({
   },
 
   buildFallbackListFromSelection() {
+    if (!this.hasAuthToken()) {
+      return []
+    }
     const byStorage = wx.getStorageSync('selectedUniversities') || []
     const byUserSelection = (wx.getStorageSync('userSelection') || {}).universities || []
     const source = Array.isArray(byStorage) && byStorage.length > 0 ? byStorage : byUserSelection
@@ -63,7 +69,7 @@ Page({
   },
 
   loadFallbackData() {
-    const cache = wx.getStorageSync('schoolSubscriptionFallbackList') || []
+    const cache = this.hasAuthToken() ? (wx.getStorageSync('schoolSubscriptionFallbackList') || []) : []
     const fallbackList = Array.isArray(cache) && cache.length > 0
       ? cache.map(item => this.formatSchoolItem(item))
       : this.buildFallbackListFromSelection()
@@ -77,6 +83,15 @@ Page({
 
   async loadData() {
     this.setData({ loading: true })
+
+    if (!this.hasAuthToken()) {
+      this.setData({
+        schoolList: [],
+        loading: false,
+        useFallback: false
+      })
+      return
+    }
 
     if (!this.shouldUseRemoteProgressApi()) {
       this.loadFallbackData()

@@ -12,16 +12,6 @@ const PROGRESS_STATUS_LABELS = {
   waiting_outstanding: '待优秀营员结果',
   outstanding_published: '优秀营员已发布'
 }
-
-const PROCESS_PHASE_BY_PROGRESS_STATUS = {
-  followed: ['register', 'material'],
-  preparing: ['material', 'register'],
-  submitted: ['review', 'activity', 'result_admission'],
-  waiting_admission: ['result_admission'],
-  admitted: ['outstanding', 'result_admission'],
-  waiting_outstanding: ['outstanding', 'result_admission'],
-  outstanding_published: ['outstanding', 'result_admission']
-}
 const REMINDER_REFRESH_TOKEN_KEY = 'myRemindersRefreshToken'
 const PROGRESS_FOLLOW_REFRESH_TOKEN_KEY = 'progressFollowRefreshToken'
 
@@ -36,6 +26,7 @@ Page({
       universityId: '',
       universityName: '',
       universityLogo: '',
+      universityWebsite: '',
       title: '',
       announcementType: 'summer_camp',
       announcementTypeLabel: '夏令营公告',
@@ -54,9 +45,17 @@ Page({
       },
       materials: [],
       process: [],
+      processDisplayMode: 'timeline',
+      processTextFallback: [],
+      processRawContent: '',
+      processTextSource: '',
+      originalContentDisplay: '',
+      showOriginalContentSection: false,
+      showRequirementsSection: false,
+      showMaterialsSection: false,
+      showProcessSection: false,
       contact: null,
       progressChangeEvents: [],
-      changeCompareCards: [],
       riskHints: [],
       transparencyMeta: null,
       profileComparison: {
@@ -81,8 +80,7 @@ Page({
     expandHardConstraints: false,
     expandSoftSuggestions: false,
     expandUncertainItems: false,
-    expandMaterials: false,
-    expandChanges: false
+    expandMaterials: false
   },
 
   onLoad(options) {
@@ -136,8 +134,7 @@ Page({
           expandHardConstraints: false,
           expandSoftSuggestions: false,
           expandUncertainItems: false,
-          expandMaterials: false,
-          expandChanges: false
+          expandMaterials: false
         })
         return
       }
@@ -157,8 +154,7 @@ Page({
       expandHardConstraints: false,
       expandSoftSuggestions: false,
       expandUncertainItems: false,
-      expandMaterials: false,
-      expandChanges: false
+      expandMaterials: false
     })
   },
 
@@ -193,22 +189,41 @@ Page({
       universityId: detail.universityId || detail.university?.id || '',
       universityName: detail.universityName || detail.university?.name || '',
       universityLogo: detail.universityLogo || detail.university?.logo || '',
+      universityWebsite: detail.universityWebsite || detail.university?.website || '',
     })
+    normalized.title = this.sanitizeCampTitle(normalized.title)
     normalized.publishDate = this.normalizeDisplayDate(normalized.publishDate)
     normalized.deadline = this.normalizeDisplayDate(normalized.deadline)
     normalized.startDate = this.normalizeDisplayDate(normalized.startDate)
     normalized.endDate = this.normalizeDisplayDate(normalized.endDate)
+    normalized.eventDateText = this.buildEventDateText(normalized.startDate, normalized.endDate)
     if (!normalized.universityLogo) {
-      normalized.universityLogo = this.getUniversityLogo(normalized.universityId, normalized.universityName)
+      normalized.universityLogo = this.getUniversityLogo(
+        normalized.universityId,
+        normalized.universityName,
+        normalized.universityWebsite
+      )
     }
     normalized.requirements = this.normalizeRequirements(normalized.requirements, normalized.confidence)
     normalized.materials = this.enrichMaterials(
       this.normalizeMaterials(normalized.materials),
       normalized.requirements?.linkedMaterialTitles || []
     )
-    normalized.process = this.normalizeProcess(normalized.process, normalized)
+    const processBundle = this.normalizeProcess(normalized.process, normalized)
+    normalized.process = processBundle.list
+    normalized.processDisplayMode = processBundle.displayMode
+    normalized.processTextFallback = processBundle.fallbackList
+    normalized.processRawContent = processBundle.rawContent
+    normalized.processTextSource = processBundle.textSource
+    normalized.originalContentDisplay = this.buildOriginalContentDisplay(normalized)
+    normalized.originalContentDisplayMode = this.resolveOriginalContentDisplayMode(normalized.originalContentDisplay)
+    normalized.showOriginalContentSection = Boolean(
+      normalized.originalContentDisplay && normalized.originalContentDisplayMode === 'raw'
+    )
+    normalized.showRequirementsSection = this.shouldShowRequirementsSection(normalized.requirements, normalized.confidence)
+    normalized.showMaterialsSection = this.shouldShowMaterialsSection(normalized.materials, normalized.confidence)
+    normalized.showProcessSection = this.shouldShowProcessSection(processBundle, normalized.confidence)
     normalized.contact = this.normalizeContact(normalized.contact)
-    normalized.changeCompareCards = this.normalizeChangeCompareCards(normalized.progressChangeEvents || [])
     normalized.riskHints = this.buildRiskHints(normalized)
     normalized.profileComparison = normalized.requirements?.profileComparison || this.buildProfileComparison([], null)
     normalized.transparencyMeta = this.buildTransparencyMeta(normalized)
@@ -937,6 +952,47 @@ Page({
       .filter(Boolean)
   },
 
+  shouldShowRequirementsSection(requirements = {}, confidence = 0) {
+    const threshold = this.normalizeConfidence(confidence) >= 0.72
+    const groups = []
+      .concat(Array.isArray(requirements?.hardConstraints) ? requirements.hardConstraints : [])
+      .concat(Array.isArray(requirements?.softSuggestions) ? requirements.softSuggestions : [])
+      .concat(Array.isArray(requirements?.uncertainItems) ? requirements.uncertainItems : [])
+      .filter(item => item && this.toDisplayText(item.content || item.text))
+
+    if (groups.length === 0) {
+      return false
+    }
+
+    const qualityCount = groups.filter((item) => {
+      const text = this.toDisplayText(item.content || item.text)
+      const title = this.toDisplayText(item.title)
+      const itemConfidence = this.normalizeConfidence(item.confidence || confidence)
+      return text.length >= 6 && text.length <= 120 && title.length <= 20 && itemConfidence >= 0.68
+    }).length
+
+    return threshold && qualityCount >= Math.min(2, groups.length)
+  },
+
+  shouldShowMaterialsSection(materials = [], confidence = 0) {
+    if (!Array.isArray(materials) || materials.length === 0) {
+      return false
+    }
+    if (this.normalizeConfidence(confidence) < 0.72) {
+      return false
+    }
+    const qualityCount = materials.filter((item) => {
+      const title = this.toDisplayText(item?.title || item)
+      const detail = this.toDisplayText(item?.detail || '')
+      if (!title) return false
+      if (title.length > 36) return false
+      if (/通知|公示|章程|办法|流程|条件/.test(title)) return false
+      if (detail && detail.length > 120) return false
+      return true
+    }).length
+    return qualityCount >= Math.min(2, materials.length)
+  },
+
   normalizeProcess(rawProcess, detail = {}) {
     const source = this.normalizeStructuredData(rawProcess, [])
     let steps = []
@@ -953,12 +1009,521 @@ Page({
     }
 
     if (steps.length === 0) {
-      steps = this.buildDefaultProcess(detail)
+      return { list: [], displayMode: 'timeline', fallbackList: [], rawContent: '', textSource: '' }
     }
 
-    return steps
+    const list = steps
       .map((item, index) => this.normalizeProcessStep(item, index, detail))
       .filter(item => item && item.action)
+
+    const displayMode = this.shouldUseStructuredProcessTimeline(list) ? 'timeline' : 'text'
+    const textBundle = displayMode === 'text'
+      ? this.buildProcessTextBundle(detail, this.buildProcessFallbackList(list))
+      : { rawContent: '', textSource: '' }
+    return {
+      list,
+      displayMode,
+      fallbackList: displayMode === 'text' ? this.buildProcessFallbackList(list) : [],
+      rawContent: textBundle.rawContent,
+      textSource: textBundle.textSource
+    }
+  },
+
+  shouldShowProcessSection(processBundle = {}, confidence = 0) {
+    const list = Array.isArray(processBundle?.list) ? processBundle.list : []
+    if (processBundle?.displayMode !== 'timeline' || list.length === 0) {
+      return false
+    }
+    if (this.normalizeConfidence(confidence) < 0.72) {
+      return false
+    }
+    const qualityCount = list.filter((item) => {
+      const action = this.toDisplayText(item?.action)
+      const note = this.toDisplayText(item?.note)
+      if (!action || action.length > 18) return false
+      if (/通知|公示|章程|办法|结果名单|拟录取名单/.test(action)) return false
+      if (note && note.length > 90) return false
+      return true
+    }).length
+    return qualityCount >= Math.min(2, list.length)
+  },
+
+  buildProcessTextBundle(detail = {}, fallbackList = []) {
+    const rawContent = this.buildProcessRawContent(detail)
+    if (rawContent) {
+      return { rawContent, textSource: 'raw' }
+    }
+
+    const title = this.toDisplayText(detail.title || '')
+    const fallbackText = this.normalizeRawProcessContent(
+      Array.isArray(fallbackList) ? fallbackList.filter(Boolean).join('\n\n') : '',
+      title
+    )
+    if (fallbackText) {
+      return { rawContent: fallbackText, textSource: 'fallback' }
+    }
+
+    return { rawContent: '', textSource: '' }
+  },
+
+  buildProcessRawContent(detail = {}) {
+    const title = this.toDisplayText(detail.title || '')
+    const rawContent = this.normalizeRawProcessContent(
+      this.toDisplayText(detail.rawContent || ''),
+      title
+    )
+    if (rawContent) {
+      return this.prependTitleForRawContent(rawContent, title)
+    }
+    return ''
+  },
+
+  buildOriginalContentDisplay(detail = {}) {
+    const title = this.toDisplayText(detail.title || '')
+    const rawContent = this.normalizeRawProcessContent(
+      this.toDisplayText(detail.rawContent || ''),
+      title
+    )
+    if (!rawContent) {
+      return ''
+    }
+    return this.prependTitleForRawContent(rawContent, title)
+  },
+
+  resolveOriginalContentDisplayMode(text = '') {
+    const normalized = String(text || '').trim()
+    if (!normalized) {
+      return 'hidden'
+    }
+    if (this.isRosterLikeRawContent(normalized) || this.isSystemLikeTitle(normalized)) {
+      return 'hidden'
+    }
+    return 'raw'
+  },
+
+  prependTitleForRawContent(rawContent = '', title = '') {
+    const text = String(rawContent || '').trim()
+    const normalizedTitle = String(title || '').trim()
+    if (!text || !normalizedTitle) {
+      return text
+    }
+    const compactText = text.replace(/\s+/g, '')
+    const compactTitle = normalizedTitle.replace(/\s+/g, '')
+    if (compactText.startsWith(compactTitle) || compactText.includes(compactTitle)) {
+      return text
+    }
+    return `${normalizedTitle}\n\n${text}`
+  },
+
+  normalizeRawProcessContent(rawText = '', title = '') {
+    const text = String(rawText || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\u00a0/g, ' ')
+      .trim()
+    if (!text) {
+      return ''
+    }
+
+    const normalizedParagraphs = this.normalizeRawParagraphs(text)
+    if (normalizedParagraphs.length === 0) {
+      return ''
+    }
+
+    const dedupedLines = this.trimRepeatedRawContentBlock(normalizedParagraphs, title)
+    return dedupedLines
+      .filter(Boolean)
+      .join('\n\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  },
+
+  isRosterLikeRawContent(text = '') {
+    const source = String(text || '').trim()
+    if (!source) return false
+    const lines = source.split('\n').map(item => String(item || '').trim()).filter(Boolean)
+    const longDenseLineCount = lines.filter(item => item.length >= 80 && !/[。！？；]/.test(item)).length
+    const rosterTokenCount = (source.match(/[0-9]{2,}|大学|学院|专业|名单|学号|序号/g) || []).length
+    const commaLikeCount = (source.match(/[、,，]/g) || []).length
+    if (longDenseLineCount >= 2 && rosterTokenCount >= 20) {
+      return true
+    }
+    if (rosterTokenCount >= 35 && commaLikeCount < 3) {
+      return true
+    }
+    return false
+  },
+
+  isSystemLikeTitle(text = '') {
+    const normalized = this.sanitizeCampTitle(text).toLowerCase()
+    if (!normalized) return false
+    const keywords = [
+      '报名系统',
+      '管理服务系统',
+      '信息管理系统',
+      '申请系统',
+      '申请平台',
+      '报名平台',
+      '登录系统',
+      '登录平台',
+      '管理平台',
+      '服务平台',
+      '网报系统'
+    ]
+    if (keywords.some(keyword => normalized.includes(keyword))) {
+      return true
+    }
+    if (/(?:夏令营|推免|预推免|推荐免试).{0,8}(?:系统|平台)$/u.test(normalized)) {
+      return true
+    }
+    return /(?:系统|平台)$/u.test(normalized)
+  },
+
+  normalizeRawParagraphs(text = '') {
+    const source = String(text || '').replace(/\r\n/g, '\n')
+    if (!source.trim()) {
+      return []
+    }
+
+    const rawParagraphs = source
+      .split(/\n{2,}/)
+      .map(item => item.trim())
+      .filter(Boolean)
+
+    if (rawParagraphs.length > 1) {
+      return rawParagraphs
+        .map(item => this.normalizeRawParagraphText(this.mergeParagraphLines(item.split('\n'))))
+        .filter(Boolean)
+    }
+
+    return this.rebuildParagraphsFromLines(source.split('\n'))
+      .map(item => this.normalizeRawParagraphText(item))
+      .filter(Boolean)
+  },
+
+  rebuildParagraphsFromLines(lines = []) {
+    const source = Array.isArray(lines) ? lines.map(item => String(item || '').trim()).filter(Boolean) : []
+    if (source.length === 0) {
+      return []
+    }
+
+    const paragraphs = []
+    let current = ''
+
+    source.forEach((line, index) => {
+      if (!current) {
+        current = line
+        return
+      }
+
+      if (this.shouldStartNewRawParagraph(current, line, index)) {
+        paragraphs.push(current)
+        current = line
+        return
+      }
+
+      current = this.joinRawContentLine(current, line)
+    })
+
+    if (current) {
+      paragraphs.push(current)
+    }
+
+    return paragraphs
+  },
+
+  mergeParagraphLines(lines = []) {
+    const source = Array.isArray(lines) ? lines.map(item => String(item || '').trim()).filter(Boolean) : []
+    if (source.length === 0) {
+      return ''
+    }
+
+    let paragraph = source[0]
+    for (let index = 1; index < source.length; index += 1) {
+      const line = source[index]
+      if (this.shouldStartNewRawParagraph(paragraph, line, index)) {
+        paragraph = `${paragraph}\n${line}`
+      } else {
+        paragraph = this.joinRawContentLine(paragraph, line)
+      }
+    }
+    return paragraph
+  },
+
+  shouldStartNewRawParagraph(prev = '', current = '', index = 0) {
+    const previous = String(prev || '').trim()
+    const next = String(current || '').trim()
+    if (!previous || !next) {
+      return false
+    }
+
+    if (this.isListLikeRawLine(next) || this.isAttachmentLikeRawLine(next)) {
+      return true
+    }
+    if (this.isStandaloneHeadingLine(next)) {
+      return true
+    }
+    if (/[：:]$/.test(previous)) {
+      return true
+    }
+    if (/^(附件|附：|注：|备注[:：]?|说明[:：]?)/.test(next)) {
+      return true
+    }
+    if (index > 0 && /^(第[一二三四五六七八九十]+[部分章节]|[一二三四五六七八九十]+、)/.test(next)) {
+      return true
+    }
+    return false
+  },
+
+  joinRawContentLine(prev = '', current = '') {
+    const previous = String(prev || '').trim()
+    const next = String(current || '').trim()
+    if (!previous) return next
+    if (!next) return previous
+    if (/^(作者|时间|来源|发布日期|发布时间|浏览次数|阅读次数|访问量|点击次数)[:：]/.test(next)) {
+      return `${previous} ${next}`
+    }
+    if (/[A-Za-z0-9]$/.test(previous) && /^[A-Za-z0-9]/.test(next)) {
+      return `${previous} ${next}`
+    }
+    return `${previous}${next}`
+  },
+
+  normalizeRawParagraphText(text = '') {
+    let value = String(text || '').trim()
+    if (!value) {
+      return ''
+    }
+    value = value.replace(/^(?:.+?(?:研究生招生信息网|招生信息网|研究生院官网|研究生院|研招网)(?:（[^）]*）|\([^)]*\))?)\s*/u, '')
+    value = value.replace(/(^|\s)(?:作者|作\s*者)[:：]\s*[^ ]+/gu, ' ')
+    value = value.replace(/(^|\s)(?:来源|信息来源)[:：]\s*[^ ]+/gu, ' ')
+    value = value.replace(/(^|\s)(?<![\u4e00-\u9fa5])时间[:：]\s*[^ ]+/gu, ' ')
+    value = value.replace(/\s+/g, ' ')
+    value = value.replace(/(?<=\d)\s+(?=\d)/g, '')
+    value = value.replace(/(?<=\d)\s+(?=[年月日号时分秒点~—\-:：/])/g, '')
+    value = value.replace(/(?<=[年月日号时分秒点~—\-:：/])\s+(?=\d)/g, '')
+    value = value.replace(/(?<=[:：])\s+(?=\d)/g, '')
+    value = value.replace(/(?<=[\u4e00-\u9fa5])\s+(?=(作者|时间|来源|发布日期|发布时间|浏览次数|阅读次数|访问量|点击次数)[:：])/g, ' ')
+    value = value.replace(/\s*([，。；：！？])\s*/g, '$1')
+    value = value.replace(/\s*([()（）【】《》“”])/g, '$1')
+    value = value.replace(/([()（）【】《》“”])\s*/g, '$1')
+    return value.trim()
+  },
+
+  isListLikeRawLine(text = '') {
+    const value = String(text || '').trim()
+    if (!value) {
+      return false
+    }
+    return /^((\d+|[一二三四五六七八九十]+)[、.．]|[（(]\d+[)）]|[-•·])/.test(value)
+  },
+
+  isAttachmentLikeRawLine(text = '') {
+    const value = String(text || '').trim()
+    if (!value) {
+      return false
+    }
+    return /^(附件|附：|附\d+[：:]?)/.test(value)
+  },
+
+  isStandaloneHeadingLine(text = '') {
+    const value = String(text || '').trim()
+    if (!value || value.length > 24) {
+      return false
+    }
+    if (/[，。；：:？?！!]/.test(value)) {
+      return false
+    }
+    return /^(申请材料|申请条件|报名流程|申请流程|联系方式|网报方式|复试安排|考核安排|提交材料|个人陈述|推荐信|管理服务系统)$/.test(value)
+  },
+
+  mergeBrokenRawContentLines(lines = []) {
+    const source = Array.isArray(lines) ? lines.filter(Boolean) : []
+    if (source.length === 0) {
+      return []
+    }
+
+    const merged = []
+    source.forEach((line) => {
+      const text = String(line || '').trim()
+      if (!text) return
+
+      if (merged.length === 0) {
+        merged.push(text)
+        return
+      }
+
+      const prev = merged[merged.length - 1]
+      const shouldJoin =
+        /^\d{1,4}$/.test(text) ||
+        /^[年月日号时分点月-]/.test(text) ||
+        /[0-9]$/.test(prev) ||
+        prev.length <= 4 ||
+        text.length <= 2
+
+      if (shouldJoin) {
+        merged[merged.length - 1] = `${prev}${text}`
+      } else {
+        merged.push(text)
+      }
+    })
+
+    return merged
+  },
+
+  trimRepeatedRawContentBlock(lines = [], title = '') {
+    const normalized = Array.isArray(lines) ? lines.filter(Boolean) : []
+    if (normalized.length < 8) {
+      return this.dedupeConsecutiveLines(
+        this.trimRepeatedBlockAfterTitle(normalized, title)
+      )
+    }
+
+    const anchorSize = Math.min(4, Math.max(3, Math.floor(normalized.length / 6)))
+    const anchor = normalized.slice(0, anchorSize)
+    let repeatedIndex = -1
+
+    for (let index = anchorSize; index <= normalized.length - anchorSize; index += 1) {
+      let matches = true
+      for (let offset = 0; offset < anchor.length; offset += 1) {
+        if (normalized[index + offset] !== anchor[offset]) {
+          matches = false
+          break
+        }
+      }
+      if (matches) {
+        repeatedIndex = index
+        break
+      }
+    }
+
+    const trimmed = repeatedIndex > 0 ? normalized.slice(0, repeatedIndex) : normalized
+    return this.dedupeSemanticParagraphs(
+      this.dedupeConsecutiveLines(
+        this.trimRepeatedBlockAfterTitle(trimmed, title)
+      )
+    )
+  },
+
+  trimRepeatedBlockAfterTitle(lines = [], title = '') {
+    const normalized = Array.isArray(lines) ? lines.filter(Boolean) : []
+    if (normalized.length < 6) {
+      return normalized
+    }
+
+    const titleIndex = normalized.findIndex((line, index) => (
+      index > 0 && this.isTitleLikeLine(line, title)
+    ))
+    if (titleIndex < 2 || titleIndex >= normalized.length - 2) {
+      return normalized
+    }
+
+    const prefixBeforeTitle = normalized.slice(0, Math.min(4, titleIndex))
+    const suffixAfterTitle = normalized.slice(titleIndex + 1, titleIndex + 1 + prefixBeforeTitle.length)
+    if (prefixBeforeTitle.length < 2 || suffixAfterTitle.length < 2) {
+      return normalized
+    }
+
+    let overlapCount = 0
+    for (let index = 0; index < Math.min(prefixBeforeTitle.length, suffixAfterTitle.length); index += 1) {
+      if (this.isSemanticallyRepeatedLine(prefixBeforeTitle[index], suffixAfterTitle[index])) {
+        overlapCount += 1
+      }
+    }
+
+    if (overlapCount < 2) {
+      return normalized
+    }
+
+    return normalized.slice(0, titleIndex)
+  },
+
+  isTitleLikeLine(line = '', title = '') {
+    const text = String(line || '').trim()
+    const cleanText = text.replace(/\s+/g, '')
+    const cleanTitle = String(title || '').trim().replace(/\s+/g, '')
+    if (!cleanText || cleanText.length < 10) {
+      return false
+    }
+    if (cleanTitle && (cleanText === cleanTitle || cleanTitle.includes(cleanText) || cleanText.includes(cleanTitle))) {
+      return true
+    }
+    return /(大学|学院|研究院|研究生院).*(通知|公示|名单|简章|办法|章程|结果|接收|推免|夏令营)/.test(cleanText)
+  },
+
+  isSemanticallyRepeatedLine(left = '', right = '') {
+    const normalize = (value) => String(value || '')
+      .replace(/\s+/g, '')
+      .replace(/[0-9０-９]/g, '')
+      .replace(/[（(][^）)]*[）)]/g, '')
+      .replace(/[，,。；;：:、!！?？"'“”‘’\-—]/g, '')
+      .trim()
+
+    const a = normalize(left)
+    const b = normalize(right)
+    if (!a || !b) {
+      return false
+    }
+    if (a === b) {
+      return true
+    }
+    if (a.length >= 6 && b.length >= 6 && (a.includes(b) || b.includes(a))) {
+      return true
+    }
+    const shorter = a.length <= b.length ? a : b
+    const longer = a.length > b.length ? a : b
+    if (shorter.length < 6) {
+      return false
+    }
+    return longer.includes(shorter.slice(0, Math.min(shorter.length, 8)))
+  },
+
+  dedupeConsecutiveLines(lines = []) {
+    const result = []
+    lines.forEach((line) => {
+      if (!line) return
+      if (result.length > 0 && result[result.length - 1] === line) {
+        return
+      }
+      result.push(line)
+    })
+    return result
+  },
+
+  dedupeSemanticParagraphs(lines = []) {
+    const source = Array.isArray(lines) ? lines.filter(Boolean) : []
+    if (source.length <= 1) {
+      return source
+    }
+
+    const result = []
+    source.forEach((line) => {
+      const duplicated = result.some(existing => this.isSemanticallyRepeatedLine(existing, line))
+      if (duplicated) {
+        return
+      }
+      result.push(line)
+    })
+    return this.trimSemanticRepeatedParagraphBlocks(result)
+  },
+
+  trimSemanticRepeatedParagraphBlocks(lines = []) {
+    const source = Array.isArray(lines) ? lines.filter(Boolean) : []
+    if (source.length < 4) {
+      return source
+    }
+
+    for (let window = Math.min(4, Math.floor(source.length / 2)); window >= 2; window -= 1) {
+      for (let start = 0; start <= source.length - window * 2; start += 1) {
+        const left = source.slice(start, start + window)
+        const right = source.slice(start + window, start + window * 2)
+        const repeated = left.every((item, index) => this.isSemanticallyRepeatedLine(item, right[index]))
+        if (repeated) {
+          return source.slice(0, start + window)
+        }
+      }
+    }
+
+    return source
   },
 
   normalizeProcessStep(rawStep, index, detail = {}) {
@@ -1008,31 +1573,6 @@ Page({
       note,
       period
     }
-  },
-
-  buildDefaultProcess(detail = {}) {
-    const deadline = detail.deadline || ''
-    const startDate = detail.startDate || ''
-    const endDate = detail.endDate || ''
-    const isPreRecommendation = detail.announcementType === ANNOUNCEMENT_TYPES.PRE_RECOMMENDATION
-
-    if (isPreRecommendation) {
-      return [
-        { step: 1, action: '网上预报名', deadline },
-        { step: 2, action: '提交预推免材料', deadline },
-        { step: 3, action: '资格审核', note: '等待院系通知审核结果' },
-        { step: 4, action: '复试/面试考核', note: '具体安排以院系通知为准' },
-        { step: 5, action: '拟录取结果公布', note: '请持续关注学校研究生院通知' }
-      ]
-    }
-
-    return [
-      { step: 1, action: '网上报名', deadline },
-      { step: 2, action: '提交报名材料', deadline },
-      { step: 3, action: '资格审核', note: '审核通过后进入营期环节' },
-      { step: 4, action: '夏令营活动', period: `${startDate || '待定'} 至 ${endDate || '待定'}` },
-      { step: 5, action: '结果公布', note: '关注入营名单/优秀营员结果通知' }
-    ]
   },
 
   normalizeContact(rawContact) {
@@ -1096,102 +1636,50 @@ Page({
     if (list.length === 0) {
       return []
     }
-
-    const currentIndex = this.resolveCurrentProcessIndex(list, detail)
     return list.map((item, index) => {
-      let stageStatus = 'pending'
-      let stageLabel = '待开始'
-
-      if (index < currentIndex) {
-        stageStatus = 'done'
-        stageLabel = '已完成'
-      } else if (index === currentIndex) {
-        stageStatus = 'current'
-        stageLabel = '当前'
-      } else if (index === currentIndex + 1) {
-        stageStatus = 'next'
-        stageLabel = '下一步'
-      }
-
       return {
         ...item,
-        stageStatus,
-        stageLabel
+        stageStatus: '',
+        stageLabel: ''
       }
     })
   },
 
-  resolveCurrentProcessIndex(processList = [], detail = {}) {
-    const statusIndex = this.resolveCurrentProcessIndexByProgress(processList, detail.progressStatus)
-    if (statusIndex > -1) {
-      return statusIndex
+  shouldUseStructuredProcessTimeline(list = []) {
+    if (!Array.isArray(list) || list.length < 2) {
+      return false
     }
-
-    const timelineIndex = this.resolveCurrentProcessIndexByTimeline(processList, detail)
-    if (timelineIndex > -1) {
-      return timelineIndex
-    }
-
-    return 0
+    const lowQualityCount = list.filter(item => this.isLowQualityProcessStep(item)).length
+    return lowQualityCount === 0
   },
 
-  resolveCurrentProcessIndexByProgress(processList = [], progressStatus = '') {
-    if (!progressStatus) {
-      return -1
-    }
+  isLowQualityProcessStep(item = {}) {
+    const action = this.toDisplayText(item.action)
+    const note = this.toDisplayText(item.note)
+    const period = this.toDisplayText(item.period)
+    const merged = `${action} ${note} ${period}`.trim()
 
-    const preferredPhases = PROCESS_PHASE_BY_PROGRESS_STATUS[progressStatus] || []
-    for (const phase of preferredPhases) {
-      const index = this.getFirstProcessIndexByPhase(processList, phase)
-      if (index > -1) {
-        return index
-      }
-    }
-
-    if (progressStatus === 'outstanding_published') {
-      return Math.max(0, processList.length - 1)
-    }
-    if (progressStatus === 'admitted' || progressStatus === 'waiting_outstanding') {
-      return Math.max(0, processList.length - 2)
-    }
-    if (progressStatus === 'submitted' || progressStatus === 'waiting_admission') {
-      return Math.min(2, Math.max(0, processList.length - 1))
-    }
-    if (progressStatus === 'preparing') {
-      return Math.min(1, Math.max(0, processList.length - 1))
-    }
-
-    return -1
+    if (!action) return true
+    if (action.length > 32) return true
+    if (/https?:\/\/|网址[:：]|登录网址/.test(merged)) return true
+    if (/^[”"’，,；;、）)\]]/.test(action) || /[（(“"：:，,；;]$/.test(action)) return true
+    if ((merged.match(/[，,；;]/g) || []).length >= 2) return true
+    if (/招生简章|考核结果|现接受|补充报名|详见附件|视情况审核/.test(merged)) return true
+    return false
   },
 
-  resolveCurrentProcessIndexByTimeline(processList = [], detail = {}) {
-    const now = Date.now()
-    const deadlineTs = this.parseTimestamp(detail.deadline)
-    const startTs = this.parseTimestamp(detail.startDate)
-    const endTs = this.parseTimestamp(detail.endDate)
-
-    if (endTs && now > endTs) {
-      return this.getFirstProcessIndexByPhase(processList, 'result_admission', processList.length - 1)
-    }
-
-    if (startTs && now >= startTs && (!endTs || now <= endTs)) {
-      return this.getFirstProcessIndexByPhase(processList, 'activity', this.getFirstProcessIndexByPhase(processList, 'review', 0))
-    }
-
-    if (deadlineTs && now <= deadlineTs) {
-      return this.getFirstProcessIndexByPhase(processList, 'register', this.getFirstProcessIndexByPhase(processList, 'material', 0))
-    }
-
-    if (deadlineTs && now > deadlineTs) {
-      return this.getFirstProcessIndexByPhase(processList, 'review', this.getFirstProcessIndexByPhase(processList, 'result_admission', 0))
-    }
-
-    return 0
-  },
-
-  getFirstProcessIndexByPhase(processList = [], phase = '', fallback = -1) {
-    const index = processList.findIndex(item => item.phase === phase)
-    return index > -1 ? index : fallback
+  buildProcessFallbackList(list = []) {
+    return list
+      .map((item) => {
+        const parts = [
+          this.toDisplayText(item.action),
+          this.toDisplayText(item.deadline),
+          this.toDisplayText(item.period),
+          this.toDisplayText(item.note)
+        ].filter(Boolean)
+        return parts.join('；')
+      })
+      .filter(Boolean)
   },
 
   inferProcessPhase(text = '') {
@@ -1233,7 +1721,7 @@ Page({
     return ''
   },
 
-  getUniversityLogo(universityId, universityName) {
+  getUniversityLogo(universityId, universityName, universityWebsite = '') {
     const localUniversities = wx.getStorageSync('selectedUniversities') || []
     const userSelection = wx.getStorageSync('userSelection') || {}
     const selectionUniversities = userSelection.universities || []
@@ -1242,7 +1730,48 @@ Page({
       (universityId && item.id === universityId) ||
       (universityName && item.name === universityName)
     )
-    return matched?.logo || ''
+    const explicitLogo = matched?.logo || ''
+    if (explicitLogo) {
+      return explicitLogo
+    }
+    const website = String(universityWebsite || matched?.website || '').trim()
+    const originMatch = website.match(/^https?:\/\/[^/]+/i)
+    return originMatch ? `${originMatch[0]}/favicon.ico` : ''
+  },
+
+  sanitizeCampTitle(title = '') {
+    const original = String(title || '').trim()
+    let text = original
+    if (!text) return ''
+    const genericPattern = /^(首页|正文|通知公告|硕士招生公示|信息公开|招生信息|招生公告)$/u
+    const weakGenericPattern = /^(首页|正文)$/u
+    text = text.replace(/^(?:当前您的位置|您当前的位置|当前位置)[:：]?\s*/u, '')
+    const parts = text.split(/\s*>\s*/).map(item => item.trim()).filter(Boolean)
+    if (parts.length > 1) {
+      const meaningfulParts = parts.filter(item => !genericPattern.test(item))
+      const fallbackParts = parts.filter(item => !weakGenericPattern.test(item))
+      text = meaningfulParts[meaningfulParts.length - 1] || fallbackParts[fallbackParts.length - 1] || parts[parts.length - 1] || text
+    }
+    text = text.replace(
+      /^.+?(?:信息公开|通知公告|招生信息|招生公告|研究生院|研究生招生信息网|研究生招生网站|研招网)\s+(?=.{0,80}(?:夏令营|暑期学校|推免|预推免|推荐免试|免试攻读))/u,
+      ''
+    ).trim()
+    text = text.replace(
+      /^(?:(?:信息公开|通知公告|招生信息|招生公告|研究生院|研究生招生信息网|研究生招生网站|研招网)\s+)+/u,
+      ''
+    ).trim()
+    text = text.replace(/\s*[-|｜_]\s*[^-|｜_]{0,60}(研究生招生网站|研招网|研究生院|招生信息网)$/u, '').trim()
+    text = text.replace(weakGenericPattern, '').trim()
+    return text || parts?.[parts.length - 2] || original
+  },
+
+  buildEventDateText(startDate, endDate) {
+    const start = this.toDisplayText(startDate)
+    const end = this.toDisplayText(endDate)
+    if (start && end) {
+      return start === end ? start : `${start} ~ ${end}`
+    }
+    return start || end || '待定'
   },
 
   getMockCampDataset() {
@@ -1416,14 +1945,24 @@ Page({
   shouldUseRemoteCampApi() {
     const app = getApp()
     const baseUrl = app?.globalData?.apiBaseUrl || ''
-    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
-      return false
-    }
     return Boolean(baseUrl)
   },
 
+  hasAuthToken() {
+    return Boolean(wx.getStorageSync('token'))
+  },
+
   shouldUseRemoteProgressApi() {
-    return this.shouldUseRemoteCampApi()
+    return this.shouldUseRemoteCampApi() && this.hasAuthToken()
+  },
+
+  handleUniversityLogoError() {
+    if (!this.data.campDetail?.universityLogo) {
+      return
+    }
+    this.setData({
+      'campDetail.universityLogo': ''
+    })
   },
 
   refreshProfileComparison() {
@@ -1675,20 +2214,33 @@ Page({
   },
 
   handleOpenSourceUrl() {
-    // 打开原文链接
+    this.handleCopySourceUrl()
+  },
+
+  handleCopySourceUrl() {
     const { sourceUrl } = this.data.campDetail;
-    wx.openUrl({
-      url: sourceUrl,
+    if (!sourceUrl) {
+      wx.showToast({
+        title: '原文链接缺失',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.setClipboardData({
+      data: sourceUrl,
       success: () => {
-        console.log('打开原文链接成功');
-      },
-      fail: (err) => {
-        console.error('打开原文链接失败:', err);
         wx.showToast({
-          title: '打开链接失败，请稍后重试',
+          title: '已复制原文链接',
           icon: 'none'
         });
-      }
+      },
+      fail: () => {
+        wx.showToast({
+          title: '复制链接失败，请稍后重试',
+          icon: 'none'
+        });
+      },
     });
   },
 
@@ -1744,99 +2296,6 @@ Page({
     return { matched: false, reason: '' }
   },
 
-  normalizeChangeCompareCards(events = []) {
-    if (!Array.isArray(events) || events.length === 0) {
-      return []
-    }
-    return events
-      .slice()
-      .sort((a, b) => this.parseTimestamp(b?.sourceUpdatedAt || b?.createdAt || b?.changedAt) - this.parseTimestamp(a?.sourceUpdatedAt || a?.createdAt || a?.changedAt))
-      .slice(0, 6)
-      .map((event, index) => {
-        const beforeText = this.formatChangeValue(event?.oldValueParsed || event?.oldValue)
-        const afterText = this.formatChangeValue(event?.newValueParsed || event?.newValue)
-        return {
-          id: event?.id || `change_${index}`,
-          fieldLabel: this.mapFieldNameToLabel(event?.fieldName, event?.eventType),
-          eventTypeLabel: this.mapEventTypeLabel(event?.eventType),
-          beforeText: beforeText || '（无）',
-          afterText: afterText || '（无）',
-          changedAtText: this.formatDateTime(event?.sourceUpdatedAt || event?.createdAt || event?.changedAt),
-          confidenceLabel: event?.confidenceLabel || '',
-          sourceTypeLabel: event?.sourceType || '',
-          sourceUrl: event?.sourceUrl || ''
-        }
-      })
-  },
-
-  formatChangeValue(value) {
-    if (value === null || value === undefined) return ''
-    if (typeof value === 'string') {
-      const trimmed = value.trim()
-      if (!trimmed) return ''
-      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-        try {
-          return this.formatChangeValue(JSON.parse(trimmed))
-        } catch (error) {
-          return trimmed
-        }
-      }
-      return trimmed
-    }
-    if (Array.isArray(value)) {
-      const text = value
-        .map(item => this.formatChangeValue(item))
-        .filter(Boolean)
-        .join('；')
-      return text
-    }
-    if (typeof value === 'object') {
-      const segments = Object.keys(value)
-        .slice(0, 6)
-        .map(key => {
-          const text = this.formatChangeValue(value[key])
-          if (!text) return ''
-          return `${key}: ${text}`
-        })
-        .filter(Boolean)
-      return segments.join('；')
-    }
-    return String(value)
-  },
-
-  mapFieldNameToLabel(fieldName = '', eventType = '') {
-    const field = String(fieldName || '')
-    const map = {
-      announcementType: '公告类型',
-      title: '公告标题',
-      sourceUrl: '原文链接',
-      publishDate: '发布日期',
-      deadline: '报名截止时间',
-      startDate: '开始时间',
-      endDate: '结束时间',
-      requirements: '申请条件',
-      materials: '所需材料',
-      process: '流程安排',
-      contact: '联系方式'
-    }
-    if (map[field]) return map[field]
-    if (eventType === 'deadline') return '关键时间节点'
-    if (eventType === 'materials') return '材料/条件信息'
-    if (eventType === 'admission_result') return '入营结果'
-    if (eventType === 'outstanding_result') return '优秀营员结果'
-    return '公告信息'
-  },
-
-  mapEventTypeLabel(eventType = '') {
-    const map = {
-      deadline: '时间变更',
-      materials: '内容变更',
-      admission_result: '入营名单变更',
-      outstanding_result: '优秀营员结果变更'
-    }
-    return map[eventType] || '公告变更'
-  },
-
   buildRiskHints(detail = {}) {
     const hints = []
     const requirements = detail.requirements || {}
@@ -1868,19 +2327,19 @@ Page({
       })
     }
 
+    if (!detail.showProcessSection) {
+      hints.push({
+        type: 'warning',
+        title: '流程摘要未展示',
+        content: '当前流程结构化置信度不足，请直接查看官网原文。'
+      })
+    }
+
     if (!detail.contact || !detail.contact.hasData) {
       hints.push({
         type: 'warning',
         title: '联系方式不完整',
         content: '建议到学院官网补充确认咨询渠道。'
-      })
-    }
-
-    if (Array.isArray(detail.changeCompareCards) && detail.changeCompareCards.some(item => item.fieldLabel === '报名截止时间')) {
-      hints.push({
-        type: 'high',
-        title: '近期存在截止时间变更',
-        content: '建议近期每天复核公告，避免错过调整。'
       })
     }
 
@@ -1896,7 +2355,8 @@ Page({
       crawledAtText: this.formatDateTime(crawledAt),
       updatedAtText: this.formatDateTime(updatedAt),
       confidenceScore,
-      confidenceLabel: this.getConfidenceLabel(confidenceScore)
+      confidenceLabel: this.getConfidenceLabel(confidenceScore),
+      confidenceDescription: '当前页面展示的是高置信智能摘要，具体内容请以官网原文为准'
     }
   },
 
@@ -1924,8 +2384,53 @@ Page({
     const year = date.getFullYear()
     const month = `${date.getMonth() + 1}`.padStart(2, '0')
     const day = `${date.getDate()}`.padStart(2, '0')
-    const hour = `${date.getHours()}`.padStart(2, '0')
-    const minute = `${date.getMinutes()}`.padStart(2, '0')
-    return `${year}-${month}-${day} ${hour}:${minute}`
+    return `${year}-${month}-${day}`
+  },
+
+  /**
+   * MVP β-场景：用户报告公告字段错误
+   * 点击"信息有误"→ 弹出问题类型选择 → 提交到后端 → 标红进复核台
+   */
+  onTapReportIssue() {
+    const campId = this.data.campId || (this.data.campDetail && this.data.campDetail.id)
+    if (!campId) {
+      wx.showToast({ title: '公告ID缺失', icon: 'none' })
+      return
+    }
+    const issueOptions = [
+      { label: '截止日期不对', value: 'deadline_wrong' },
+      { label: '材料清单不全', value: 'materials_missing' },
+      { label: '报考条件错误', value: 'requirements_wrong' },
+      { label: '原文链接打不开', value: 'link_dead' },
+      { label: '正文内容错乱', value: 'content_wrong' },
+      { label: '不是夏令营/推免公告', value: 'off_topic' },
+      { label: '其他问题', value: 'other' }
+    ]
+    wx.showActionSheet({
+      itemList: issueOptions.map(o => o.label),
+      success: (res) => {
+        const chosen = issueOptions[res.tapIndex]
+        if (!chosen) return
+        this.submitFeedback(campId, chosen.value, chosen.label)
+      }
+    })
+  },
+
+  async submitFeedback(campId, issueType, label) {
+    try {
+      wx.showLoading({ title: '提交中', mask: true })
+      await campService.submitFeedback(campId, { issueType })
+      wx.hideLoading()
+      wx.showModal({
+        title: '已收到反馈',
+        content: `感谢您反馈"${label}"，我们 48 小时内人工核对。修复后会再次推送通知。`,
+        showCancel: false,
+        confirmText: '好的'
+      })
+    } catch (err) {
+      wx.hideLoading()
+      const msg = (err && (err.message || err.errMsg)) || '提交失败，请稍后重试'
+      wx.showToast({ title: msg, icon: 'none', duration: 2500 })
+    }
   },
 });

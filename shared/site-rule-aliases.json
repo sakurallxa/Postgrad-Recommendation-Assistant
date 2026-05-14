@@ -1,0 +1,77 @@
+[
+  {
+    "hosts": ["sps.bjmu.edu.cn", "shh.bjmu.edu.cn", "sbms.bjmu.edu.cn", "imt.bjmu.edu.cn"],
+    "fallbackLocation": "北京市海淀区学院路38号北京大学医学部",
+    "fallbackKeywords": ["北大医学部", "线下", "线下进行", "线下方式", "线下形式", "学院路38号", "逸夫楼", "药学楼", "生化楼"],
+    "locationLabels": ["报到地点", "线下地点", "活动安排地点", "地点安排"],
+    "deadlineLabels": ["网申截止", "系统开放时间", "网上申报截止时间", "报名截止时间"],
+    "eventLabels": ["活动时间", "举办时间", "营期时间", "夏令营时间", "报到时间"]
+  },
+  {
+    "hosts": ["pkuh6.cn"],
+    "fallbackLocation": "北京市海淀区花园北路51号北京大学第六医院海淀院区",
+    "fallbackKeywords": ["海淀院区", "花园北路51号", "线下", "线下进行", "线下方式", "线下形式", "线下参加", "全程线下", "第六医院"],
+    "locationLabels": ["报到地点", "活动地点", "举办地点"],
+    "deadlineLabels": ["报名截止时间", "报名截止", "截止时间"],
+    "eventLabels": ["活动时间", "举办时间", "报到时间"]
+  },
+  {
+    "hosts": ["www.pkufh.com", "pkufh.com"],
+    "fallbackLocation": "北京市西城区西什库大街8号北京大学第一医院",
+    "fallbackKeywords": ["北大医院", "第一医院", "线下", "线下方式", "线下形式", "线下参加", "全程线下", "西什库大街8号"],
+    "locationLabels": ["报到地点", "活动地点", "举办地点"],
+    "deadlineLabels": ["报名截止时间", "报名截止", "截止时间"],
+    "eventLabels": ["活动时间", "举办时间", "报到时间"]
+  },
+  {
+    "hosts": ["www.pkuph.cn", "pkuph.cn"],
+    "fallbackLocation": "北京市西城区西直门南大街11号北京大学人民医院西直门院区",
+    "fallbackKeywords": ["西直门院区", "线下", "线下进行", "线下方式", "线下形式", "人民医院"],
+    "locationLabels": ["报到地点", "活动地点", "举办地点"],
+    "deadlineLabels": ["报名截止时间", "报名截止", "截止时间"],
+    "eventLabels": ["活动时间", "举办时间", "报到时间"]
+  },
+  {
+    "hosts": ["teach.bjcancer.org", "www.bjcancer.org"],
+    "fallbackKeywords": ["北京大学肿瘤医院", "北肿", "线下", "线下进行", "线下方式"],
+    "locationLabels": ["报到地点", "活动地点", "举办地点"],
+    "deadlineLabels": ["报名截止时间", "报名截止", "截止时间"],
+    "eventLabels": ["活动时间", "举办时间", "报到时间"]
+  },
+  {
+    "hosts": ["bjmu.edu.cn", "www.bjmu.edu.cn", "admission.bjmu.edu.cn"],
+    "fallbackLocation": "北京市海淀区学院路38号北京大学医学部",
+    "fallbackKeywords": ["北大医学部", "线下", "学院路38号", "医学部"],
+    "locationLabels": ["报到地点", "线下地点", "活动安排地点", "举办地点"],
+    "deadlineLabels": ["网申截止", "报名截止时间", "系统开放时间", "截止时间"],
+    "eventLabels": ["活动时间", "举办时间", "营期时间", "报到时间"]
+  },
+  {
+    "hosts": ["ucas.ac.cn", "www.ucas.ac.cn", "admission.ucas.ac.cn"],
+    "fallbackKeywords": ["国科大", "中国科学院大学", "线下", "活动地点", "报到地点"],
+    "locationLabels": ["报到地点", "活动地点", "举办地点"],
+    "deadlineLabels": ["报名截止时间", "截止时间", "申请截止", "网申截止"],
+    "eventLabels": ["活动时间", "举办时间", "营期时间", "报到时间"]
+  },
+  {
+    "hosts": ["yz.tsinghua.edu.cn", "gsao.fudan.edu.cn", "yzb.sjtu.edu.cn", "yz.ustc.edu.cn", "yzb.nju.edu.cn", "www.grs.zju.edu.cn", "grs.zju.edu.cn", "admission.pku.edu.cn", "econ.pku.edu.cn", "www.im.pku.edu.cn"],
+    "fallbackKeywords": ["夏令营", "推免", "报名截止时间", "报到地点", "活动地点", "举办时间"],
+    "locationLabels": ["报到地点", "活动地点", "举办地点", "营期地点"],
+    "deadlineLabels": ["报名截止时间", "报名截止", "截止时间", "申请截止", "网申截止"],
+    "eventLabels": ["活动时间", "举办时间", "营期时间", "报到时间"]
+  },
+  {
+    "hosts": ["yzb.buaa.edu.cn", "grd.bit.edu.cn", "pgs.ruc.edu.cn", "yz.bnu.edu.cn", "zs.xmu.edu.cn", "yanzhao.scut.edu.cn", "gs.whu.edu.cn", "gszs.hust.edu.cn", "www.yz.sdu.edu.cn", "yz.neu.edu.cn", "yzb.neu.edu.cn", "yz.csu.edu.cn", "yz.lzu.edu.cn", "ge.lzu.edu.cn", "geoscience.lzu.edu.cn", "atmos.lzu.edu.cn", "gra.hnu.edu.cn"],
+    "fallbackKeywords": ["夏令营", "推免", "线下", "报名截止时间", "报到地点", "活动地点"],
+    "locationLabels": ["报到地点", "活动地点", "举办地点", "线下地点"],
+    "deadlineLabels": ["报名截止时间", "报名截止", "截止时间", "申请截止", "网申截止"],
+    "eventLabels": ["活动时间", "举办时间", "营期时间", "报到时间"]
+  },
+  {
+    "hosts": ["yz.tongji.edu.cn", "yzb.nankai.edu.cn", "yzb.tju.edu.cn"],
+    "fallbackKeywords": ["夏令营", "推免", "活动地点", "报到地点", "报名截止时间"],
+    "locationLabels": ["报到地点", "活动地点", "举办地点"],
+    "deadlineLabels": ["报名截止时间", "报名截止", "截止时间", "申请截止", "网申截止"],
+    "eventLabels": ["活动时间", "举办时间", "营期时间", "报到时间"]
+  }
+]

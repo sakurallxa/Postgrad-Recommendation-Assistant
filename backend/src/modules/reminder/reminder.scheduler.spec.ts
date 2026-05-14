@@ -87,6 +87,7 @@ describe('ReminderScheduler', () => {
           university: { name: '清华大学' },
         },
         event: {
+          eventType: 'deadline',
           fieldName: 'deadline',
           sourceUpdatedAt: new Date('2026-03-08T09:00:00.000Z'),
         },
@@ -98,5 +99,32 @@ describe('ReminderScheduler', () => {
     const sendPayload = mockedAxios.post.mock.calls[0][1] as any;
     expect(sendPayload.data.time4).toBeDefined();
     expect(sendPayload.data.time2).toBeUndefined();
+    expect(sendPayload.data.thing3.value).toContain('时间更新');
+  });
+
+  it('低置信旧事件提醒应退化为通用文案', async () => {
+    prisma.progressAlert.findMany.mockResolvedValue([
+      {
+        id: 'a2',
+        actionToken: null,
+        title: '材料变更',
+        createdAt: new Date('2026-03-08T10:00:00.000Z'),
+        user: { openidCipher: 'cipher' },
+        camp: {
+          title: '2026夏令营',
+          university: { name: '清华大学' },
+        },
+        event: {
+          eventType: 'materials',
+          fieldName: 'materials',
+          sourceUpdatedAt: new Date('2026-03-08T09:00:00.000Z'),
+        },
+      },
+    ]);
+
+    await scheduler.dispatchProgressWechatAlerts();
+
+    const sendPayload = mockedAxios.post.mock.calls[0][1] as any;
+    expect(sendPayload.data.thing3.value).toContain('公告更新');
   });
 });

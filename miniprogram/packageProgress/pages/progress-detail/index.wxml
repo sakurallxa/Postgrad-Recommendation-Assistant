@@ -75,18 +75,6 @@
         <view class="switch-row child-row {{!subscription.enabled ? 'disabled' : ''}}">
           <view class="child-label-wrap">
             <text class="child-dot">•</text>
-            <text class="child-label">材料要求变更</text>
-          </view>
-          <switch
-            disabled="{{subscriptionSaving || !subscription.enabled}}"
-            checked="{{subscription.materialsChanged}}"
-            data-key="materialsChanged"
-            bindchange="onSubscriptionChange"
-          />
-        </view>
-        <view class="switch-row child-row {{!subscription.enabled ? 'disabled' : ''}}">
-          <view class="child-label-wrap">
-            <text class="child-dot">•</text>
             <text class="child-label">入营名单通知</text>
           </view>
           <switch

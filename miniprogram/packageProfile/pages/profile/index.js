@@ -100,10 +100,7 @@ Page({
   shouldUseRemoteUserApi() {
     const app = getApp()
     const baseUrl = app?.globalData?.apiBaseUrl || ''
-    if (!baseUrl || baseUrl.indexOf('tcb.qcloud.la') > -1) {
-      return false
-    }
-    return true
+    return Boolean(baseUrl)
   },
 
   prefillWithSelection(profile = null) {

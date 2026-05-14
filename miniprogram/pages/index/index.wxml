@@ -7,6 +7,16 @@
     </text>
   </view>
 
+  <!-- MVP β场景：明确数据承诺范围（信任管理）-->
+  <view class="scope-banner">
+    <view class="scope-banner-title">
+      <text class="scope-banner-icon">⭐</text>
+      <text class="scope-banner-heading">本期重点覆盖 5 所</text>
+    </view>
+    <text class="scope-banner-schools">北京大学 · 上海交通大学 · 复旦大学 · 中国科学技术大学 · 中国人民大学</text>
+    <text class="scope-banner-tip">其他985可订阅但数据完整度无承诺，最终请以学校官网为准</text>
+  </view>
+
   <!-- 即将截止提醒区 -->
   <view class="section">
     <view class="section-header">
@@ -79,12 +89,50 @@
     </view>
   </view>
 
-  <!-- 夏令营列表区 -->
+  <!-- 保研机会池 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">保研机会池</text>
+      <view class="section-more" bindtap="handleOpenOpportunityPool">
+        <text>查看全部</text>
+        <text class="arrow-right">→</text>
+      </view>
+    </view>
+    <view class="opportunity-pool-card">
+      <text class="opportunity-pool-desc">汇总全网公开公告，支持在机会池中查看所有学校机会</text>
+      <view wx:if="{{opportunityPoolCamps.length > 0}}" class="opportunity-list">
+        <navigator
+          wx:for="{{opportunityPoolCamps}}"
+          wx:key="id"
+          class="opportunity-item"
+          url="{{item.detailUrl}}"
+        >
+          <view class="opportunity-meta">
+            <text class="opportunity-university">{{item.universityName}}</text>
+            <view class="opportunity-type-badge {{item.announcementType === 'pre_recommendation' ? 'pre-recommendation' : 'summer-camp'}}">
+              <text>{{item.announcementType === 'pre_recommendation' ? '预推免' : '夏令营'}}</text>
+            </view>
+          </view>
+          <text class="opportunity-title">{{item.title}}</text>
+          <text wx:if="{{item.deadline}}" class="opportunity-deadline">{{item.deadline}} 截止</text>
+        </navigator>
+      </view>
+      <text wx:else class="opportunity-empty">暂未发现新的公开机会</text>
+    </view>
+  </view>
+
+  <!-- 已关注公告区 -->
   <view class="section">
     <view class="section-header-vertical">
-      <text class="section-title">我的保研</text>
-      <text class="section-subtext">仅展示你已关注院校的结果</text>
-      <view class="filter-bar">
+      <view class="section-header title-with-more">
+        <text class="section-title">{{myCampsTitle}}</text>
+        <view class="section-more" wx:if="{{showCampListMore}}" bindtap="handleOpenFollowedCamps">
+          <text>{{campListMoreText}}</text>
+          <text class="arrow-right">→</text>
+        </view>
+      </view>
+      <text class="section-subtext">{{myCampsSubtext}}</text>
+      <view class="filter-bar" wx:if="{{isLoggedIn}}">
         <view class="filter-row">
           <text class="filter-label">状态</text>
           <scroll-view scroll-x enable-flex="true" class="filter-scroll">
@@ -130,9 +178,9 @@
       </view>
     </view>
     
-    <view wx:if="{{campList.length > 0}}" class="camp-list">
+    <view wx:if="{{followedPreviewCamps.length > 0}}" class="camp-list">
       <camp-card 
-        wx:for="{{campList}}" 
+        wx:for="{{followedPreviewCamps}}" 
         wx:key="id"
         wx:if="{{item}}"
         camp="{{item}}"
@@ -142,55 +190,14 @@
         data-announcement-type="{{item.announcementType}}"
         data-title="{{item.title}}"
       />
-      
-      <!-- 加载更多 -->
-      <view wx:if="{{loadingMore}}" class="loading-more">
-        <view class="loading"></view>
-        <text class="loading-text">加载中...</text>
-      </view>
-      
-      <view wx:else-if="{{!hasMore}}" class="no-more">
-        <text>没有更多了</text>
-      </view>
     </view>
     
     <view wx:else class="my-camps-empty">
       <text class="my-camps-empty-text">{{myCampsEmptyText}}</text>
-      <view wx:if="{{stats.universityCount === 0}}" class="my-camps-empty-action" bindtap="handleOpenSelector">
+      <view wx:if="{{stats.universityCount === 0 && isLoggedIn}}" class="my-camps-empty-action" bindtap="handleOpenSelector">
         去关注目标院校
       </view>
     </view>
   </view>
 
-  <!-- 夏令营机会池 -->
-  <view class="section">
-    <view class="section-header">
-      <text class="section-title">保研机会池</text>
-      <view class="section-more" bindtap="handleOpenOpportunityPool">
-        <text>查看全部</text>
-        <text class="arrow-right">→</text>
-      </view>
-    </view>
-    <view class="opportunity-pool-card">
-      <text class="opportunity-pool-desc">汇总全网夏令营/预推免信息，避免错过其他机会</text>
-      <view wx:if="{{opportunityPoolCamps.length > 0}}" class="opportunity-list">
-        <navigator
-          wx:for="{{opportunityPoolCamps}}"
-          wx:key="id"
-          class="opportunity-item"
-          url="{{item.detailUrl}}"
-        >
-          <view class="opportunity-meta">
-            <text class="opportunity-university">{{item.universityName}}</text>
-            <view class="opportunity-type-badge {{item.announcementType === 'pre_recommendation' ? 'pre-recommendation' : 'summer-camp'}}">
-              <text>{{item.announcementType === 'pre_recommendation' ? '预推免' : '夏令营'}}</text>
-            </view>
-          </view>
-          <text class="opportunity-title">{{item.title}}</text>
-          <text wx:if="{{item.deadline}}" class="opportunity-deadline">{{item.deadline}} 截止</text>
-        </navigator>
-      </view>
-      <text wx:else class="opportunity-empty">暂未发现新的公开机会</text>
-    </view>
-  </view>
 </view>

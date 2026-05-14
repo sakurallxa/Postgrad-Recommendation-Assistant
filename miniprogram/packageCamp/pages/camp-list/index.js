@@ -1,5 +1,6 @@
 import { campService } from '../../../services/camp'
 import { normalizeAnnouncementType } from '../../../services/announcement'
+import { userStore } from '../../../store/user'
 
 Page({
   data: {
@@ -26,6 +27,10 @@ Page({
     const mode = this.resolveMode(options.mode)
     this.setData({ mode })
     this.updateNavigationTitle(mode)
+    if (mode === 'followed' && !this.hasAuthToken()) {
+      this.redirectToLogin()
+      return
+    }
     this.initPage()
   },
 
@@ -42,6 +47,7 @@ Page({
   resolveMode(mode = '') {
     if (mode === 'urgent') return 'urgent'
     if (mode === 'opportunity') return 'opportunity'
+    if (mode === 'followed') return 'followed'
     return 'all'
   },
 
@@ -49,10 +55,33 @@ Page({
     const titleMap = {
       urgent: '即将截止公告',
       opportunity: '保研机会池',
+      followed: '已关注公告',
       all: '夏令营/预推免列表'
     }
     wx.setNavigationBarTitle({
       title: titleMap[mode] || titleMap.all
+    })
+  },
+
+  hasAuthToken() {
+    return Boolean(userStore.token || wx.getStorageSync('token'))
+  },
+
+  redirectToLogin() {
+    wx.showModal({
+      title: '需要先登录',
+      content: '登录后才能查看账号已关注院校的公告。',
+      confirmText: '去登录',
+      cancelText: '返回',
+      success: (res) => {
+        if (res.confirm) {
+          wx.switchTab({ url: '/pages/my/my' })
+          return
+        }
+        wx.navigateBack({
+          fail: () => wx.switchTab({ url: '/pages/index/index' })
+        })
+      }
     })
   },
 
@@ -127,6 +156,12 @@ Page({
       if (this.data.activeFilter !== 'all') {
         queryParams.status = this.data.activeFilter
       }
+    } else if (this.data.mode === 'followed') {
+      const followedIds = this.getFollowedUniversities().map(item => item.id)
+      if (followedIds.length > 0) {
+        queryParams.universityIds = followedIds
+      }
+      queryParams.status = 'published'
     } else {
       queryParams.status = 'published'
     }
@@ -145,9 +180,6 @@ Page({
     if (forceRemote === true) {
       return true
     }
-    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
-      return false
-    }
     return Boolean(baseUrl)
   },
 
@@ -156,12 +188,21 @@ Page({
       return null
     }
 
-    return normalizeAnnouncementType({
+    const normalized = normalizeAnnouncementType({
       ...item,
       universityName: item.universityName || item.university?.name || '',
       universityLogo: item.universityLogo || item.university?.logo || '',
-      universityId: item.universityId || item.university?.id || ''
+      universityId: item.universityId || item.university?.id || '',
+      universityWebsite: item.universityWebsite || item.university?.website || ''
     })
+    return {
+      ...normalized,
+      title: this.sanitizeCampTitle(normalized.title),
+      publishDate: this.formatDateOnly(normalized.publishDate),
+      deadline: this.formatDateOnly(normalized.deadline),
+      startDate: this.formatDateOnly(normalized.startDate),
+      endDate: this.formatDateOnly(normalized.endDate)
+    }
   },
 
   sanitizeCampList(list) {
@@ -193,6 +234,14 @@ Page({
         .sort((a, b) => this.getDeadlineTimestamp(a.deadline) - this.getDeadlineTimestamp(b.deadline))
     }
 
+    if (mode === 'followed') {
+      const followedIds = this.getFollowedUniversities().map(item => item.id)
+      list = list
+        .filter(item => item.status === 'published')
+        .filter(item => followedIds.includes(item.universityId))
+        .sort((a, b) => this.getDeadlineTimestamp(a.deadline) - this.getDeadlineTimestamp(b.deadline))
+    }
+
     if (mode === 'opportunity' && searchKeyword) {
       list = list.filter(item => this.matchCampByKeyword(item, searchKeyword))
     }
@@ -218,6 +267,65 @@ Page({
     ].join(' ')
     const normalizedSource = this.normalizeSearchKeyword(searchSource)
     return normalizedSource.indexOf(keyword) > -1
+  },
+
+  getFollowedUniversities() {
+    if (!this.hasAuthToken()) {
+      return []
+    }
+    const localUniversities = wx.getStorageSync('selectedUniversities') || []
+    const userSelection = wx.getStorageSync('userSelection') || {}
+    const selectionUniversities = userSelection.universities || []
+    const merged = {}
+    const allUniversities = localUniversities.concat(selectionUniversities)
+    allUniversities.forEach((item) => {
+      if (!item || !item.id) return
+      merged[item.id] = item
+    })
+    return Object.values(merged)
+  },
+
+  sanitizeCampTitle(title = '') {
+    const original = String(title || '').trim()
+    let text = original
+    if (!text) return ''
+    const genericPattern = /^(首页|正文|通知公告|硕士招生公示|信息公开|招生信息|招生公告)$/u
+    const weakGenericPattern = /^(首页|正文)$/u
+    text = text.replace(/^(?:当前您的位置|您当前的位置|当前位置)[:：]?\s*/u, '')
+    const parts = text.split(/\s*>\s*/).map(item => item.trim()).filter(Boolean)
+    if (parts.length > 1) {
+      const meaningfulParts = parts.filter(item => !genericPattern.test(item))
+      const fallbackParts = parts.filter(item => !weakGenericPattern.test(item))
+      text = meaningfulParts[meaningfulParts.length - 1] || fallbackParts[fallbackParts.length - 1] || parts[parts.length - 1] || text
+    }
+    text = text.replace(
+      /^.+?(?:信息公开|通知公告|招生信息|招生公告|研究生院|研究生招生信息网|研究生招生网站|研招网)\s+(?=.{0,80}(?:夏令营|暑期学校|推免|预推免|推荐免试|免试攻读))/u,
+      ''
+    ).trim()
+    text = text.replace(
+      /^(?:(?:信息公开|通知公告|招生信息|招生公告|研究生院|研究生招生信息网|研究生招生网站|研招网)\s+)+/u,
+      ''
+    ).trim()
+    text = text.replace(/\s*[-|｜_]\s*[^-|｜_]{0,60}(研究生招生网站|研招网|研究生院|招生信息网)$/u, '').trim()
+    text = text.replace(weakGenericPattern, '').trim()
+    return text || parts?.[parts.length - 2] || original
+  },
+
+  formatDateOnly(value) {
+    const text = String(value || '').trim()
+    if (!text) return ''
+    const parsed = new Date(text)
+    if (!Number.isNaN(parsed.getTime())) {
+      const year = parsed.getFullYear()
+      const month = `${parsed.getMonth() + 1}`.padStart(2, '0')
+      const day = `${parsed.getDate()}`.padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+    const match = text.match(/(20\d{2})[-/年](\d{1,2})[-/月](\d{1,2})/)
+    if (match) {
+      return `${match[1]}-${String(match[2]).padStart(2, '0')}-${String(match[3]).padStart(2, '0')}`
+    }
+    return text.replace(/T.*$/, '').replace(/\s+\d{2}:\d{2}.*$/, '')
   },
 
   applyCurrentFiltersFromRaw() {

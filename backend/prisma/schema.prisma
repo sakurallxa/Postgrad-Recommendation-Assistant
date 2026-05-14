@@ -113,6 +113,7 @@ model CampInfo {
   id          String   @id @default(uuid())
   title       String
   announcementType String @default("summer_camp") // summer_camp/pre_recommendation
+  subType     String  @default("specific") // specific=有具体报名时间 / framework=章程/工作办法（无统一截止日）
   identityHash String?
   identityVersion Int @default(1)
   sourceUrl   String
@@ -124,11 +125,13 @@ model CampInfo {
   deadline    DateTime?
   startDate   DateTime?
   endDate     DateTime?
+  location    String?
   
   requirements String? // 申请要求（JSON字符串）
   materials    String? // 所需材料清单（JSON字符串）
   process      String? // 报名流程步骤（JSON字符串）
   contact      String? // 联系方式（JSON字符串）
+  rawContent   String? // 公告原文正文（降级展示用）
   
   status     String   @default("published") // draft/published/expired
   confidence Float    @default(1.00) // 信息置信度 0-1
@@ -157,6 +160,24 @@ model CampInfo {
   @@index([identityHash])
   @@index([universityId, identityHash])
   @@map("camp_infos")
+}
+
+/// 用户对公告字段错误的反馈（β场景灰度阶段：错误数据反馈闭环）
+model CampFeedback {
+  id          String   @id @default(uuid())
+  campId      String   // 关联的公告
+  userId      String?  // 报错用户（可匿名）
+  issueType   String   // deadline_wrong / materials_missing / link_dead / off_topic / other
+  description String?  // 用户补充说明（可选）
+  status      String   @default("open") // open / triaged / fixed / rejected
+  reviewerNote String? // 运营备注
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([campId, createdAt])
+  @@index([status])
+  @@index([userId])
+  @@map("camp_feedbacks")
 }
 
 model CampExtractionLog {

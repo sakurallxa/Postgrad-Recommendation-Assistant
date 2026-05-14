@@ -347,3 +347,29 @@
 .confirm-btn::after {
   border: none;
 }
+
+/* MVP β: 5所重点校的视觉标识 */
+.university-item.priority {
+  background: linear-gradient(to right, rgba(245, 167, 66, 0.05), transparent);
+  border-left: 6rpx solid #f5a742;
+  padding-left: 18rpx;
+}
+.university-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-wrap: wrap;
+}
+.priority-star {
+  color: #f5a742;
+  font-size: 28rpx;
+  line-height: 1;
+}
+.priority-badge {
+  font-size: 20rpx;
+  color: #b35e00;
+  background: rgba(245, 167, 66, 0.18);
+  padding: 4rpx 10rpx;
+  border-radius: 8rpx;
+  line-height: 1.2;
+}

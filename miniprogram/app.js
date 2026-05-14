@@ -25,9 +25,12 @@ App({
   
   initGlobalData() {
     const savedApiBaseUrl = wx.getStorageSync('apiBaseUrl')
-    const isLegacyInvalidDomain = typeof savedApiBaseUrl === 'string' && savedApiBaseUrl.indexOf('api.baoyan.com') > -1
+    const isLegacyInvalidDomain = typeof savedApiBaseUrl === 'string' && (
+      savedApiBaseUrl.indexOf('api.baoyan.com') > -1 ||
+      savedApiBaseUrl.indexOf('tcb.qcloud.la') > -1
+    )
     const resolvedApiBaseUrl = (!savedApiBaseUrl || isLegacyInvalidDomain)
-      ? 'https://7072-prod-3gtxp94je7bc33d7-1407249275.tcb.qcloud.la/v1'
+      ? 'https://baoyanwang-helper.cn/api/v1'
       : savedApiBaseUrl
     this.globalData = {
       userInfo: null,

@@ -29,7 +29,7 @@ const DISPLAY_STAGE_LABELS = {
 const DEFAULT_SUBSCRIPTION = {
   enabled: true,
   deadlineChanged: true,
-  materialsChanged: true,
+  materialsChanged: false,
   admissionResultChanged: true,
   outstandingResultChanged: true
 }
@@ -101,9 +101,6 @@ Page({
     const baseUrl = app?.globalData?.apiBaseUrl || ''
     const forceRemote = wx.getStorageSync('forceRemoteProgressApi')
     if (forceRemote === true) return true
-    if (baseUrl.indexOf('tcb.qcloud.la') > -1) {
-      return false
-    }
     return Boolean(baseUrl)
   },
 
@@ -176,6 +173,7 @@ Page({
         ...DEFAULT_SUBSCRIPTION,
         ...(subscriptionResult || {})
       }
+      subscription.materialsChanged = false
 
       this.setData({
         progress,
@@ -402,13 +400,12 @@ Page({
   },
 
   buildSubscriptionSummary(subscription = DEFAULT_SUBSCRIPTION) {
-    const total = 4
+    const total = 3
     if (!subscription.enabled) {
       return '总开关已关闭'
     }
     let enabledCount = 0
     if (subscription.deadlineChanged) enabledCount += 1
-    if (subscription.materialsChanged) enabledCount += 1
     if (subscription.admissionResultChanged) enabledCount += 1
     if (subscription.outstandingResultChanged) enabledCount += 1
     return `${enabledCount}/${total} 项已开启`

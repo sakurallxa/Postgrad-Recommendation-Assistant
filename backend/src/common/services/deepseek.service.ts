@@ -35,6 +35,7 @@ export interface CampInfoExtraction {
   deadline?: string;
   startDate?: string;
   endDate?: string;
+  location?: string;
   requirements: Record<string, any>;
   materials: Array<string | Record<string, any>>;
   process: Array<string | Record<string, any>>;
@@ -54,6 +55,7 @@ interface PromptHint {
   deadline?: string;
   startDate?: string;
   endDate?: string;
+  location?: string;
   requirements?: any;
   materials?: any;
   process?: any;
@@ -92,6 +94,40 @@ function normalizeStringArray(value: any): string[] {
       .split(/[\n；;,，]/)
       .map((item) => item.trim())
       .filter(Boolean);
+  }
+  return [];
+}
+
+function normalizeStructuredListArray(value: any): Array<string | Record<string, any>> {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (item === null || item === undefined) return null;
+        if (typeof item === 'string') {
+          const text = item.trim();
+          return text ? text : null;
+        }
+        if (typeof item === 'object') {
+          const next: Record<string, any> = {};
+          Object.keys(item).forEach((key) => {
+            const current = item[key];
+            if (current === null || current === undefined) return;
+            if (typeof current === 'string') {
+              const text = current.trim();
+              if (text) next[key] = text;
+              return;
+            }
+            next[key] = current;
+          });
+          return Object.keys(next).length > 0 ? next : null;
+        }
+        return String(item).trim() || null;
+      })
+      .filter(Boolean) as Array<string | Record<string, any>>;
+  }
+  if (typeof value === 'string') {
+    return normalizeStringArray(value);
   }
   return [];
 }
@@ -205,6 +241,7 @@ export class DeepSeekService {
         deadline: hint.deadline || '',
         startDate: hint.startDate || '',
         endDate: hint.endDate || '',
+        location: hint.location || '',
         requirements: hint.requirements || {},
         materials: hint.materials || [],
         process: hint.process || [],
@@ -230,9 +267,18 @@ ${content.substring(0, 3000)}
   "deadline": "截止日期(YYYY-MM-DD格式)",
   "startDate": "开始日期(YYYY-MM-DD格式)",
   "endDate": "结束日期(YYYY-MM-DD格式)",
-  "requirements": {"任意键": "任意值"},
-  "materials": ["所需材料1", "所需材料2"],
-  "process": ["流程步骤1", "流程步骤2"],
+  "location": "举办地点",
+  "requirements": {
+    "hardConstraints": [{"title": "门槛标题", "content": "原文要求"}],
+    "softSuggestions": [{"title": "建议标题", "content": "建议内容"}],
+    "uncertainItems": [{"title": "不确定项标题", "content": "待确认内容"}]
+  },
+  "materials": [
+    {"title": "所需材料1", "detail": "补充说明", "required": true}
+  ],
+  "process": [
+    {"step": 1, "action": "报名", "deadline": "2026-06-25 23:59", "period": "", "note": "网址或补充说明"}
+  ],
   "contact": {
     "email": "邮箱",
     "phone": "电话",
@@ -246,6 +292,10 @@ ${content.substring(0, 3000)}
 1. 如果某项信息不存在，请使用null或空数组
 2. confidence表示信息提取的置信度(0-1)
 3. 日期请输出为YYYY-MM-DD或ISO字符串
+4. process 必须提炼成真正的步骤，不要把整段长公告原文直接塞进 action
+5. action 尽量短，概括步骤动作；网址、时间、补充说明放到 note 或 deadline
+6. materials 尽量输出对象数组，title 是材料名，detail 放备注
+7. requirements 请按 hardConstraints / softSuggestions / uncertainItems 三类输出
 4. 只返回JSON，不要包含其他内容`;
   }
 
@@ -324,9 +374,10 @@ ${content.substring(0, 3000)}
         deadline: normalizeIsoDate(result.deadline),
         startDate: normalizeIsoDate(result.startDate),
         endDate: normalizeIsoDate(result.endDate),
+        location: String(result.location || '').trim() || undefined,
         requirements: normalizeRecord(result.requirements),
-        materials: Array.isArray(result.materials) ? result.materials : normalizeStringArray(result.materials),
-        process: Array.isArray(result.process) ? result.process : normalizeStringArray(result.process),
+        materials: normalizeStructuredListArray(result.materials),
+        process: normalizeStructuredListArray(result.process),
         contact: normalizeContact(result.contact),
         confidence: normalizeConfidence(result.confidence),
       };
@@ -342,7 +393,7 @@ ${content.substring(0, 3000)}
   private checkQuota(): boolean {
     const dailyLimit = this.configService.get<number>(
       'DEEPSEEK_DAILY_LIMIT',
-      400,
+      2000,
     );
     const today = new Date().toDateString();
 
@@ -366,7 +417,7 @@ ${content.substring(0, 3000)}
   } {
     const dailyLimit = this.configService.get<number>(
       'DEEPSEEK_DAILY_LIMIT',
-      400,
+      2000,
     );
 
     return {

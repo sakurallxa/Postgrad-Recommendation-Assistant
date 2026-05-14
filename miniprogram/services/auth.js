@@ -19,7 +19,7 @@ export const authService = {
         expiresIn: res?.expiresIn || '',
         userInfo: {
           id: res?.user?.id || '',
-          nickname: '微信用户',
+          nickname: '保研er',
           avatar: '',
           openid: ''
         }

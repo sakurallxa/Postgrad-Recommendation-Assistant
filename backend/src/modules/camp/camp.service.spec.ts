@@ -73,7 +73,7 @@ describe('CampService', () => {
 
       // 验证只查询published状态的夏令营
       expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith({
-        where: { status: 'published' },
+        where: { status: 'published', subType: { not: 'framework' } },
         skip: 0,
         take: 20,
         orderBy: { publishDate: 'desc' },
@@ -109,7 +109,7 @@ describe('CampService', () => {
 
       expect(result.data).toEqual(mockCamps);
       expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith({
-        where: { status: 'published', universityId },
+        where: { status: 'published', subType: { not: 'framework' }, universityId },
         skip: 0,
         take: 20,
         orderBy: { publishDate: 'desc' },
@@ -145,7 +145,7 @@ describe('CampService', () => {
 
       expect(result.data).toEqual(mockCamps);
       expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith({
-        where: { status: 'published', majorId },
+        where: { status: 'published', subType: { not: 'framework' }, majorId },
         skip: 0,
         take: 20,
         orderBy: { publishDate: 'desc' },
@@ -183,7 +183,7 @@ describe('CampService', () => {
 
       expect(result.data).toEqual(mockCamps);
       expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith({
-        where: { status: 'published', universityId, majorId },
+        where: { status: 'published', subType: { not: 'framework' }, universityId, majorId },
         skip: 0,
         take: 20,
         orderBy: { publishDate: 'desc' },
@@ -239,7 +239,7 @@ describe('CampService', () => {
 
       expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { status: 'published' },
+          where: { status: 'published', subType: { not: 'framework' } },
         })
       );
     });
@@ -316,7 +316,7 @@ describe('CampService', () => {
 
       expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: {},
+          where: { subType: { not: 'framework' } },
         }),
       );
     });
@@ -331,8 +331,97 @@ describe('CampService', () => {
         expect.objectContaining({
           where: {
             status: 'published',
+            subType: { not: 'framework' },
             universityId: { in: ['u1', 'u2'] },
           },
+        }),
+      );
+    });
+
+    it('应支持按公告类型筛选', async () => {
+      mockPrismaService.campInfo.findMany.mockResolvedValue([]);
+      mockPrismaService.campInfo.count.mockResolvedValue(0);
+
+      await service.findAll({
+        page: 1,
+        limit: 20,
+        announcementType: 'summer_camp',
+      });
+
+      expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            status: 'published',
+            subType: { not: 'framework' },
+            announcementType: 'summer_camp',
+          },
+        }),
+      );
+    });
+
+    it('应支持关键词搜索标题、正文、院校和专业', async () => {
+      mockPrismaService.campInfo.findMany.mockResolvedValue([]);
+      mockPrismaService.campInfo.count.mockResolvedValue(0);
+
+      await service.findAll({
+        page: 1,
+        limit: 20,
+        keyword: '计算机',
+      });
+
+      expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            status: 'published',
+            subType: { not: 'framework' },
+            OR: [
+              { title: { contains: '计算机' } },
+              { rawContent: { contains: '计算机' } },
+              { university: { name: { contains: '计算机' } } },
+              { major: { name: { contains: '计算机' } } },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('应支持默认排除低价值公告并保留近两年覆盖', async () => {
+      mockPrismaService.campInfo.findMany.mockResolvedValue([]);
+      mockPrismaService.campInfo.count.mockResolvedValue(0);
+
+      await service.findAll({
+        page: 1,
+        limit: 20,
+        actionableOnly: true,
+      });
+
+      expect(mockPrismaService.campInfo.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: 'published',
+            NOT: expect.arrayContaining([
+              { title: { contains: '拟录取' } },
+              { title: { contains: '名单公示' } },
+              { title: { contains: '营员名单' } },
+              { title: { contains: '考试报名' } },
+              { title: '研究生招生信息网' },
+            ]),
+            AND: expect.arrayContaining([
+              expect.objectContaining({
+                OR: expect.arrayContaining([
+                  expect.objectContaining({
+                    publishDate: expect.objectContaining({
+                      gte: expect.any(Date),
+                    }),
+                  }),
+                ]),
+              }),
+            ]),
+          }),
+          orderBy: [
+            { publishDate: 'desc' },
+            { deadline: { sort: 'asc', nulls: 'last' } },
+          ],
         }),
       );
     });

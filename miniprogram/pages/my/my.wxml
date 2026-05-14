@@ -2,11 +2,11 @@
   <!-- 用户信息区 -->
   <view class="user-info-card">
     <view class="user-avatar">
-      <image src="{{userInfo.avatar || '/assets/images/icons/avatar-default.png'}}" mode="aspectFill" />
+      <image src="{{userInfo.avatar || (isLoggedIn ? '/assets/images/icons/avatar-logged-in.jpg' : '/assets/images/icons/avatar-default.png')}}" mode="aspectFill" />
     </view>
     <view class="user-details">
       <text class="user-name">{{userInfo.nickname || '未登录'}}</text>
-      <text class="user-openid">{{isLoggedIn ? '已登录' : '点击登录'}}</text>
+      <text class="user-openid">{{profileActionText}}</text>
     </view>
     <button wx:if="{{!isLoggedIn}}" class="login-btn" bindtap="handleLogin">
       微信登录
@@ -31,7 +31,7 @@
       <view class="menu-icon">🧾</view>
       <view class="menu-content">
         <text class="menu-title">个人保研档案</text>
-        <text class="menu-desc">用于自动匹配申请条件与门槛</text>
+        <text class="menu-desc">用于完善资料、匹配申请条件与门槛</text>
       </view>
       <view class="menu-arrow">→</view>
     </view>

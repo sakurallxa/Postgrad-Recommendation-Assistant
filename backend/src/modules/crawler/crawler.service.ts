@@ -26,6 +26,7 @@ interface IngestCampOptions {
 
 interface LlmFallbackDecision {
   shouldExtract: boolean;
+  mode: 'fallback' | 'compare';
   reasons: string[];
   snippet: string;
 }
@@ -101,18 +102,33 @@ const CAMP_EXTRACTION_JSON_SCHEMA: MinimalJsonSchema = {
 };
 
 const TRACKED_FIELD_EVENT_MAP: Record<string, ProgressEventType> = {
-  announcementType: 'materials',
-  title: 'materials',
-  sourceUrl: 'materials',
   publishDate: 'deadline',
   deadline: 'deadline',
   startDate: 'deadline',
   endDate: 'deadline',
-  requirements: 'materials',
-  materials: 'materials',
-  process: 'materials',
-  contact: 'materials',
 };
+
+const LOW_VALUE_TITLES = new Set(['夏令营', '夏令营/推免', '推免', '预推免', '推荐免试']);
+const BLOCKED_NOTICE_KEYWORDS = [
+  '博士',
+  '申请考核',
+  '申请-考核',
+  '港澳台',
+  '成绩查询',
+  '考前提醒',
+  '报名须知',
+  '专业目录',
+];
+const TITLE_PREFIX_LABELS = [
+  '学工动态',
+  '工作动态',
+  '医学教育',
+  '通知公告',
+  '新闻动态',
+  '招生信息',
+  '招生通知',
+];
+const TITLE_SUFFIX_LABELS = ['学工动态', '工作动态', '医学教育', '通知公告', '新闻动态'];
 
 interface CrawlerTask {
   id: string;
@@ -280,7 +296,11 @@ export class CrawlerService {
    */
   private runScrapyCommand(args: string[]): Promise<any> {
     return new Promise((resolve, reject) => {
-      const scrapyCmd = 'scrapy';
+      const scrapyCmd = process.env.SCRAPY_COMMAND || 'python3';
+      const scrapyArgs =
+        process.env.SCRAPY_COMMAND && process.env.SCRAPY_COMMAND !== 'python3'
+          ? args
+          : ['-m', 'scrapy', ...args];
       const options = {
         cwd: this.crawlerPath,
         env: {
@@ -289,9 +309,9 @@ export class CrawlerService {
         },
       };
 
-      this.logger.log(`执行命令: ${scrapyCmd} ${args.join(' ')}`);
+      this.logger.log(`执行命令: ${scrapyCmd} ${scrapyArgs.join(' ')}`);
 
-      const child = spawn(scrapyCmd, args, options);
+      const child = spawn(scrapyCmd, scrapyArgs, options);
       
       let stdout = '';
       let stderr = '';
@@ -383,6 +403,8 @@ export class CrawlerService {
       skipped: 0,
       eventsCreated: 0,
       llmTriggered: 0,
+      llmCompared: 0,
+      llmMerged: 0,
       llmSuccess: 0,
       llmFailed: 0,
       errors: [] as Array<{ index: number; reason: string }>,
@@ -489,7 +511,13 @@ export class CrawlerService {
 
   private async applyDeepSeekFallback(
     item: CrawlerCampItemDto,
-    summary: { llmTriggered: number; llmSuccess: number; llmFailed: number },
+    summary: {
+      llmTriggered: number;
+      llmCompared: number;
+      llmMerged: number;
+      llmSuccess: number;
+      llmFailed: number;
+    },
   ): Promise<LlmFallbackResult> {
     const decision = this.evaluateDeepSeekFallback(item);
     if (!decision.shouldExtract) {
@@ -503,8 +531,11 @@ export class CrawlerService {
     }
 
     summary.llmTriggered += 1;
+    if (decision.mode === 'compare') {
+      summary.llmCompared += 1;
+    }
 
-    if (!this.isDeepSeekFallbackEnabled()) {
+    if (!this.isDeepSeekExtractionEnabled()) {
       return {
         item,
         used: false,
@@ -537,20 +568,28 @@ export class CrawlerService {
     }
 
     const hint = this.buildExtractionHint(item);
+    const structuredSource = this.buildStructuredExtractionSource(item?.content || '');
     const requestPayload = {
       universityId: item.universityId,
       sourceUrl: item.sourceUrl,
       reasons: decision.reasons,
       hint,
+      structuredSource,
     };
 
     try {
       const extraction = await this.deepSeekService.extractCampInfo(
-        content,
+        structuredSource || content,
         this.resolveUniversityNameHint(item),
         hint,
       );
-      const validated = this.validateExtractionSchema(extraction);
+      const extractionWithDefaults = extraction
+        ? {
+            ...extraction,
+            title: this.normalizeText(extraction.title, 300) || this.normalizeText(item.title, 300),
+          }
+        : extraction;
+      const validated = this.validateExtractionSchema(extractionWithDefaults);
       if (!validated.valid || !validated.data) {
         summary.llmFailed += 1;
         const logId = await this.createExtractionLog({
@@ -560,8 +599,12 @@ export class CrawlerService {
           status: 'invalid',
           errorMessage: validated.reason || 'schema_invalid',
           requestPayload,
-          responsePayload: extraction || null,
-          parsedResult: extraction || null,
+          responsePayload: extractionWithDefaults || null,
+          parsedResult: {
+            mode: decision.mode,
+            ruleResult: hint,
+            llmResult: extractionWithDefaults || null,
+          },
         });
         return {
           item,
@@ -569,13 +612,22 @@ export class CrawlerService {
           success: false,
           reasons: decision.reasons,
           snippet: decision.snippet,
-          extraction,
+          extraction: extractionWithDefaults || extraction,
           error: validated.reason || 'schema_invalid',
           logId,
         };
       }
 
-      const mergedItem = this.mergeFallbackExtraction(item, validated.data, decision.reasons);
+      const mergeResult = this.mergeFallbackExtraction(
+        item,
+        validated.data,
+        decision.reasons,
+        decision.mode,
+      );
+      const mergedItem = mergeResult.item;
+      if (mergeResult.mergeReasons.length > 0) {
+        summary.llmMerged += 1;
+      }
       summary.llmSuccess += 1;
       const logId = await this.createExtractionLog({
         item: mergedItem,
@@ -583,8 +635,14 @@ export class CrawlerService {
         snippet: decision.snippet,
         status: 'success',
         requestPayload,
-        responsePayload: extraction || null,
-        parsedResult: validated.data,
+        responsePayload: extractionWithDefaults || null,
+        parsedResult: {
+          mode: decision.mode,
+          ruleResult: hint,
+          llmResult: validated.data,
+          mergedResult: this.buildExtractionHint(mergedItem),
+          mergeReasons: mergeResult.mergeReasons,
+        },
         confidenceScore: validated.data.confidence,
       });
       return {
@@ -621,6 +679,8 @@ export class CrawlerService {
 
   private evaluateDeepSeekFallback(item: CrawlerCampItemDto): LlmFallbackDecision {
     const reasons: string[] = [];
+    const compareEnabled = this.isDeepSeekCompareEnabled();
+    const forceStructured = this.isDeepSeekForceStructuredEnabled();
     const confidence = this.normalizeConfidence(item?.confidence);
     if (confidence < this.getDeepSeekMinConfidence()) {
       reasons.push('low_confidence');
@@ -629,25 +689,47 @@ export class CrawlerService {
     if (this.isStructuredEmpty(item?.materials)) {
       reasons.push('empty_materials');
     }
+    if (this.hasLowQualityMaterials(item?.materials)) {
+      reasons.push('low_quality_materials');
+    }
     if (this.isStructuredEmpty(item?.process)) {
       reasons.push('empty_process');
+    }
+    if (this.hasLowQualityProcess(item?.process)) {
+      reasons.push('low_quality_process');
     }
     if (this.isStructuredEmpty(item?.requirements)) {
       reasons.push('missing_requirements');
     }
+    if (this.hasLowQualityRequirements(item?.requirements)) {
+      reasons.push('low_quality_requirements');
+    }
 
-    const hasTimeInfo = Boolean(item?.deadline || item?.startDate || item?.endDate || item?.publishDate);
-    if (!hasTimeInfo) {
+    // publishDate is metadata, not event time — exclude it from event-time check
+    const hasEventTime = Boolean(item?.deadline || item?.startDate || item?.endDate);
+    if (!hasEventTime) {
       reasons.push('missing_time_fields');
+    }
+    // Deadline is the most actionable field — trigger LLM whenever rule extraction missed it
+    if (!item?.deadline) {
+      reasons.push('missing_deadline');
+    }
+    // For summer camps, users need the actual camp dates (start/end)
+    if (item?.announcementType === 'summer_camp' && !item?.startDate && !item?.endDate) {
+      reasons.push('missing_camp_dates');
     }
 
     if (this.hasAnnouncementTypeConflict(item)) {
       reasons.push('announcement_type_conflict');
     }
+    if (forceStructured) {
+      reasons.push('force_structured_extraction');
+    }
 
-    const snippet = this.extractSourceSnippet(item?.content || '');
+    const snippet = this.extractSourceSnippet(this.buildStructuredExtractionSource(item?.content || '') || item?.content || '');
     return {
-      shouldExtract: reasons.length > 0,
+      shouldExtract: forceStructured || compareEnabled || reasons.length > 0,
+      mode: compareEnabled ? 'compare' : 'fallback',
       reasons,
       snippet,
     };
@@ -674,8 +756,12 @@ export class CrawlerService {
       };
     }
 
-    if (!this.normalizeText(extraction.title, 300)) {
+    const cleanedTitle = this.cleanCampTitle(extraction.title, 300);
+    if (!cleanedTitle) {
       return { valid: false, reason: 'invalid_title' };
+    }
+    if (this.isLowValueTitle(cleanedTitle) || this.containsBlockedNoticeSignal(cleanedTitle)) {
+      return { valid: false, reason: 'blocked_title' };
     }
 
     const announcementType = this.normalizeAnnouncementType(extraction.announcementType);
@@ -684,21 +770,30 @@ export class CrawlerService {
       return { valid: false, reason: 'invalid_confidence' };
     }
 
-    const requirements = this.normalizeStructuredForItem(extraction.requirements, {});
-    const materials = this.normalizeStructuredArrayForItem(extraction.materials);
-    const process = this.normalizeStructuredArrayForItem(extraction.process);
-    const contact = this.normalizeStructuredForItem(extraction.contact, {});
+    const requirements = this.sanitizeRequirements(
+      this.normalizeStructuredForItem(extraction.requirements, {}),
+    );
+    const materials = this.sanitizeMaterials(
+      this.normalizeStructuredArrayForItem(extraction.materials),
+    );
+    const process = this.sanitizeProcess(
+      this.normalizeStructuredArrayForItem(extraction.process),
+    );
+    const contact = this.sanitizeContact(
+      this.normalizeStructuredForItem(extraction.contact, {}),
+    );
 
     return {
       valid: true,
       data: {
         ...extraction,
-        title: this.normalizeText(extraction.title, 300),
+        title: cleanedTitle,
         announcementType,
         publishDate: this.normalizeDateString(extraction.publishDate),
         deadline: this.normalizeDateString(extraction.deadline),
         startDate: this.normalizeDateString(extraction.startDate),
         endDate: this.normalizeDateString(extraction.endDate),
+        location: this.sanitizeLocation(this.normalizeText(extraction.location, 160)),
         requirements,
         materials,
         process,
@@ -808,44 +903,93 @@ export class CrawlerService {
     item: CrawlerCampItemDto,
     extraction: CampInfoExtraction,
     reasons: string[],
-  ): CrawlerCampItemDto {
+    mode: 'fallback' | 'compare',
+  ): { item: CrawlerCampItemDto; mergeReasons: string[] } {
     const next: CrawlerCampItemDto = { ...item };
+    const mergeReasons: string[] = [];
+    const ruleHint = this.buildExtractionHint(item);
+    const llmHint = this.buildExtractionHint(extraction as any);
 
-    if (!this.normalizeText(next.title, 300) && extraction.title) {
+    if (
+      (!this.normalizeText(next.title, 300) || this.isLowValueTitle(this.normalizeText(next.title, 300))) &&
+      extraction.title
+    ) {
       next.title = extraction.title;
+      mergeReasons.push('title_from_llm');
     }
 
     if (
-      reasons.includes('announcement_type_conflict') &&
+      (mode === 'compare' || reasons.includes('announcement_type_conflict')) &&
       extraction.announcementType
     ) {
       next.announcementType = extraction.announcementType;
+      mergeReasons.push('announcement_type_from_llm');
     }
 
     if (!next.publishDate && extraction.publishDate) {
       next.publishDate = extraction.publishDate;
+      mergeReasons.push('publish_date_from_llm');
     }
     if (!next.deadline && extraction.deadline) {
       next.deadline = extraction.deadline;
+      mergeReasons.push('deadline_from_llm');
     }
     if (!next.startDate && extraction.startDate) {
       next.startDate = extraction.startDate;
+      mergeReasons.push('start_date_from_llm');
     }
     if (!next.endDate && extraction.endDate) {
       next.endDate = extraction.endDate;
+      mergeReasons.push('end_date_from_llm');
+    }
+    if (!this.normalizeText((next as any).location, 160) && llmHint.location) {
+      (next as any).location = llmHint.location;
+      mergeReasons.push('location_from_llm');
     }
 
-    if (this.isStructuredEmpty(next.requirements) && !this.isStructuredEmpty(extraction.requirements)) {
+    const forceStructured = reasons.includes('force_structured_extraction');
+    const shouldReplaceRequirements =
+      forceStructured || reasons.includes('low_quality_requirements');
+    const shouldReplaceMaterials =
+      forceStructured || reasons.includes('low_quality_materials');
+    const shouldReplaceProcess =
+      forceStructured ||
+      reasons.includes('low_quality_process') ||
+      this.shouldReplaceProcessWithStructuredResult(next.process, extraction.process);
+
+    if ((this.isStructuredEmpty(next.requirements) || shouldReplaceRequirements) && !this.isStructuredEmpty(extraction.requirements)) {
       next.requirements = extraction.requirements;
+      mergeReasons.push(shouldReplaceRequirements ? 'requirements_replaced_from_llm' : 'requirements_from_llm');
+    } else if (mode === 'compare' && !this.isStructuredEmpty(extraction.requirements)) {
+      next.requirements = {
+        ...this.normalizeStructuredForItem(next.requirements, {}),
+        ...this.normalizeStructuredForItem(extraction.requirements, {}),
+      };
+      mergeReasons.push('requirements_merged');
     }
-    if (this.isStructuredEmpty(next.materials) && !this.isStructuredEmpty(extraction.materials)) {
+    if ((this.isStructuredEmpty(next.materials) || shouldReplaceMaterials) && !this.isStructuredEmpty(extraction.materials)) {
       next.materials = extraction.materials;
+      mergeReasons.push(shouldReplaceMaterials ? 'materials_replaced_from_llm' : 'materials_from_llm');
+    } else if (mode === 'compare' && !this.isStructuredEmpty(extraction.materials)) {
+      next.materials = this.mergeStructuredArrayItems(next.materials, extraction.materials);
+      mergeReasons.push('materials_merged');
     }
-    if (this.isStructuredEmpty(next.process) && !this.isStructuredEmpty(extraction.process)) {
+    if ((this.isStructuredEmpty(next.process) || shouldReplaceProcess) && !this.isStructuredEmpty(extraction.process)) {
       next.process = extraction.process;
+      mergeReasons.push(shouldReplaceProcess ? 'process_replaced_from_llm' : 'process_from_llm');
+    } else if (mode === 'compare' && !this.isStructuredEmpty(extraction.process)) {
+      next.process = this.mergeStructuredArrayItems(next.process, extraction.process);
+      mergeReasons.push('process_merged');
     }
     if (this.isStructuredEmpty((next as any).contact) && !this.isStructuredEmpty(extraction.contact)) {
       (next as any).contact = extraction.contact;
+      mergeReasons.push('contact_from_llm');
+    } else if (mode === 'compare' && !this.isStructuredEmpty(extraction.contact)) {
+      (next as any).contact = {
+        ...this.normalizeStructuredForItem((next as any).contact, {}),
+        ...this.normalizeStructuredForItem(extraction.contact, {}),
+      };
+      mergeReasons.push('contact_merged');
     }
 
     next.confidence = Math.max(
@@ -853,7 +997,7 @@ export class CrawlerService {
       this.normalizeConfidence(extraction.confidence),
     );
 
-    return next;
+    return { item: next, mergeReasons };
   }
 
   private hasAnnouncementTypeConflict(item: CrawlerCampItemDto): boolean {
@@ -915,9 +1059,64 @@ export class CrawlerService {
     return text || '';
   }
 
+  private buildStructuredExtractionSource(content: string): string {
+    const source = String(content || '').trim();
+    if (!source) {
+      return '';
+    }
+    const sections = [
+      { label: '申请条件', block: this.extractLabeledSection(source, ['申请条件', '报名条件', '申请资格', '报名资格']) },
+      { label: '申请材料', block: this.extractLabeledSection(source, ['申请材料', '报名材料', '提交材料', '材料提交']) },
+      { label: '流程安排', block: this.extractLabeledSection(source, ['申请流程', '报名流程', '选拔流程', '工作流程', '申请程序']) },
+      { label: '联系方式', block: this.extractLabeledSection(source, ['联系方式', '联系人', '咨询电话', '联系电话', '联系邮箱']) },
+    ].filter((item) => item.block);
+
+    if (sections.length === 0) {
+      return this.extractSourceSnippet(source);
+    }
+
+    return this.extractSourceSnippet(
+      sections
+        .map((item) => `${item.label}：\n${item.block}`)
+        .join('\n\n'),
+    );
+  }
+
+  private extractLabeledSection(content: string, labels: string[]): string {
+    for (const label of labels) {
+      const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const match = content.match(
+        new RegExp(`${escaped}[：:]?\\s*([\\s\\S]{0,900}?)(?=(?:\\n\\s*(?:申请条件|报名条件|申请资格|报名资格|申请材料|报名材料|提交材料|材料提交|申请流程|报名流程|选拔流程|工作流程|申请程序|联系方式|联系人|咨询电话|联系电话|联系邮箱)[：:])|$)`, 'u'),
+      );
+      const block = this.normalizeText(match?.[1] || '', 900);
+      if (block) {
+        return block;
+      }
+    }
+    return '';
+  }
+
   private isDeepSeekFallbackEnabled(): boolean {
     const raw = this.configService.get<string>('DEEPSEEK_FALLBACK_ENABLED', 'false');
     return String(raw).toLowerCase() === 'true';
+  }
+
+  private isDeepSeekCompareEnabled(): boolean {
+    const raw = this.configService.get<string>('DEEPSEEK_COMPARE_ENABLED', 'true');
+    return String(raw).toLowerCase() === 'true';
+  }
+
+  private isDeepSeekForceStructuredEnabled(): boolean {
+    const raw = this.configService.get<string>('DEEPSEEK_FORCE_STRUCTURED_ENABLED', 'true');
+    return String(raw).toLowerCase() === 'true';
+  }
+
+  private isDeepSeekExtractionEnabled(): boolean {
+    return (
+      this.isDeepSeekFallbackEnabled() ||
+      this.isDeepSeekCompareEnabled() ||
+      this.isDeepSeekForceStructuredEnabled()
+    );
   }
 
   private getDeepSeekMinConfidence(): number {
@@ -1012,10 +1211,11 @@ export class CrawlerService {
       deadline: this.normalizeDateString(item?.deadline),
       startDate: this.normalizeDateString(item?.startDate),
       endDate: this.normalizeDateString(item?.endDate),
-      requirements: this.normalizeStructuredForItem(item?.requirements, {}),
-      materials: this.normalizeStructuredArrayForItem(item?.materials),
-      process: this.normalizeStructuredArrayForItem(item?.process),
-      contact: this.normalizeStructuredForItem((item as any)?.contact, {}),
+      location: this.sanitizeLocation(this.normalizeText((item as any)?.location, 160)),
+      requirements: this.sanitizeRequirements(this.normalizeStructuredForItem(item?.requirements, {})),
+      materials: this.sanitizeMaterials(this.normalizeStructuredArrayForItem(item?.materials)),
+      process: this.sanitizeProcess(this.normalizeStructuredArrayForItem(item?.process)),
+      contact: this.sanitizeContact(this.normalizeStructuredForItem((item as any)?.contact, {})),
     };
   }
 
@@ -1155,21 +1355,42 @@ export class CrawlerService {
   }
 
   private isCampItemValid(item: CrawlerCampItemDto) {
-    const title = this.normalizeText(item?.title, 300);
+    const title = this.cleanCampTitle(item?.title, 300);
     const sourceUrl = this.normalizeText(item?.sourceUrl, 500);
     const universityId = this.normalizeText(item?.universityId, 100);
-    return Boolean(title && sourceUrl && universityId);
+    const mergedText = this.normalizeText(
+      [title, sourceUrl, item?.announcementType || ''].filter(Boolean).join(' '),
+      1200,
+    );
+    return Boolean(
+      title &&
+        sourceUrl &&
+        universityId &&
+        !this.isSystemLikeTitle(title) &&
+        !this.isLowValueTitle(title) &&
+        !this.containsBlockedNoticeSignal(mergedText),
+    );
   }
 
   private toCampWriteData(item: CrawlerCampItemDto) {
-    const normalizedTitle = this.normalizeText(item.title, 300);
+    const normalizedTitle = this.cleanCampTitle(item.title, 300);
     const normalizedAnnouncementType = this.normalizeAnnouncementType(item.announcementType);
     const normalizedUniversityId = this.normalizeText(item.universityId, 100);
     const normalizedSourceUrl = this.normalizeText(item.sourceUrl, 500);
+    const requirements = this.sanitizeRequirements(this.normalizeStructuredForItem(item.requirements, {}));
+    const materials = this.sanitizeMaterials(this.normalizeStructuredArrayForItem(item.materials));
+    const process = this.sanitizeProcess(this.normalizeStructuredArrayForItem(item.process));
+    const contact = this.sanitizeContact(this.normalizeStructuredForItem(item.contact, {}));
+    const location = this.sanitizeLocation(this.normalizeText((item as any)?.location, 160));
+    const rawContent = this.normalizeText(item.content, 12000) || null;
+
+    const rawSubType = this.normalizeText((item as any)?.subType, 40).toLowerCase();
+    const subType = rawSubType === 'framework' ? 'framework' : 'specific';
 
     return {
       title: normalizedTitle,
       announcementType: normalizedAnnouncementType,
+      subType,
       identityHash: this.computeCampIdentityHash({
         universityId: normalizedUniversityId,
         announcementType: normalizedAnnouncementType,
@@ -1186,10 +1407,12 @@ export class CrawlerService {
       deadline: this.toDate(item.deadline),
       startDate: this.toDate(item.startDate),
       endDate: this.toDate(item.endDate),
-      requirements: this.serializeStructured(item.requirements),
-      materials: this.serializeStructured(item.materials),
-      process: this.serializeStructured(item.process),
-      contact: this.serializeStructured(item.contact),
+      location,
+      requirements: this.serializeStructured(requirements),
+      materials: this.serializeStructured(materials),
+      process: this.serializeStructured(process),
+      contact: this.serializeStructured(contact),
+      rawContent,
       confidence: this.normalizeConfidence(item.confidence),
       status: 'published',
     };
@@ -1307,6 +1530,455 @@ export class CrawlerService {
       return '';
     }
     return text.length <= maxLength ? text : text.slice(0, maxLength);
+  }
+
+  private cleanCampTitle(value?: string, maxLength: number = 300) {
+    let title = this.normalizeText(value, maxLength * 3);
+    if (!title) {
+      return '';
+    }
+
+    title = title
+      .replace(/^var\s+title\s*=\s*['"]?/i, '')
+      .replace(/['"]\s*;?\s*\/\/.*$/u, '')
+      .replace(/\s*\/\/\s*分享标题.*$/u, '')
+      .trim();
+    const noiseAlternation = TITLE_SUFFIX_LABELS.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    title = title.replace(new RegExp(`(?:^|\\s)(?:${noiseAlternation})(?=\\s|$)`, 'gu'), ' ').trim();
+    title = this.stripRepeatedLabels(title, TITLE_PREFIX_LABELS, true);
+    title = this.stripRepeatedLabels(title, TITLE_SUFFIX_LABELS, false);
+    title = title.replace(/\s*[-|｜_]\s*北京大学[^ ]+$/u, '').trim();
+    title = title.replace(/发布日期[:：]?\s*\d{4}[./-年]\d{1,2}[./-月]\d{1,2}日?.*$/u, '').trim();
+    title = title.replace(/^(.{2,40}?)\s+\1(?=关于)/u, '$1').trim();
+    title = title.replace(/^(?:当前您的位置|您当前的位置|当前位置)[:：]?\s*/u, '').trim();
+    const genericBreadcrumbPattern = /^(首页|正文|通知公告|硕士招生公示|信息公开|招生信息|招生公告)$/u;
+    const weakBreadcrumbPattern = /^(首页|正文)$/u;
+    const breadcrumbParts = title.split(/\s*>\s*/u).map((item) => item.trim()).filter(Boolean);
+    if (breadcrumbParts.length > 1) {
+      const meaningfulParts = breadcrumbParts.filter((item) => !genericBreadcrumbPattern.test(item));
+      const fallbackParts = breadcrumbParts.filter((item) => !weakBreadcrumbPattern.test(item));
+      title = meaningfulParts[meaningfulParts.length - 1] || fallbackParts[fallbackParts.length - 1] || breadcrumbParts[breadcrumbParts.length - 1] || title;
+    }
+    title = title.replace(
+      /^.+?(?:信息公开|通知公告|招生信息|招生公告|研究生院|研究生招生信息网|研究生招生网站|研招网)\s+(?=.{0,80}(?:夏令营|暑期学校|推免|预推免|推荐免试|免试攻读))/u,
+      '',
+    ).trim();
+    title = title.replace(
+      /^(?:(?:信息公开|通知公告|招生信息|招生公告|研究生院|研究生招生信息网|研究生招生网站|研招网)\s+)+/u,
+      '',
+    ).trim();
+    title = title.replace(weakBreadcrumbPattern, '').trim();
+    title = title.replace(/\s*[-|｜_]\s*[^-|｜_]{0,60}(研究生招生网站|研招网|研究生院|招生信息网)$/u, '').trim();
+
+    const coreMatch = title.match(
+      /((?:[^。；;]{0,80})?关于举办[^。；;]*(?:夏令营|暑期学校|推免|预推免|推荐免试)[^。；;]*(?:通知|公告)?)/u,
+    );
+    if (coreMatch?.[1]) {
+      title = coreMatch[1].trim();
+    }
+
+    title = title.replace(/((?:通知|公告))(?:\s+.*)?$/u, '$1').trim();
+    title = title.replace(/发布日期[:：]?\s*\d{4}[./-年]\d{1,2}[./-月]\d{1,2}日?.*$/u, '').trim();
+    title = title.replace(/\s+/g, ' ').trim();
+    return this.normalizeText(title, maxLength);
+  }
+
+  private isSystemLikeTitle(value?: string) {
+    const title = this.cleanCampTitle(value, 300).toLowerCase();
+    if (!title) {
+      return false;
+    }
+    const systemKeywords = [
+      '报名系统',
+      '管理服务系统',
+      '信息管理系统',
+      '申请系统',
+      '申请平台',
+      '报名平台',
+      '登录系统',
+      '登录平台',
+      '管理平台',
+      '服务平台',
+      '网报系统',
+    ];
+    if (systemKeywords.some((keyword) => title.includes(keyword))) {
+      return true;
+    }
+    if (/(?:夏令营|推免|预推免|推荐免试).{0,8}(?:系统|平台)$/u.test(title)) {
+      return true;
+    }
+    return title.endsWith('系统') || title.endsWith('平台');
+  }
+
+  private sanitizeRequirements(value: Record<string, any>): Record<string, any> {
+    const next: Record<string, any> = {};
+    Object.keys(value || {}).forEach((key) => {
+      const item = value[key];
+      if (item === null || item === undefined) {
+        return;
+      }
+      if (typeof item === 'string') {
+        const text = this.normalizeText(item, 300);
+        if (!text || this.containsCodeLikeContent(text)) {
+          return;
+        }
+        next[key] = text;
+        return;
+      }
+      next[key] = item;
+    });
+    return next;
+  }
+
+  private sanitizeMaterials(value: any[]): any[] {
+    return this.sanitizeStructuredList(value, { dropGenericTemplates: false });
+  }
+
+  private sanitizeProcess(value: any[]): any[] {
+    const process = this.sanitizeStructuredList(value, { dropGenericTemplates: true });
+    return this.enforceStructuredProcessQuality(process);
+  }
+
+  private sanitizeStructuredList(value: any[], options: { dropGenericTemplates: boolean }): any[] {
+    const seen = new Set<string>();
+    const result: any[] = [];
+    for (const item of Array.isArray(value) ? value : []) {
+      const normalized = this.sanitizeStructuredEntry(item, options.dropGenericTemplates);
+      if (!normalized) {
+        continue;
+      }
+      const key = typeof normalized === 'string'
+        ? normalized
+        : this.safeStringify(normalized);
+      if (!key || seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      result.push(normalized);
+    }
+    return result;
+  }
+
+  private sanitizeStructuredEntry(value: any, dropGenericTemplates: boolean): any {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    if (typeof value === 'string') {
+      if (dropGenericTemplates) {
+        return null;
+      }
+      const text = this.normalizeText(value, 200);
+      if (!text || this.containsCodeLikeContent(text)) {
+        return null;
+      }
+      if (text.length > 120) {
+        return null;
+      }
+      if (dropGenericTemplates && this.looksLikeLowQualityProcessText(text)) {
+        return null;
+      }
+      if (dropGenericTemplates && this.isGenericProcessTemplate(text)) {
+        return null;
+      }
+      return text;
+    }
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      const next: Record<string, any> = {};
+      Object.keys(value).forEach((key) => {
+        const current = value[key];
+        if (typeof current === 'string') {
+          const text = this.normalizeText(current, 200);
+          if (!text || this.containsCodeLikeContent(text)) {
+            return;
+          }
+          next[key] = text;
+          return;
+        }
+        if (current !== null && current !== undefined) {
+          next[key] = current;
+        }
+      });
+      if (!next.action && !next.title && !next.name && !next.step) {
+        return null;
+      }
+      if (dropGenericTemplates && !this.isValidStructuredProcessStep(next)) {
+        return null;
+      }
+      const combined = this.normalizeText(
+        [next.action, next.title, next.name, next.note, next.description].filter(Boolean).join(' '),
+        300,
+      );
+      if (!combined || this.containsCodeLikeContent(combined)) {
+        return null;
+      }
+      return next;
+    }
+    return null;
+  }
+
+  private enforceStructuredProcessQuality(value: any[]): any[] {
+    const process = Array.isArray(value) ? value : [];
+    const objectSteps = process.filter(
+      (item) => item && typeof item === 'object' && !Array.isArray(item),
+    );
+    if (objectSteps.length === 0) {
+      return [];
+    }
+    return objectSteps.filter((item) => this.isValidStructuredProcessStep(item));
+  }
+
+  private isValidStructuredProcessStep(step: Record<string, any>): boolean {
+    const action = this.normalizeText(step?.action || step?.title || step?.name || '', 120);
+    const note = this.normalizeText(step?.note || step?.description || '', 200);
+    const combined = this.normalizeText([action, note].filter(Boolean).join(' '), 260);
+    if (!action) {
+      return false;
+    }
+    if (action.length > 20) {
+      return false;
+    }
+    if (/通知|公告|公示|名单|章程|简章/u.test(action) && !/报名|面试|复试|审核|确认|提交|公示/u.test(action)) {
+      return false;
+    }
+    if (/^关于|^重庆大学2026年|^中国海洋大学2025年|^同济大学2026年|来啦/u.test(action)) {
+      return false;
+    }
+    if (this.looksLikeLowQualityProcessText(action) || this.containsBlockedNoticeSignal(action)) {
+      return false;
+    }
+    if (combined && /关于调整|拟录取名单公示|章程|简章|通知汇总/u.test(combined) && !/报名|复试|审核|确认|公示期间/u.test(combined)) {
+      return false;
+    }
+    return true;
+  }
+
+  private sanitizeContact(value: Record<string, any>): Record<string, any> {
+    const contact: Record<string, any> = {};
+    const email = this.normalizeText(value?.email, 120);
+    if (email && /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/u.test(email)) {
+      contact.email = email;
+    }
+
+    const phone = this.normalizeText(value?.phone, 40);
+    if (phone && /^(?:0\d{2,3}-\d{7,8}(?:-\d+)?|1[3-9]\d{9})$/u.test(phone)) {
+      contact.phone = phone;
+    }
+
+    const address = this.normalizeText(value?.address, 160);
+    if (address && this.isValidContactAddress(address)) {
+      contact.address = address;
+    }
+
+    const other = Array.isArray(value?.other)
+      ? value.other
+          .map((item) => this.normalizeText(item, 120))
+          .filter((item) => item && !this.containsCodeLikeContent(item))
+      : [];
+    if (other.length > 0) {
+      contact.other = Array.from(new Set(other));
+    }
+
+    return contact;
+  }
+
+  private sanitizeLocation(value?: string | null): string | null {
+    const location = this.normalizeText(value || '', 160);
+    if (!location || this.containsCodeLikeContent(location)) {
+      return null;
+    }
+    if (location.length < 4) {
+      return null;
+    }
+    if (/(报名|截止|发布时间|联系方式|邮箱|电话|推荐信|申请表)/u.test(location)) {
+      return null;
+    }
+    if (
+      !/(区|县|镇|街道|路|号|楼|室|校区|学院|医院|会议室|中心|线上|线下|腾讯会议|zoom|燕园|学院路)/iu.test(
+        location,
+      )
+    ) {
+      return null;
+    }
+    return location;
+  }
+
+  private hasLowQualityRequirements(value: any): boolean {
+    const requirements = this.normalizeStructuredForItem(value, {});
+    const texts = Object.values(requirements || {})
+      .map((item) => this.normalizeText(typeof item === 'string' ? item : this.safeStringify(item), 400))
+      .filter(Boolean);
+    if (texts.length === 0) {
+      return false;
+    }
+    return texts.every((text) => text.length > 120 || /http|报名|流程|截止|网址/u.test(text));
+  }
+
+  private hasLowQualityMaterials(value: any): boolean {
+    const materials = this.normalizeStructuredArrayForItem(value);
+    if (materials.length === 0) {
+      return false;
+    }
+    const noisyCount = materials.filter((item) => {
+      const text = this.normalizeText(typeof item === 'string' ? item : this.safeStringify(item), 240);
+      return !text || text.length > 60 || /报名|截止|流程|复试|考核|网址|http/u.test(text);
+    }).length;
+    return noisyCount > 0 && noisyCount >= Math.ceil(materials.length / 2);
+  }
+
+  private hasLowQualityProcess(value: any): boolean {
+    const process = this.normalizeStructuredArrayForItem(value);
+    if (process.length === 0) {
+      return false;
+    }
+    if (this.hasFragmentedProcessEntries(process)) {
+      return true;
+    }
+    const noisyCount = process.filter((item) => {
+      const text = this.normalizeText(typeof item === 'string' ? item : this.safeStringify(item), 240);
+      return this.looksLikeLowQualityProcessText(text);
+    }).length;
+    return noisyCount > 0 && noisyCount >= Math.ceil(process.length / 2);
+  }
+
+  private hasFragmentedProcessEntries(process: any[]): boolean {
+    const entries = this.normalizeStructuredArrayForItem(process);
+    if (entries.length === 0) {
+      return false;
+    }
+    const textEntries = entries
+      .filter((item) => typeof item === 'string')
+      .map((item) => this.normalizeText(item as string, 240))
+      .filter(Boolean);
+    if (textEntries.length < 2) {
+      return false;
+    }
+    const fragmentedCount = textEntries.filter((text) => {
+      if (!text) {
+        return true;
+      }
+      if (text.length <= 18) {
+        return true;
+      }
+      if (/^[，,。.;；、:：）)\]】”"]/u.test(text) || /[（(“"'：:，,；;]$/u.test(text)) {
+        return true;
+      }
+      if (/^(符合申请|申请者|考生|请申请者|复试通知|网上报名|正式录取通知书将于)$/u.test(text)) {
+        return true;
+      }
+      if (/(登录|报名|提交|上传|确认|回复|通知书将于)$/u.test(text) && text.length <= 24) {
+        return true;
+      }
+      return false;
+    }).length;
+    return fragmentedCount > 0 && fragmentedCount >= Math.ceil(textEntries.length / 3);
+  }
+
+  private looksLikeLowQualityProcessText(text: string): boolean {
+    const value = this.normalizeText(text, 240);
+    if (!value) {
+      return true;
+    }
+    if (value.length > 48) {
+      return true;
+    }
+    if (/^[”"’，,；;、）)\]]/u.test(value) || /[（(“"：:，,；;]$/u.test(value)) {
+      return true;
+    }
+    if (/^(符合申请|申请者|考生|请申请者|复试通知|正式录取通知书将于)$/u.test(value)) {
+      return true;
+    }
+    if (/https?:\/\/|网址[:：]|登录网址|网址http/u.test(value)) {
+      return true;
+    }
+    if ((value.match(/[，,；;]/g) || []).length >= 2) {
+      return true;
+    }
+    if (/招生简章|考核结果|现接受|补充报名|视情况审核|详见附件/u.test(value)) {
+      return true;
+    }
+    return false;
+  }
+
+  private shouldReplaceProcessWithStructuredResult(current: any, incoming: any): boolean {
+    const currentProcess = this.normalizeStructuredArrayForItem(current);
+    const incomingProcess = this.normalizeStructuredArrayForItem(incoming);
+    if (currentProcess.length === 0 || incomingProcess.length === 0) {
+      return false;
+    }
+    const currentAllStrings = currentProcess.every((item) => typeof item === 'string');
+    const incomingHasObjects = incomingProcess.some(
+      (item) => item && typeof item === 'object' && !Array.isArray(item),
+    );
+    if (!currentAllStrings || !incomingHasObjects) {
+      return false;
+    }
+    return this.hasLowQualityProcess(currentProcess) || this.hasFragmentedProcessEntries(currentProcess);
+  }
+
+  private mergeStructuredArrayItems(left: any, right: any): any[] {
+    const seen = new Set<string>();
+    const result: any[] = [];
+    for (const item of [
+      ...this.normalizeStructuredArrayForItem(left),
+      ...this.normalizeStructuredArrayForItem(right),
+    ]) {
+      const key = typeof item === 'string' ? item : this.safeStringify(item);
+      if (!key || seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      result.push(item);
+    }
+    return result;
+  }
+
+  private isValidContactAddress(address: string) {
+    if (!address || address.length < 8) {
+      return false;
+    }
+    if (['北京市', '上海市', '天津市', '重庆市'].includes(address)) {
+      return false;
+    }
+    return /(区|县|镇|街道|路|号|楼|室|校区|学院|医院)/u.test(address);
+  }
+
+  private containsCodeLikeContent(text?: string) {
+    const normalized = this.normalizeText(text, 400);
+    if (!normalized) {
+      return false;
+    }
+    return /(var\s+\w+\s*=|window\.location|document\.ready|navigator\.userAgent|function\s*\(|<script|\$\.\w+\()/iu.test(normalized);
+  }
+
+  private isGenericProcessTemplate(text: string) {
+    // Drop only pure topic labels that carry no actionable info.
+    // Keep "网上报名"/"提交材料"/"资格审核" — these ARE meaningful steps for users,
+    // even when expressed as a bare phrase.
+    return /^(夏令营活动|结果公布|拟录取结果公布)$/u.test(text);
+  }
+
+  private stripRepeatedLabels(value: string, labels: string[], fromStart: boolean) {
+    let next = value.trim();
+    for (const label of labels) {
+      const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = fromStart
+        ? new RegExp(`^(?:${escaped}\\s*)+`, 'u')
+        : new RegExp(`(?:\\s*${escaped})+$`, 'u');
+      next = next.replace(pattern, '').trim();
+    }
+    return next;
+  }
+
+  private isLowValueTitle(title: string) {
+    return LOW_VALUE_TITLES.has(this.normalizeText(title, 120));
+  }
+
+  private containsBlockedNoticeSignal(text?: string) {
+    const normalized = this.normalizeText(text, 1200).toLowerCase();
+    if (!normalized) {
+      return false;
+    }
+    return BLOCKED_NOTICE_KEYWORDS.some((keyword) => normalized.includes(keyword.toLowerCase()));
   }
 
   private toDate(value?: string) {
@@ -1474,6 +2146,9 @@ export class CrawlerService {
       if (oldValue === newValue) {
         return;
       }
+      if (this.shouldSkipChangeValue(oldValue) || this.shouldSkipChangeValue(newValue)) {
+        return;
+      }
       diffs.push({
         fieldName,
         eventType: TRACKED_FIELD_EVENT_MAP[fieldName],
@@ -1488,7 +2163,7 @@ export class CrawlerService {
     const events: CampDiffField[] = [];
     Object.keys(TRACKED_FIELD_EVENT_MAP).forEach((fieldName) => {
       const newValue = this.normalizeForCompare(data[fieldName], fieldName);
-      if (!newValue) {
+      if (!newValue || this.shouldSkipChangeValue(newValue)) {
         return;
       }
       events.push({
@@ -1541,6 +2216,14 @@ export class CrawlerService {
       }
     }
     return createdCount;
+  }
+
+  private shouldSkipChangeValue(value?: string) {
+    const normalized = this.normalizeText(value, 500);
+    if (!normalized) {
+      return true;
+    }
+    return this.containsCodeLikeContent(normalized);
   }
 
   private inferResultEventTypeFromItem(item: CrawlerCampItemDto): ProgressEventType | null {

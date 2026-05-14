@@ -10,6 +10,7 @@ class CampInfoItem(scrapy.Item):
     # 基本信息
     title = scrapy.Field()          # 标题
     announcement_type = scrapy.Field()  # 公告类型 summer_camp/pre_recommendation
+    sub_type = scrapy.Field()       # 子类型: framework(章程/工作办法) / specific(具体院系通知) / null
     university_id = scrapy.Field()  # 院校ID
     source_url = scrapy.Field()     # 原文链接
     
@@ -18,6 +19,7 @@ class CampInfoItem(scrapy.Item):
     deadline = scrapy.Field()       # 截止日期
     start_date = scrapy.Field()     # 开始日期
     end_date = scrapy.Field()       # 结束日期
+    location = scrapy.Field()       # 举办地点
     
     # 详细信息
     requirements = scrapy.Field()   # 申请要求 (JSON)

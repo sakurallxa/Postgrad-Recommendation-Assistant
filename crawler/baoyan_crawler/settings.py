@@ -50,6 +50,7 @@ DOWNLOADER_MIDDLEWARES = {}
 SPIDER_MIDDLEWARES = {}
 EXTENSIONS = {
     'scrapy.extensions.telnet.TelnetConsole': None,
+    'scrapy.extensions.closespider.CloseSpider': 500,
 }
 
 # ==========================================
@@ -70,6 +71,10 @@ RETRY_HTTP_CODES = [500, 502, 503, 504, 408, 429]
 # ==========================================
 DOWNLOAD_TIMEOUT = 30
 
+# Allow batch scripts to enforce a hard stop so summaries are written even on
+# slow school sets. Scrapy treats 0/None as disabled, so default to 0.
+CLOSESPIDER_TIMEOUT = int(os.getenv('CLOSESPIDER_TIMEOUT', '0') or '0')
+
 # ==========================================
 # 数据库配置
 # ==========================================
@@ -86,7 +91,7 @@ CRAWLER_INGEST_URL = os.getenv(
 )
 CRAWLER_INGEST_BEARER_TOKEN = os.getenv('CRAWLER_INGEST_BEARER_TOKEN', '')
 CRAWLER_INGEST_KEY = os.getenv('CRAWLER_INGEST_KEY', '')
-CRAWLER_INGEST_TIMEOUT_SECONDS = int(os.getenv('CRAWLER_INGEST_TIMEOUT_SECONDS', 15))
+CRAWLER_INGEST_TIMEOUT_SECONDS = int(os.getenv('CRAWLER_INGEST_TIMEOUT_SECONDS', 60))
 CRAWLER_INGEST_BATCH_SIZE = int(os.getenv('CRAWLER_INGEST_BATCH_SIZE', 30))
 CRAWLER_INGEST_EMIT_BASELINE_EVENTS = os.getenv('CRAWLER_INGEST_EMIT_BASELINE_EVENTS', '1')
 

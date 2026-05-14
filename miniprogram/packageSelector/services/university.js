@@ -3,10 +3,57 @@ import { http } from '../../services/http'
 export const universityService = {
   async getUniversityList(params) {
     try {
-      // 模拟API请求
-      await new Promise(resolve => setTimeout(resolve, 300))
-      
-      // 模拟返回数据
+      const pageSize = 100
+      const mergedParams = {
+        sortBy: 'priority',
+        sortOrder: 'desc',
+        ...params
+      }
+      const firstResponse = await http.get('/universities', {
+        ...mergedParams,
+        page: 1,
+        limit: pageSize
+      }, {
+        showLoading: false,
+        showError: false
+      })
+
+      const firstPageList = Array.isArray(firstResponse?.data) ? firstResponse.data : []
+      const meta = firstResponse?.meta || {}
+      const totalPages = Math.max(1, Number(meta.totalPages || 1))
+      let data = firstPageList
+
+      for (let page = 2; page <= totalPages; page += 1) {
+        const pageResponse = await http.get('/universities', {
+          ...mergedParams,
+          page,
+          limit: pageSize
+        }, {
+          showLoading: false,
+          showError: false
+        })
+        const pageList = Array.isArray(pageResponse?.data) ? pageResponse.data : []
+        data = data.concat(pageList)
+      }
+
+      return {
+        list: data.map(item => ({
+          id: item.id,
+          name: item.name,
+          shortName: item.shortName || '',
+          logo: item.logo || '',
+          region: item.region || '',
+          province: item.province || '',
+          level: item.level || '普通',
+          website: item.website || '',
+          priority: item.priority || ''
+        })),
+        total: Number(meta.total || data.length || 0),
+        page: Number(meta.page || 1),
+        pageSize: Number(meta.limit || pageSize)
+      }
+    } catch (error) {
+      console.error('获取院校列表失败，使用本地兜底数据:', error)
       return {
         list: [
           {
@@ -41,9 +88,6 @@ export const universityService = {
         page: 1,
         pageSize: 20
       }
-    } catch (error) {
-      console.error('获取院校列表失败:', error)
-      throw error
     }
   },
 

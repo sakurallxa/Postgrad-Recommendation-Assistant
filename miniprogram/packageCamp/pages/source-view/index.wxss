@@ -1,0 +1,28 @@
+.source-view-page {
+  min-height: 100vh;
+  background: #f6f8fc;
+}
+
+.source-tip {
+  padding: 20rpx 24rpx 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  color: #5f6b85;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.source-tip-text {
+  flex: 1;
+}
+
+.source-tip-action {
+  flex-shrink: 0;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #b9cdf7;
+  color: #245edb;
+  background: #eef4ff;
+}

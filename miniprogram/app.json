@@ -10,7 +10,8 @@
       "name": "camp",
       "pages": [
         "pages/camp-list/index",
-        "pages/camp-detail/index"
+        "pages/camp-detail/index",
+        "pages/source-view/index"
       ]
     },
     {

@@ -1,9 +1,9 @@
 <view class="camp-card {{statusClass}}" bindtap="handleTap">
   <view class="card-header">
     <image 
-      wx:if="{{camp.universityLogo}}" 
+      wx:if="{{universityLogoResolved}}" 
       class="university-logo" 
-      src="{{camp.universityLogo}}" 
+      src="{{universityLogoResolved}}" 
       mode="aspectFit"
       lazy-load
     />
@@ -18,11 +18,11 @@
 
   <view class="card-body">
     <view class="info-grid">
-      <view class="info-item" wx:if="{{camp.startDate && camp.endDate}}">
+      <view class="info-item" wx:if="{{scheduleText}}">
         <view class="info-icon">📅</view>
         <view class="info-content">
-          <text class="info-label">举办时间</text>
-          <text class="info-value">{{camp.startDate}} ~ {{camp.endDate}}</text>
+          <text class="info-label">{{scheduleLabel}}</text>
+          <text class="info-value">{{scheduleText}}</text>
         </view>
       </view>
       <view class="info-item" wx:if="{{camp.location}}">
@@ -53,14 +53,19 @@
         <text class="reminder-icon">🔔</text>
         <text class="reminder-text">已设置提醒</text>
       </view>
-      <button 
-        wx:else 
-        class="remind-btn" 
-        size="mini" 
+      <button
+        wx:else
+        class="remind-btn"
+        size="mini"
         catchtap="handleRemindTap"
       >
         设置提醒
       </button>
     </view>
+  </view>
+
+  <!-- 数据新鲜度（β场景信任锚点）-->
+  <view class="freshness-row" wx:if="{{freshnessText}}">
+    <text class="freshness-text">{{freshnessText}}</text>
   </view>
 </view>

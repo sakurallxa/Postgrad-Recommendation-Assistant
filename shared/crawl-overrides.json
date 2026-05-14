@@ -1,0 +1,944 @@
+[
+  {
+    "slug": "tsinghua",
+    "name": "清华大学",
+    "priority": "P0",
+    "website": "https://www.tsinghua.edu.cn",
+    "gradWebsite": "https://yz.tsinghua.edu.cn",
+    "entryPoints": [
+      "https://yz.tsinghua.edu.cn/xlyxx.htm",
+      "https://yz.tsinghua.edu.cn/zxgg.htm",
+      "https://yz.tsinghua.edu.cn/info/1024/3038.htm",
+      "https://yz.tsinghua.edu.cn/info/1024/3125.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "pku",
+    "name": "北京大学",
+    "priority": "P0",
+    "website": "https://www.pku.edu.cn",
+    "gradWebsite": "https://admission.pku.edu.cn",
+    "entryPoints": [
+      "https://admission.pku.edu.cn/xly/index.htm",
+      "https://admission.pku.edu.cn/tzgg/index.htm",
+      "https://admission.pku.edu.cn/zsxx/index.htm",
+      "https://econ.pku.edu.cn/jxxm/zsxxfb_20211202144549787517/50170econ389994.htm",
+      "https://www.im.pku.edu.cn/zsxm/ssxm/50122im390140.htm",
+      "https://admission.pku.edu.cn/",
+      "https://eecs.pku.edu.cn/tzgg.htm",
+      "https://www.cs.pku.edu.cn/tzgg.htm",
+      "https://www.ss.pku.edu.cn/tzgg/zsxx.htm",
+      "https://www.icst.pku.edu.cn/zsxx.htm",
+      "https://www.nsd.pku.edu.cn/sszs/zsdt/",
+      "https://www.gsm.pku.edu.cn/mba/notice/index.htm",
+      "https://econ.pku.edu.cn/tzgg/",
+      "https://www.law.pku.edu.cn/tzgg/zs/index.htm",
+      "https://www.math.pku.edu.cn/xshd/zsxx/",
+      "https://www.phy.pku.edu.cn/tzgg/index.htm",
+      "https://www.chem.pku.edu.cn/tzgg/index.htm",
+      "https://www.bio.pku.edu.cn/homes/index/notices/cid/9.html",
+      "https://www.coe.pku.edu.cn/tzgg.htm",
+      "https://yuanpei.pku.edu.cn/tzgg/index.htm",
+      "https://www.sis.pku.edu.cn/tzgg/index.htm",
+      "https://sjc.pku.edu.cn/tzgg/index.htm",
+      "https://stl.pku.edu.cn/cn/news/admissions/"
+    ],
+    "strictEntryPoints": false
+  },
+  {
+    "slug": "fudan",
+    "name": "复旦大学",
+    "priority": "P0",
+    "website": "https://www.fudan.edu.cn",
+    "gradWebsite": "https://gsao.fudan.edu.cn",
+    "entryPoints": [
+      "https://gsao.fudan.edu.cn/15003/list.htm",
+      "https://gsao.fudan.edu.cn/15028/list.htm",
+      "https://gsao.fudan.edu.cn/15029/list.htm",
+      "https://gsao.fudan.edu.cn/15030/list.htm",
+      "https://gsao.fudan.edu.cn/sszs/list.htm",
+      "https://gsao.fudan.edu.cn/sszs/14538/list.htm",
+      "https://gsao.fudan.edu.cn/main.htm",
+      "https://gsao.fudan.edu.cn/ssyjszszcwzszymlwfslqbf/list.htm",
+      "https://gsao.fudan.edu.cn/15159/list1.htm",
+      "https://gsao.fudan.edu.cn/68/02/c15015a747522/page.htm",
+      "https://gsao.fudan.edu.cn/5f/32/c15014a745266/page.htm",
+      "https://www.cs.fudan.edu.cn/tzgg.htm",
+      "https://sds.fudan.edu.cn/tzgg.htm",
+      "https://www.econ.fudan.edu.cn/main.htm",
+      "https://www.fdsm.fudan.edu.cn/tzgg/list.htm",
+      "https://www.sirpa.fudan.edu.cn/15022/list.htm",
+      "https://math.fudan.edu.cn/zsxx.htm",
+      "https://phys.fudan.edu.cn/tzgg.htm",
+      "https://www.chemistry.fudan.edu.cn/tzgg/list.htm",
+      "https://life.fudan.edu.cn/tzgg.htm",
+      "http://www.law.fudan.edu.cn/tzgg/list.htm",
+      "https://www.xwxy.fudan.edu.cn/tzgg.htm",
+      "https://www.sme.fudan.edu.cn/15163/list.htm",
+      "https://www.ee.fudan.edu.cn/tzgg.htm",
+      "https://shmc.fudan.edu.cn/yjs/tzgg.htm",
+      "https://psych.fudan.edu.cn/tzgg/list.htm"
+    ],
+    "strictEntryPoints": false
+  },
+  {
+    "slug": "sjtu",
+    "name": "上海交通大学",
+    "priority": "P0",
+    "website": "https://www.sjtu.edu.cn",
+    "gradWebsite": "https://yzb.sjtu.edu.cn",
+    "entryPoints": [
+      "https://yzb.sjtu.edu.cn/",
+      "https://yzb.sjtu.edu.cn/post/3216",
+      "https://yzb.sjtu.edu.cn/post/3209",
+      "https://yzb.sjtu.edu.cn/post/3206",
+      "https://yzb.sjtu.edu.cn/post/3220",
+      "https://www.seiee.sjtu.edu.cn/tzgg.html",
+      "https://me.sjtu.edu.cn/tzgg/index.html",
+      "https://cs.sjtu.edu.cn/tzgg.html",
+      "https://www.acem.sjtu.edu.cn/yjsjy.html",
+      "https://law.sjtu.edu.cn/Web/News/Notice",
+      "https://zhiyuan.sjtu.edu.cn/articles/category/1",
+      "https://ai.sjtu.edu.cn/tongzhigonggao",
+      "https://math.sjtu.edu.cn/Default/notice",
+      "https://physics.sjtu.edu.cn/tzgg",
+      "https://chemistry.sjtu.edu.cn/tzgg.html",
+      "https://life.sjtu.edu.cn/index/notice.html",
+      "https://naoce.sjtu.edu.cn/tzgg.html",
+      "https://smse.sjtu.edu.cn/tzgg.html",
+      "https://soo.sjtu.edu.cn/tzgg.html",
+      "https://www.icec.sjtu.edu.cn/tzgg.html"
+    ],
+    "strictEntryPoints": false
+  },
+  {
+    "slug": "ustc",
+    "name": "中国科学技术大学",
+    "priority": "P0",
+    "website": "https://www.ustc.edu.cn",
+    "gradWebsite": "http://yz.ustc.edu.cn",
+    "entryPoints": [
+      "http://yz.ustc.edu.cn/",
+      "http://yz.ustc.edu.cn/column/202?sourceType=0&navigationId=144&num=1",
+      "http://yz.ustc.edu.cn/column/182?num=-1",
+      "http://yz.ustc.edu.cn/article/2724/202?num=1",
+      "https://cs.ustc.edu.cn/tzgg.htm",
+      "https://sist.ustc.edu.cn/tzgg.htm",
+      "https://physics.ustc.edu.cn/tzgg.htm",
+      "https://math.ustc.edu.cn/12029/list.htm",
+      "https://cms.ustc.edu.cn/tzgg.htm",
+      "https://biox.ustc.edu.cn/tzgg.htm",
+      "https://es.ustc.edu.cn/tzgg.htm",
+      "https://bs.ustc.edu.cn/zsjy/yjszs.htm",
+      "https://teens.ustc.edu.cn/tzgg.htm",
+      "https://sse.ustc.edu.cn/tzgg.htm",
+      "https://cybersec.ustc.edu.cn/tzgg.htm",
+      "https://sme.ustc.edu.cn/tzgg.htm",
+      "https://nst.ustc.edu.cn/tzgg.htm",
+      "https://eeis.ustc.edu.cn/tzgg.htm",
+      "https://gs.ustc.edu.cn/tzgg.htm"
+    ],
+    "strictEntryPoints": false
+  },
+  {
+    "slug": "nju",
+    "name": "南京大学",
+    "priority": "P0",
+    "website": "https://www.nju.edu.cn",
+    "gradWebsite": "https://yzb.nju.edu.cn",
+    "entryPoints": [
+      "https://yzb.nju.edu.cn/main.psp",
+      "https://yzb.nju.edu.cn/64/b4/c47868a681140/pagem.htm",
+      "https://yzb.nju.edu.cn/07/0a/c47863a788234/page.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "zju",
+    "name": "浙江大学",
+    "priority": "P0",
+    "website": "https://www.zju.edu.cn",
+    "gradWebsite": "http://www.grs.zju.edu.cn/yjszs",
+    "entryPoints": [
+      "http://www.grs.zju.edu.cn/yjszs/",
+      "http://www.grs.zju.edu.cn/yjszs/28474/list.htm",
+      "http://www.grs.zju.edu.cn/yjszs/2025/0908/c28498a3078757/page.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "buaa",
+    "name": "北京航空航天大学",
+    "priority": "P1",
+    "website": "https://www.buaa.edu.cn",
+    "gradWebsite": "https://yzb.buaa.edu.cn",
+    "entryPoints": [
+      "https://yzb.buaa.edu.cn/",
+      "https://yzb.buaa.edu.cn/xlss.htm",
+      "https://yzb.buaa.edu.cn/zxsd.htm",
+      "https://yzb.buaa.edu.cn/info/1036/1215.htm",
+      "https://yzb.buaa.edu.cn/info/1036/3445.htm",
+      "https://yzb.buaa.edu.cn/xlbs.htm",
+      "https://yzb.buaa.edu.cn/info/1003/3392.htm",
+      "https://yzb.buaa.edu.cn/info/1036/3395.htm",
+      "https://yzb.buaa.edu.cn/info/1036/3397.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "bit",
+    "name": "北京理工大学",
+    "priority": "P1",
+    "website": "https://www.bit.edu.cn",
+    "gradWebsite": "https://grd.bit.edu.cn",
+    "entryPoints": [
+      "https://grd.bit.edu.cn/",
+      "https://grd.bit.edu.cn/zsgz/index.htm",
+      "https://grd.bit.edu.cn/zsgz/zsxx/index.htm",
+      "https://grd.bit.edu.cn/zsgz/ssyjs/index.htm",
+      "https://grd.bit.edu.cn/yyxw2/1abdc871d111430ab1022de03d0c41cd.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "ruc",
+    "name": "中国人民大学",
+    "priority": "P0",
+    "website": "https://www.ruc.edu.cn",
+    "gradWebsite": "https://pgs.ruc.edu.cn",
+    "entryPoints": [
+      "https://pgs.ruc.edu.cn/",
+      "https://pgs.ruc.edu.cn/sszs/tjms.htm",
+      "https://pgs.ruc.edu.cn/info/1055/3446.htm",
+      "https://econ.ruc.edu.cn/tzgg.htm",
+      "https://sf.ruc.edu.cn/tzgg.htm",
+      "https://rmbs.ruc.edu.cn/tzgg/list.htm",
+      "https://law.ruc.edu.cn/tzgg.htm",
+      "https://sis.ruc.edu.cn/tzgg.htm",
+      "https://info.ruc.edu.cn/tzgg/index.htm",
+      "https://stat.ruc.edu.cn/tzgg.htm",
+      "https://phil.ruc.edu.cn/tzgg.htm",
+      "https://jsc.ruc.edu.cn/tzgg.htm",
+      "https://spap.ruc.edu.cn/tzgg.htm",
+      "https://ai.ruc.edu.cn/newslist/newschannel-69.html",
+      "https://irm.ruc.edu.cn/tzgg.htm",
+      "https://soc.ruc.edu.cn/tzgg.htm",
+      "https://psych.ruc.edu.cn/tzgg.htm",
+      "https://wenxue.ruc.edu.cn/tzgg.htm",
+      "https://ses.ruc.edu.cn/tzgg.htm",
+      "https://nads.ruc.edu.cn/tzgg.htm"
+    ],
+    "strictEntryPoints": false
+  },
+  {
+    "slug": "bnu",
+    "name": "北京师范大学",
+    "priority": "P1",
+    "website": "https://www.bnu.edu.cn",
+    "gradWebsite": "https://yz.bnu.edu.cn",
+    "entryPoints": [
+      "https://yz.bnu.edu.cn/",
+      "https://yz.bnu.edu.cn/list/master_board",
+      "https://yz.bnu.edu.cn/list/doctor_board",
+      "https://yz.bnu.edu.cn/list/master",
+      "https://yz.bnu.edu.cn/detail/02a73691-77f2-4df1-a2d5-3ffa97c79f9c"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "cau",
+    "name": "中国农业大学",
+    "priority": "P1",
+    "website": "https://www.cau.edu.cn",
+    "gradWebsite": "https://yz.cau.edu.cn",
+    "entryPoints": [
+      "https://yz.cau.edu.cn/",
+      "https://yz.cau.edu.cn/art/2025/7/31/art_41742_1077756.html"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "xmu",
+    "name": "厦门大学",
+    "priority": "P1",
+    "website": "https://www.xmu.edu.cn",
+    "gradWebsite": "https://zs.xmu.edu.cn",
+    "entryPoints": [
+      "https://zs.xmu.edu.cn/",
+      "https://zs.xmu.edu.cn/sss.htm",
+      "https://zs.xmu.edu.cn/sss/zsjz/tms.htm",
+      "https://zs.xmu.edu.cn/info/1174/34542.htm",
+      "https://zs.xmu.edu.cn/sss/zxgg/4.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "lzu",
+    "name": "兰州大学",
+    "priority": "P1",
+    "website": "https://www.lzu.edu.cn",
+    "gradWebsite": "https://ge.lzu.edu.cn",
+    "entryPoints": [
+      "https://yz.lzu.edu.cn/tongzhigonggao/index.html",
+      "https://yz.lzu.edu.cn/shuoshishengzhaosheng/index.html",
+      "https://ge.lzu.edu.cn/",
+      "https://ge.lzu.edu.cn/tongzhigonggao/index.html",
+      "https://yz.lzu.edu.cn/shuoshishengzhaosheng/tuijianmianshi/2025/0903/315679.html",
+      "https://geoscience.lzu.edu.cn/info/1034/7385.htm",
+      "https://geoscience.lzu.edu.cn/info/1034/7540.htm",
+      "https://atmos.lzu.edu.cn/html/dqxy/lddqxy/shouye/tongzhigg/1966386394448269314.html",
+      "https://atmos.lzu.edu.cn/html/dqxy/lddqxy/shouye/tongzhigg/1963488987154747394.html",
+      "https://mpa.lzu.edu.cn/info/1137/3905.htm",
+      "https://ce.lzu.edu.cn/index.php?m=content&c=index&a=show&catid=33&id=7686",
+      "https://yxy.lzu.edu.cn/tongzhigonggao/2025/0718/315134.html"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "scut",
+    "name": "华南理工大学",
+    "priority": "P1",
+    "website": "https://www.scut.edu.cn",
+    "gradWebsite": "https://yz.scut.edu.cn",
+    "entryPoints": [
+      "https://yanzhao.scut.edu.cn/",
+      "https://yanzhao.scut.edu.cn/MasterTm/ApplyBmxz.aspx",
+      "https://yz.scut.edu.cn/",
+      "https://yz.scut.edu.cn/main.htm",
+      "https://yz.scut.edu.cn/2025/0902/c30111a600545/page.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "sysu",
+    "name": "中山大学",
+    "priority": "P1",
+    "website": "https://www.sysu.edu.cn",
+    "gradWebsite": "https://graduate.sysu.edu.cn/zsw",
+    "entryPoints": [
+      "https://graduate.sysu.edu.cn/zsw/postgraduate",
+      "https://graduate.sysu.edu.cn/zsw/article/492"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "hit",
+    "name": "哈尔滨工业大学",
+    "priority": "P1",
+    "website": "https://www.hit.edu.cn",
+    "gradWebsite": "https://yzb.hit.edu.cn",
+    "entryPoints": [
+      "https://yzb.hit.edu.cn/",
+      "https://yzb.hit.edu.cn/8822/list.htm",
+      "https://yzb.hit.edu.cn/8816/list10.htm",
+      "https://yzb.hit.edu.cn/2025/0628/c8816a372823/pagem.htm",
+      "https://yzb.hit.edu.cn/2025/0428/c13322a367473/page.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "hnu",
+    "name": "湖南大学",
+    "priority": "P1",
+    "website": "https://www.hnu.edu.cn",
+    "gradWebsite": "https://gra.hnu.edu.cn/",
+    "entryPoints": [
+      "https://gra.hnu.edu.cn/",
+      "https://gra.hnu.edu.cn/zsxx/sszs.htm",
+      "https://gra.hnu.edu.cn/index/zsxx/25.htm",
+      "https://gra.hnu.edu.cn/info/1075/10189.htm",
+      "https://gra.hnu.edu.cn/info/1075/10216.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "jlu",
+    "name": "吉林大学",
+    "priority": "P1",
+    "website": "https://www.jlu.edu.cn",
+    "gradWebsite": "https://yjsy.jlu.edu.cn",
+    "entryPoints": [
+      "https://yjsy.jlu.edu.cn/",
+      "https://yjsy.jlu.edu.cn/zsgz1/zsgg/ss.htm",
+      "https://yjsy.jlu.edu.cn/info/1011/6047.htm",
+      "https://yjsy.jlu.edu.cn/info/1011/6051.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "seu",
+    "name": "东南大学",
+    "priority": "P1",
+    "website": "https://www.seu.edu.cn",
+    "gradWebsite": "https://yzb.seu.edu.cn",
+    "entryPoints": [
+      "https://yzb.seu.edu.cn/",
+      "https://yzb.seu.edu.cn/main.htm",
+      "https://yzb.seu.edu.cn/6676/list2.htm",
+      "https://yzb.seu.edu.cn/2025/0917/c6676a539973/page.htm",
+      "https://yzb.seu.edu.cn/2025/0917/c6676a539977/page.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "dlut",
+    "name": "大连理工大学",
+    "priority": "P1",
+    "website": "https://www.dlut.edu.cn",
+    "gradWebsite": "https://gs.dlut.edu.cn",
+    "entryPoints": [
+      "https://gs.dlut.edu.cn/",
+      "https://gs.dlut.edu.cn/info/1172/17276.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "whu",
+    "name": "武汉大学",
+    "priority": "P1",
+    "website": "https://www.whu.edu.cn",
+    "gradWebsite": "https://gs.whu.edu.cn",
+    "entryPoints": [
+      "https://gs.whu.edu.cn/",
+      "https://gs.whu.edu.cn/tzgg/zs.htm",
+      "https://gs.whu.edu.cn/info/1062/107231.htm",
+      "https://gs.whu.edu.cn/info/1062/107211.htm",
+      "https://wdyz.whu.edu.cn/info/1008/5120.htm",
+      "https://gs.whu.edu.cn/info/1062/105171.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "hust",
+    "name": "华中科技大学",
+    "priority": "P1",
+    "website": "https://www.hust.edu.cn",
+    "gradWebsite": "https://gszs.hust.edu.cn",
+    "entryPoints": [
+      "https://gszs.hust.edu.cn/",
+      "https://gszs.hust.edu.cn/info/1106/3926.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "csu",
+    "name": "中南大学",
+    "priority": "P1",
+    "website": "https://www.csu.edu.cn",
+    "gradWebsite": "https://yz.csu.edu.cn",
+    "entryPoints": [
+      "https://yz.csu.edu.cn/",
+      "https://yz.csu.edu.cn/sszs.htm",
+      "https://yz.csu.edu.cn/info/1009/1438.htm",
+      "https://yz.csu.edu.cn/info/1009/1449.htm",
+      "https://yz.csu.edu.cn/info/1012/1450.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "sdu",
+    "name": "山东大学",
+    "priority": "P1",
+    "website": "https://www.sdu.edu.cn",
+    "gradWebsite": "https://www.yz.sdu.edu.cn",
+    "entryPoints": [
+      "https://yz.sdu.edu.cn/",
+      "https://yz.sdu.edu.cn/info/1022/1181.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "ouc",
+    "name": "中国海洋大学",
+    "priority": "P1",
+    "website": "https://www.ouc.edu.cn",
+    "gradWebsite": "https://yz.ouc.edu.cn/",
+    "entryPoints": [
+      "https://yz.ouc.edu.cn/",
+      "https://yz.ouc.edu.cn/2025/0718/c31626a503423/page.htm",
+      "https://yz.ouc.edu.cn/gkgs/list.htm",
+      "https://yz.ouc.edu.cn/2025/1013/c31648a508538/page.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "ecnu",
+    "name": "华东师范大学",
+    "priority": "P1",
+    "website": "https://www.ecnu.edu.cn",
+    "gradWebsite": "https://yjsy.ecnu.edu.cn/",
+    "entryPoints": [
+      "https://yjsy.ecnu.edu.cn/",
+      "https://yjsy.ecnu.edu.cn/zygcsxy/list.htm",
+      "https://yjsy.ecnu.edu.cn/e7/15/c42082a714517/page.htm",
+      "https://yjsy.ecnu.edu.cn/ed/b8/c42082a716216/page.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "tongji",
+    "name": "同济大学",
+    "priority": "P1",
+    "website": "https://www.tongji.edu.cn",
+    "gradWebsite": "https://yz.tongji.edu.cn",
+    "entryPoints": [
+      "https://yz.tongji.edu.cn/info/1010/3998.htm",
+      "https://yz.tongji.edu.cn/info/1010/4000.htm",
+      "https://yz.tongji.edu.cn/info/1018/4018.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "nankai",
+    "name": "南开大学",
+    "priority": "P1",
+    "website": "https://www.nankai.edu.cn",
+    "gradWebsite": "https://yzb.nankai.edu.cn",
+    "entryPoints": [
+      "https://yzb.nankai.edu.cn/_t60/2583/list.htm",
+      "https://yzb.nankai.edu.cn/_t60/2025/0914/c2583a577579/page.htm",
+      "https://yzb.nankai.edu.cn/_t60/2025/0706/c2583a574948/page.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "tju",
+    "name": "天津大学",
+    "priority": "P1",
+    "website": "https://www.tju.edu.cn",
+    "gradWebsite": "https://yzb.tju.edu.cn",
+    "entryPoints": [
+      "https://yzb.tju.edu.cn/zszn/bkbd/201805/t20180523_306990.html",
+      "https://yzb.tju.edu.cn/xwzx/zxxx/",
+      "https://yzb.tju.edu.cn/xwzx/zxxx/202509/t20250907_324371.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "xjtu",
+    "name": "西安交通大学",
+    "priority": "P1",
+    "website": "https://www.xjtu.edu.cn",
+    "gradWebsite": "https://yz.xjtu.edu.cn",
+    "entryPoints": [
+      "https://yz.xjtu.edu.cn/",
+      "https://yz.xjtu.edu.cn/info/1082/4277.htm",
+      "https://yz.xjtu.edu.cn/info/1086/4070.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "muc",
+    "name": "中央民族大学",
+    "priority": "P1",
+    "website": "https://www.muc.edu.cn",
+    "gradWebsite": "https://grs.muc.edu.cn/yjsyzsw",
+    "entryPoints": [
+      "https://grs.muc.edu.cn/yjsyzsw/index.htm",
+      "https://grs.muc.edu.cn/yjsyzsw/info/1058/5039.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "cqu",
+    "name": "重庆大学",
+    "priority": "P1",
+    "website": "https://www.cqu.edu.cn",
+    "gradWebsite": "https://yz.cqu.edu.cn",
+    "entryPoints": [
+      "https://yz.cqu.edu.cn/",
+      "https://yz.cqu.edu.cn/ss_fsxz.html"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "zzu",
+    "name": "郑州大学",
+    "priority": "P1",
+    "website": "https://www.zzu.edu.cn",
+    "gradWebsite": "https://yz.zzu.edu.cn",
+    "entryPoints": [
+      "https://yz.zzu.edu.cn/",
+      "https://yz.zzu.edu.cn/info/1070/2271.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "nudt",
+    "name": "国防科技大学",
+    "priority": "P1",
+    "website": "https://www.nudt.edu.cn",
+    "gradWebsite": "https://yjszs.nudt.edu.cn",
+    "entryPoints": [
+      "https://yjszs.nudt.edu.cn/pubweb/homePageList/recruitStudents.view?keyId=24",
+      "https://yjszs.nudt.edu.cn/pubweb/homePageList/detailed.view?keyId=777"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "hunnu",
+    "name": "湖南师范大学",
+    "priority": "P1",
+    "website": "https://www.hunnu.edu.cn",
+    "gradWebsite": "https://yjsy.hunnu.edu.cn",
+    "entryPoints": [
+      "https://yjsy.hunnu.edu.cn/zsks/sszk1.htm",
+      "https://yzb.hunnu.edu.cn/"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "neu",
+    "name": "东北大学",
+    "priority": "P1",
+    "website": "https://www.neu.edu.cn",
+    "gradWebsite": "http://yz.neu.edu.cn",
+    "entryPoints": [
+      "http://yz.neu.edu.cn/5932/list.htm",
+      "https://yzb.neu.edu.cn/"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "smmu",
+    "name": "海军军医大学",
+    "priority": "P1",
+    "website": "https://www.smmu.edu.cn",
+    "gradWebsite": "https://www.smmu.edu.cn/yjszs",
+    "entryPoints": [
+      "https://www.smmu.edu.cn/yjszs/",
+      "https://www.smmu.edu.cn/yjszs/list3.htm",
+      "https://www.smmu.edu.cn/yjszs/list4.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "fmmu",
+    "name": "空军军医大学",
+    "priority": "P1",
+    "website": "https://www.fmmu.edu.cn",
+    "gradWebsite": "https://www.fmmu.edu.cn/yjsy",
+    "entryPoints": [
+      "https://www.fmmu.edu.cn/yjsy/",
+      "https://www.fmmu.edu.cn/yjsy/info/1027/2170.htm",
+      "https://www.fmmu.edu.cn/yjsy/zsjy/sstjms.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "nwu",
+    "name": "西北大学",
+    "priority": "P1",
+    "website": "https://www.nwu.edu.cn",
+    "gradWebsite": "https://yjs.nwu.edu.cn",
+    "entryPoints": [
+      "https://yjs.nwu.edu.cn/zsgz/tmybm.htm",
+      "https://yzb.nwu.edu.cn/"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "nwpu",
+    "name": "西北工业大学",
+    "priority": "P1",
+    "website": "https://www.nwpu.edu.cn",
+    "gradWebsite": "https://yzb.nwpu.edu.cn",
+    "entryPoints": [
+      "https://yzb.nwpu.edu.cn/",
+      "https://yzb.nwpu.edu.cn/sszs/",
+      "https://yzb.nwpu.edu.cn/new/sy/zxxljz.htm",
+      "https://yzb.nwpu.edu.cn/index.htm",
+      "https://yzb.nwpu.edu.cn/new/sszs/zsgg/15.htm",
+      "https://yzb.nwpu.edu.cn/info/1174/9898.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "nwsuaf",
+    "name": "西北农林科技大学",
+    "priority": "P1",
+    "website": "https://www.nwafu.edu.cn",
+    "gradWebsite": "https://yz.nwsuaf.edu.cn",
+    "entryPoints": [
+      "https://yz.nwsuaf.edu.cn/",
+      "https://yz.nwsuaf.edu.cn/xxgk/xxgk1/0267a8f5eea046769ad059345d29a05a.htm",
+      "https://yz.nwsuaf.edu.cn/xxgk/23095a62ff874f2d8620fcbc4dab241a.htm",
+      "https://yz.nwsuaf.edu.cn/tzgg/dbe85dc5a7f54c528484b055ccf0e22f.htm",
+      "https://yz.nwsuaf.edu.cn/tzgg/9e6e5062e24a42a08fcc19cab413406d.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "scu",
+    "name": "四川大学",
+    "priority": "P1",
+    "website": "https://www.scu.edu.cn",
+    "gradWebsite": "https://yz.scu.edu.cn",
+    "entryPoints": [
+      "https://yz.scu.edu.cn/",
+      "https://yz.scu.edu.cn/zsxx/newslist/ss/gg/1",
+      "https://yz.scu.edu.cn/sszyml/tmsml",
+      "https://yz.scu.edu.cn/tms/tmsjkgs",
+      "https://yz.scu.edu.cn/zsxx/Details/37de56f6-b46d-474b-ae7e-1111813925e3",
+      "https://yz.scu.edu.cn/zsxx/Details/14ae5448-c2fc-4da6-9dd7-a525716a28d1",
+      "https://yz.scu.edu.cn/zsxx/Details/7824a488-cbd5-4eb3-8ec6-59bd65d57714"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "uestc",
+    "name": "电子科技大学",
+    "priority": "P1",
+    "website": "https://www.uestc.edu.cn",
+    "gradWebsite": "https://yz.uestc.edu.cn",
+    "entryPoints": [
+      "https://yz.uestc.edu.cn/",
+      "https://yz.uestc.edu.cn/zsxc1/xly.htm",
+      "https://yz.uestc.edu.cn/sszs/tzgg.htm",
+      "https://yz.uestc.edu.cn/info/1064/5526.htm",
+      "https://yz.uestc.edu.cn/info/1007/5342.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "cugb",
+    "name": "中国地质大学（北京）",
+    "priority": "P2",
+    "website": "https://www.cugb.edu.cn",
+    "gradWebsite": "https://graduate.cugb.edu.cn",
+    "entryPoints": [
+      "https://graduate.cugb.edu.cn/"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "cumtb",
+    "name": "中国矿业大学（北京）",
+    "priority": "P2",
+    "website": "https://www.cumtb.edu.cn",
+    "gradWebsite": "https://yz.cumtb.edu.cn",
+    "entryPoints": [
+      "https://yz.cumtb.edu.cn/",
+      "https://yz.cumtb.edu.cn/index/detail.html?id=068b59b3e51da8",
+      "https://yz.cumtb.edu.cn/index/detail.html?id=068f8b36638740"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "cupl",
+    "name": "中国政法大学",
+    "priority": "P2",
+    "website": "https://www.cupl.edu.cn",
+    "gradWebsite": "https://yjsy.cupl.edu.cn",
+    "entryPoints": [
+      "https://yjsy.cupl.edu.cn/"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "cufe",
+    "name": "中央财经大学",
+    "priority": "P2",
+    "website": "https://www.cufe.edu.cn",
+    "gradWebsite": "https://gs.cufe.edu.cn",
+    "entryPoints": [
+      "https://gs.cufe.edu.cn/",
+      "https://gs.cufe.edu.cn/info/1028/6868.htm",
+      "https://gs.cufe.edu.cn/info/1028/6828.htm",
+      "https://gs.cufe.edu.cn/info/1028/6771.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "swu",
+    "name": "西南大学",
+    "priority": "P2",
+    "website": "https://www.swu.edu.cn",
+    "gradWebsite": "https://yz.swu.edu.cn",
+    "entryPoints": [
+      "https://yz.swu.edu.cn/",
+      "https://yz.swu.edu.cn/zsxx/xly_tm/tmtz.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "jnu",
+    "name": "暨南大学",
+    "priority": "P2",
+    "website": "https://www.jnu.edu.cn",
+    "gradWebsite": "https://yz.jnu.edu.cn",
+    "entryPoints": [
+      "https://yz.jnu.edu.cn/",
+      "https://yz.jnu.edu.cn/33359/list.htm",
+      "https://yz.jnu.edu.cn/33001/list.htm",
+      "https://yz.jnu.edu.cn/32999/list.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "gxu",
+    "name": "广西大学",
+    "priority": "P2",
+    "website": "https://www.gxu.edu.cn",
+    "gradWebsite": "https://www.gxu.edu.cn",
+    "entryPoints": [
+      "https://www.gxu.edu.cn/"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "ahu",
+    "name": "安徽大学",
+    "priority": "P2",
+    "website": "https://www.ahu.edu.cn",
+    "gradWebsite": "https://graschool.ahu.edu.cn",
+    "entryPoints": [
+      "https://graschool.ahu.edu.cn/"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "hfut",
+    "name": "合肥工业大学",
+    "priority": "P2",
+    "website": "https://www.hfut.edu.cn",
+    "gradWebsite": "https://yjszs.hfut.edu.cn",
+    "entryPoints": [
+      "https://yjszs.hfut.edu.cn/",
+      "https://yjsy.hfut.edu.cn/",
+      "https://admission.hfut.edu.cn/"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "bjut",
+    "name": "北京工业大学",
+    "priority": "P2",
+    "website": "https://www.bjut.edu.cn",
+    "gradWebsite": "https://yanzhao.bjut.edu.cn",
+    "entryPoints": [
+      "https://yanzhao.bjut.edu.cn/info/1025/17799.htm",
+      "https://yanzhao.bjut.edu.cn/info/1019/17820.htm",
+      "https://yanzhao.bjut.edu.cn/info/1019/17865.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "buct",
+    "name": "北京化工大学",
+    "priority": "P2",
+    "website": "https://www.buct.edu.cn",
+    "gradWebsite": "https://graduate.buct.edu.cn",
+    "entryPoints": [
+      "https://graduate.buct.edu.cn/yjszsw/list.htm",
+      "https://graduate.buct.edu.cn/2025/0905/c1392a210387/page.htm",
+      "https://graduate.buct.edu.cn/2025/0907/c1392a210399/page.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "bjtu",
+    "name": "北京交通大学",
+    "priority": "P2",
+    "website": "https://www.bjtu.edu.cn",
+    "gradWebsite": "https://yzb.bjtu.edu.cn",
+    "entryPoints": [
+      "https://yzb.bjtu.edu.cn/sszs/index1.htm",
+      "https://yzb.bjtu.edu.cn/tzgg/index.htm",
+      "https://gs.bjtu.edu.cn/recommend/",
+      "https://yzb.bjtu.edu.cn/tzgg/cf698483c20948348ac9af8ea1131cc7.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "cuc",
+    "name": "中国传媒大学",
+    "priority": "P2",
+    "website": "https://www.cuc.edu.cn",
+    "gradWebsite": "https://yz.cuc.edu.cn",
+    "entryPoints": [
+      "https://yz.cuc.edu.cn/tm/",
+      "https://yz.cuc.edu.cn/main.psp",
+      "https://yz.cuc.edu.cn/2025/0919/c8678a260244/page.htm",
+      "https://yz.cuc.edu.cn/2025/0912/c8678a259892/page.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "ncepu",
+    "name": "华北电力大学",
+    "priority": "P2",
+    "website": "https://www.ncepu.edu.cn",
+    "gradWebsite": "https://yjsy.ncepu.edu.cn",
+    "entryPoints": [
+      "https://yjsy.ncepu.edu.cn/zsxx/sszsxx/",
+      "https://yjsy.ncepu.edu.cn/zsxx/sszsxx/154d68f3e0d04945a8f38278772f632c.htm",
+      "https://yjsy.ncepu.edu.cn/zsxx/sszsxx/ee57f1b22fef4855ad5d39703eb4c43e.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "ustb",
+    "name": "北京科技大学",
+    "priority": "P2",
+    "website": "https://www.ustb.edu.cn",
+    "gradWebsite": "https://yzxc.ustb.edu.cn",
+    "entryPoints": [
+      "https://yzxc.ustb.edu.cn/xlytm/index.htm",
+      "https://yzxc.ustb.edu.cn/xlytm/hdap/index.htm",
+      "https://yzxc.ustb.edu.cn/xlytm/xlyhd/index.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "bjfu",
+    "name": "北京林业大学",
+    "priority": "P2",
+    "website": "https://www.bjfu.edu.cn",
+    "gradWebsite": "https://graduate.bjfu.edu.cn",
+    "entryPoints": [
+      "https://graduate.bjfu.edu.cn/"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "bupt",
+    "name": "北京邮电大学",
+    "priority": "P2",
+    "website": "https://www.bupt.edu.cn",
+    "gradWebsite": "https://yzb.bupt.edu.cn",
+    "entryPoints": [
+      "https://yzb.bupt.edu.cn/",
+      "https://yzb.bupt.edu.cn/info/1010/1041.htm",
+      "https://yzb.bupt.edu.cn/info/1003/1228.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "bfsu",
+    "name": "北京外国语大学",
+    "priority": "P2",
+    "website": "https://www.bfsu.edu.cn",
+    "gradWebsite": "https://graduate.bfsu.edu.cn",
+    "entryPoints": [
+      "https://graduate.bfsu.edu.cn/info/1048/3756.htm",
+      "https://graduate.bfsu.edu.cn/info/1074/1923.htm"
+    ],
+    "strictEntryPoints": true
+  },
+  {
+    "slug": "uibe",
+    "name": "对外经济贸易大学",
+    "priority": "P2",
+    "website": "https://www.uibe.edu.cn",
+    "gradWebsite": "https://yjsy.uibe.edu.cn",
+    "entryPoints": [
+      "https://yjsy.uibe.edu.cn/cms/info.do?columnId=403",
+      "https://yjsy.uibe.edu.cn/cms/infoArticleList.do?columnId=2398",
+      "https://yjsy.uibe.edu.cn/cms/infoSingleArticle.do?articleId=7650&columnId=2398",
+      "https://yjsy.uibe.edu.cn/cms/infoSingleArticle.do?articleId=7647&columnId=2398"
+    ],
+    "strictEntryPoints": true
+  }
+]

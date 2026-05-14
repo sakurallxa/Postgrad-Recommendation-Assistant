@@ -9,8 +9,12 @@ Page({
       avatar: '',
       openid: ''
     },
-    isLoggedIn: false
+    isLoggedIn: false,
+    profileHint: '登录后即可同步你的保研助手数据',
+    profileActionText: '微信登录'
   },
+
+  loginPending: false,
 
   onLoad() {
     // 初始化页面
@@ -22,29 +26,49 @@ Page({
     this.checkLoginStatus()
   },
 
+  buildGuestUserInfo() {
+    return {
+      nickname: '',
+      avatar: '',
+      openid: ''
+    }
+  },
+
+  buildDisplayUserInfo(userInfo = {}) {
+    return {
+      nickname: userInfo?.nickname || '保研er',
+      avatar: userInfo?.avatar || '',
+      openid: userInfo?.openid || ''
+    }
+  },
+
   // 检查登录状态
   checkLoginStatus() {
     if (userStore.isLoggedIn && userStore.userInfo) {
       this.setData({
-        userInfo: userStore.userInfo,
-        isLoggedIn: true
+        userInfo: this.buildDisplayUserInfo(userStore.userInfo),
+        isLoggedIn: true,
+        profileHint: '一期版本默认使用占位头像与昵称，可在个人保研档案中补充资料',
+        profileActionText: '已登录'
       })
     } else {
       this.setData({
-        userInfo: {
-          nickname: '',
-          avatar: '',
-          openid: ''
-        },
-        isLoggedIn: false
+        userInfo: this.buildGuestUserInfo(),
+        isLoggedIn: false,
+        profileHint: '一期版本先提供基础微信登录，手机号与头像授权暂不作为登录前置条件',
+        profileActionText: '微信登录'
       })
     }
   },
 
   // 处理微信登录
   async handleLogin() {
-    wx.showLoading({ title: '登录中...' })
-    
+    if (this.loginPending) {
+      return
+    }
+
+    this.loginPending = true
+
     try {
       // 调用微信登录API
       const loginRes = await new Promise((resolve, reject) => {
@@ -63,8 +87,10 @@ Page({
         userStore.setToken(loginData.token)
         
         this.setData({
-          userInfo: loginData.userInfo,
-          isLoggedIn: true
+          userInfo: this.buildDisplayUserInfo(loginData.userInfo),
+          isLoggedIn: true,
+          profileHint: '一期版本默认使用占位头像与昵称，可在个人保研档案中补充资料',
+          profileActionText: '已登录'
         })
         
         wx.showToast({ title: '登录成功', icon: 'success' })
@@ -72,10 +98,13 @@ Page({
         wx.showToast({ title: '登录失败', icon: 'none' })
       }
     } catch (error) {
-      console.error('登录失败:', error)
-      wx.showToast({ title: '登录失败', icon: 'none' })
+      console.error('登录失败详情:', error)
+      wx.showToast({
+        title: error?.message || error?.errMsg || '登录失败',
+        icon: 'none'
+      })
     } finally {
-      wx.hideLoading()
+      this.loginPending = false
     }
   },
 
@@ -125,12 +154,10 @@ Page({
           
           // 更新页面状态
           this.setData({
-            userInfo: {
-              nickname: '',
-              avatar: '',
-              openid: ''
-            },
-            isLoggedIn: false
+            userInfo: this.buildGuestUserInfo(),
+            isLoggedIn: false,
+            profileHint: '一期版本先提供基础微信登录，手机号与头像授权暂不作为登录前置条件',
+            profileActionText: '微信登录'
           })
           
           wx.showToast({ title: '已退出登录', icon: 'success' })

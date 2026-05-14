@@ -27,6 +27,13 @@
     </view>
   </view>
 
+  <view wx:elif="{{mode === 'followed'}}" class="mode-title-bar">
+    <view class="mode-title-wrap">
+      <text class="mode-title">已关注院校公告</text>
+      <text class="mode-subtitle">仅展示你已关注院校的夏令营/预推免公告</text>
+    </view>
+  </view>
+
   <view wx:elif="{{mode === 'opportunity'}}" class="mode-title-bar">
     <view class="mode-title-wrap">
       <text class="mode-title">全部公开公告</text>

@@ -14,6 +14,7 @@
           class="university-logo" 
           src="{{campDetail.universityLogo || '/assets/images/icons/user.png'}}" 
           mode="aspectFit"
+          binderror="handleUniversityLogoError"
         />
         <view class="header-tags">
           <view class="university-tag">{{campDetail.universityName}}</view>
@@ -32,10 +33,10 @@
     <!-- 快速导航 -->
     <view class="quick-nav">
       <view class="quick-nav-chip" data-target="section-basic" bindtap="onJumpSection">基本信息</view>
-      <view class="quick-nav-chip" data-target="section-requirements" bindtap="onJumpSection">申请条件</view>
-      <view class="quick-nav-chip" data-target="section-materials" bindtap="onJumpSection">所需材料</view>
-      <view class="quick-nav-chip" data-target="section-process" bindtap="onJumpSection">流程</view>
-      <view class="quick-nav-chip" data-target="section-changes" bindtap="onJumpSection">本次变更</view>
+      <view class="quick-nav-chip" wx:if="{{campDetail.showRequirementsSection}}" data-target="section-requirements" bindtap="onJumpSection">申请条件</view>
+      <view class="quick-nav-chip" wx:if="{{campDetail.showMaterialsSection}}" data-target="section-materials" bindtap="onJumpSection">所需材料</view>
+      <view class="quick-nav-chip" wx:if="{{campDetail.showProcessSection}}" data-target="section-process" bindtap="onJumpSection">流程</view>
+      <view class="quick-nav-chip" wx:if="{{campDetail.showOriginalContentSection}}" data-target="section-original" bindtap="onJumpSection">原文展示</view>
       <view class="quick-nav-chip" data-target="section-contact" bindtap="onJumpSection">联系方式</view>
       <view class="quick-nav-chip" data-target="section-source" bindtap="onJumpSection">来源与可信度</view>
     </view>
@@ -62,7 +63,7 @@
         </view>
         <view class="info-item">
           <text class="label">举办时间</text>
-          <text class="value">{{campDetail.startDate || '待定'}} ~ {{campDetail.endDate || '待定'}}</text>
+          <text class="value">{{campDetail.eventDateText || '待定'}}</text>
         </view>
         <view class="info-item">
           <text class="label">举办地点</text>
@@ -72,7 +73,7 @@
     </view>
 
     <!-- 申请条件 -->
-    <view id="section-requirements" class="section">
+    <view id="section-requirements" class="section" wx:if="{{campDetail.showRequirementsSection}}">
       <text class="section-title">申请条件</text>
       <view class="info-card">
         <view class="compare-summary {{campDetail.profileComparison.status}}">
@@ -128,15 +129,11 @@
             {{expandUncertainItems ? '收起' : '展开更多'}}
           </view>
         </view>
-
-        <view class="requirement-empty" wx:if="{{(!campDetail.requirements.hardConstraints || campDetail.requirements.hardConstraints.length === 0) && (!campDetail.requirements.softSuggestions || campDetail.requirements.softSuggestions.length === 0) && (!campDetail.requirements.uncertainItems || campDetail.requirements.uncertainItems.length === 0)}}">
-          暂未提取到结构化申请条件，请优先查看原文链接
-        </view>
       </view>
     </view>
 
     <!-- 所需材料 -->
-    <view id="section-materials" class="section" wx:if="{{campDetail.materials && campDetail.materials.length > 0}}">
+    <view id="section-materials" class="section" wx:if="{{campDetail.showMaterialsSection}}">
       <view class="section-header">
         <text class="section-title">所需材料</text>
         <button class="copy-btn" size="mini" bindtap="handleCopyMaterials">
@@ -156,21 +153,18 @@
     </view>
 
     <!-- 夏令营流程 -->
-    <view id="section-process" class="section" wx:if="{{campDetail.process && campDetail.process.length > 0}}">
+    <view id="section-process" class="section" wx:if="{{campDetail.showProcessSection}}">
       <text class="section-title">夏令营/预推免流程</text>
       <view class="info-card">
         <view class="timeline">
           <view class="timeline-item" wx:for="{{campDetail.process}}" wx:key="index">
             <view class="timeline-marker">
-              <view class="timeline-dot {{item.stageStatus === 'current' || item.stageStatus === 'next' || item.stageStatus === 'done' ? 'active' : ''}}">{{index + 1}}</view>
+              <view class="timeline-dot active">{{index + 1}}</view>
               <view class="timeline-line" wx:if="{{index < campDetail.process.length - 1}}"></view>
             </view>
             <view class="timeline-content">
               <view class="timeline-header">
                 <text class="timeline-title">{{item.action}}</text>
-                <view class="timeline-status {{item.stageStatus || 'pending'}}">
-                  {{item.stageLabel || '待开始'}}
-                </view>
               </view>
               <text class="timeline-deadline" wx:if="{{item.deadline}}">
                 <text class="deadline-label">截止时间：</text>{{item.deadline}}
@@ -183,30 +177,14 @@
       </view>
     </view>
 
-    <!-- 本次变更（前后对比） -->
-    <view id="section-changes" class="section" wx:if="{{campDetail.changeCompareCards && campDetail.changeCompareCards.length > 0}}">
-      <text class="section-title">本次变更（前后对比）</text>
-      <view class="info-card">
-        <view class="change-card" wx:for="{{campDetail.changeCompareCards}}" wx:key="id" wx:if="{{expandChanges || index < 2}}">
-          <view class="change-header">
-            <text class="change-title">{{item.fieldLabel}}</text>
-            <text class="change-type">{{item.eventTypeLabel}}</text>
-          </view>
-          <view class="change-body">
-            <view class="change-col">
-              <text class="change-col-label">变更前</text>
-              <text class="change-col-value">{{item.beforeText}}</text>
-            </view>
-            <view class="change-col">
-              <text class="change-col-label">变更后</text>
-              <text class="change-col-value after">{{item.afterText}}</text>
-            </view>
-          </view>
-          <text class="change-meta">{{item.changedAtText}}</text>
+    <view id="section-original" class="section" wx:if="{{campDetail.showOriginalContentSection}}">
+      <text class="section-title">原文展示</text>
+      <view class="info-card raw-process-card">
+        <view class="raw-process-header">
+          <text class="raw-process-badge">官网原文</text>
+          <text class="raw-process-tip">以下为抓取到的公告原文全文展示，便于直接核对官网内容。</text>
         </view>
-        <view class="section-toggle" wx:if="{{campDetail.changeCompareCards.length > 2}}" data-key="expandChanges" bindtap="onToggleExpand">
-          {{expandChanges ? '收起' : '展开更多'}}
-        </view>
+        <view class="raw-process-text">{{campDetail.originalContentDisplay}}</view>
       </view>
     </view>
 
@@ -235,11 +213,15 @@
 
     <!-- 信息来源与可信度 -->
     <view id="section-source" class="section" wx:if="{{campDetail.transparencyMeta}}">
-      <text class="section-title">信息来源与可信度</text>
+      <text class="section-title">信息来源与说明</text>
       <view class="info-card">
-        <view class="source-link" bindtap="handleOpenSourceUrl" wx:if="{{campDetail.transparencyMeta.sourceUrl}}">
+        <view class="source-actions" wx:if="{{campDetail.transparencyMeta.sourceUrl}}">
+          <view class="source-link source-link-primary" bindtap="handleCopySourceUrl">
+            <text class="link-text">复制官网原文链接</text>
+          </view>
+        </view>
+        <view class="source-link source-link-raw" bindtap="handleCopySourceUrl" wx:if="{{campDetail.transparencyMeta.sourceUrl}}">
           <text class="link-text">{{campDetail.transparencyMeta.sourceUrl}}</text>
-          <text class="link-arrow">→</text>
         </view>
         <view class="transparency-item">
           <text class="label">抓取时间</text>
@@ -250,8 +232,16 @@
           <text class="value">{{campDetail.transparencyMeta.updatedAtText}}</text>
         </view>
         <view class="transparency-item">
-          <text class="label">信息置信度</text>
+          <text class="label">来源参考性</text>
           <text class="value">{{campDetail.transparencyMeta.confidenceLabel}}</text>
+        </view>
+        <view class="transparency-item">
+          <text class="label">说明</text>
+          <text class="value">{{campDetail.transparencyMeta.confidenceDescription}}</text>
+        </view>
+        <view class="transparency-item">
+          <text class="label">摘要范围</text>
+          <text class="value">仅展示高置信结构化信息，未展示字段请以官网原文为准</text>
         </view>
       </view>
     </view>
@@ -267,6 +257,12 @@
       <button class="remind-btn" bindtap="handleSetReminder">
         {{campDetail.hasReminder ? '已设置提醒' : '设置提醒'}}
       </button>
+    </view>
+
+    <!-- 报错入口（β场景反馈闭环） -->
+    <view class="report-issue-row" bindtap="onTapReportIssue">
+      <text class="report-issue-icon">⚠</text>
+      <text class="report-issue-text">信息有误？点击反馈</text>
     </view>
   </view>
   

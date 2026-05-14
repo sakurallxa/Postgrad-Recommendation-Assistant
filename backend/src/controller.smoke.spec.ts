@@ -56,7 +56,7 @@ describe('Controller smoke', () => {
     };
     const controller = new CampController(service as any);
 
-    await controller.findAll(1, 20, 'u1', 'u2,u3', 'm1', 'published', '2026');
+    await controller.findAll(1, 20, 'u1', 'u2,u3', 'm1', 'published', 'summer_camp', '2026', '计算机');
     expect(service.findAll).toHaveBeenCalledWith({
       page: 1,
       limit: 20,
@@ -64,13 +64,18 @@ describe('Controller smoke', () => {
       universityIds: ['u2', 'u3'],
       majorId: 'm1',
       status: 'published',
+      announcementType: 'summer_camp',
       year: 2026,
+      keyword: '计算机',
+      actionableOnly: true,
+      includeFramework: false,
     });
 
-    await controller.findAll(1, 20, undefined, undefined, undefined, undefined, 'invalid');
+    await controller.findAll(1, 20, undefined, undefined, undefined, undefined, undefined, 'invalid');
     expect(service.findAll).toHaveBeenLastCalledWith(
       expect.objectContaining({
         year: undefined,
+        actionableOnly: true,
       }),
     );
 

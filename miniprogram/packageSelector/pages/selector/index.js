@@ -1,5 +1,7 @@
 // 院校选择页
 import { selectionStore } from '../../../store/selection'
+import { userStore } from '../../../store/user'
+import { http } from '../../../services/http'
 import { universityService } from '../../services/university'
 
 const MACRO_REGIONS = ['华北', '华东', '华南', '华中', '西南', '西北', '东北']
@@ -178,8 +180,35 @@ Page({
   },
 
   onLoad() {
+    if (!this.hasAuthToken()) {
+      this.redirectToLogin()
+      return
+    }
     this.loadUniversities();
     this.initSelectedUniversities();
+    this.loadUserSelection();
+  },
+
+  hasAuthToken() {
+    return Boolean(userStore.token || wx.getStorageSync('token'))
+  },
+
+  redirectToLogin() {
+    wx.showModal({
+      title: '需要先登录',
+      content: '登录后关注院校会保存到你的账号，换设备或重新进入也能同步。',
+      confirmText: '去登录',
+      cancelText: '返回',
+      success: (res) => {
+        if (res.confirm) {
+          wx.switchTab({ url: '/pages/my/my' })
+          return
+        }
+        wx.navigateBack({
+          fail: () => wx.switchTab({ url: '/pages/index/index' })
+        })
+      }
+    })
   },
 
   // 初始化已选院校
@@ -187,6 +216,26 @@ Page({
     this.setData({
       selectedUniversities: selectionStore.selectedUniversities || []
     });
+  },
+
+  async loadUserSelection() {
+    try {
+      const selection = await http.get('/user/selection', null, {
+        showLoading: false,
+        showError: false
+      });
+      const universities = selection?.universities || [];
+      selectionStore.setSelection(universities, selection?.majors || []);
+      wx.setStorageSync('userSelection', {
+        universities,
+        majors: selection?.majors || []
+      });
+      this.setData({ selectedUniversities: universities }, () => {
+        this.refreshUniversitySelectionState();
+      });
+    } catch (error) {
+      // 保留本地已选状态，避免短暂网络错误导致页面闪空
+    }
   },
 
   // 加载院校列表
@@ -215,7 +264,8 @@ Page({
 
   // 分组院校列表
   groupUniversities() {
-    const filtered = this.getSortedUniversities(this.filterUniversities());
+    const filtered = this.getSortedUniversities(this.filterUniversities())
+      .map(university => this.withSelectionState(university));
     const grouped = {};
     
     filtered.forEach(university => {
@@ -319,8 +369,33 @@ Page({
     return this.data.selectedUniversities.some(u => String(u.id) === targetId);
   },
 
+  withSelectionState(university) {
+    // MVP β: 5所重点校（数据完整度有承诺）
+    const PRIORITY_SCHOOLS = ['pku', 'sjtu', 'fudan', 'ustc', 'ruc'];
+    const universityId = (university.id || '').toLowerCase();
+    return {
+      ...university,
+      isSelected: this.isUniversitySelected(university.id),
+      isPriority: PRIORITY_SCHOOLS.includes(universityId)
+    };
+  },
+
+  refreshUniversitySelectionState() {
+    const groupedUniversities = (this.data.groupedUniversities || []).map(group => ({
+      ...group,
+      universities: (group.universities || []).map(university => this.withSelectionState(university))
+    }));
+
+    this.setData({ groupedUniversities });
+  },
+
   // 院校点击
   onUniversityTap(e) {
+    if (!this.hasAuthToken()) {
+      this.redirectToLogin();
+      return;
+    }
+
     const universityId = String(e.currentTarget.dataset.id);
     const university = this.data.universities.find(u => String(u.id) === universityId);
     
@@ -339,6 +414,8 @@ Page({
     
     this.setData({
       selectedUniversities
+    }, () => {
+      this.refreshUniversitySelectionState();
     });
   },
 
@@ -351,6 +428,8 @@ Page({
     
     this.setData({
       selectedUniversities
+    }, () => {
+      this.refreshUniversitySelectionState();
     });
   },
 
@@ -361,32 +440,54 @@ Page({
       content: '确认清空当前已选院校吗？',
       success: (res) => {
         if (!res.confirm) return
-        this.setData({ selectedUniversities: [] })
+        this.setData({ selectedUniversities: [] }, () => {
+          this.refreshUniversitySelectionState()
+        })
       }
     })
   },
 
   // 确认选择
-  onConfirmSelection() {
-    // 保存选择到状态管理
-    selectionStore.setSelection(this.data.selectedUniversities, []);
-    // 同步到本地存储，供首页筛选读取
-    wx.setStorageSync('selectedUniversities', this.data.selectedUniversities);
-    wx.setStorageSync('userSelection', {
-      universities: this.data.selectedUniversities,
-      majors: []
-    });
-    
-    // 提示用户
-    wx.showToast({
-      title: `已选择 ${this.data.selectedUniversities.length} 所院校`,
-      icon: 'success'
-    });
-    
-    // 返回上一页
-    setTimeout(() => {
-      wx.navigateBack();
-    }, 1000);
+  async onConfirmSelection() {
+    if (!this.hasAuthToken()) {
+      this.redirectToLogin();
+      return;
+    }
+
+    const selectedUniversities = this.data.selectedUniversities;
+    const universityIds = selectedUniversities.map(item => item.id).filter(Boolean);
+
+    try {
+      const selection = await http.put('/user/selection', {
+        universityIds,
+        majorIds: []
+      }, {
+        showError: false
+      });
+      const universities = selection?.universities || selectedUniversities;
+      const majors = selection?.majors || [];
+
+      // 保存后端确认后的账号选择到状态管理和本地缓存，供首页筛选读取
+      selectionStore.setSelection(universities, majors);
+      wx.setStorageSync('userSelection', {
+        universities,
+        majors
+      });
+
+      wx.showToast({
+        title: `已关注 ${universities.length} 所院校`,
+        icon: 'success'
+      });
+
+      setTimeout(() => {
+        wx.navigateBack();
+      }, 1000);
+    } catch (error) {
+      wx.showToast({
+        title: error?.message || '保存失败，请重试',
+        icon: 'none'
+      });
+    }
   },
 
   // 生成省份筛选项

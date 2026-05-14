@@ -12,10 +12,15 @@ export class CampService {
     universityIds?: string[];
     majorId?: string;
     status?: string;
+    announcementType?: string;
     year?: number;
+    keyword?: string;
+    actionableOnly?: boolean;
+    includeFramework?: boolean;
   }) {
-    const { page, limit, universityId, universityIds, majorId, status, year } = params;
+    const { page, limit, universityId, universityIds, majorId, status, announcementType, year, keyword, actionableOnly, includeFramework } = params;
     const skip = (page - 1) * limit;
+    const andConditions: any[] = [];
 
     const where: any = {};
 
@@ -33,20 +38,69 @@ export class CampService {
     }
 
     if (majorId) where.majorId = majorId;
+    if (announcementType && announcementType !== 'all') {
+      where.announcementType = announcementType;
+    }
+    // 默认隐藏 framework 类（章程/工作办法），用户主动 includeFramework=true 才显示
+    if (!includeFramework) {
+      where.subType = { not: 'framework' };
+    }
+
+    const normalizedKeyword = typeof keyword === 'string' ? keyword.trim() : '';
+    if (normalizedKeyword) {
+      where.OR = [
+        { title: { contains: normalizedKeyword } },
+        { rawContent: { contains: normalizedKeyword } },
+        { university: { name: { contains: normalizedKeyword } } },
+        { major: { name: { contains: normalizedKeyword } } },
+      ];
+    }
+
+    if (actionableOnly) {
+      const now = new Date();
+      const freshnessStart = new Date(now.getFullYear() - 1, 0, 1);
+      where.NOT = [
+        { title: { contains: '拟录取' } },
+        { title: { contains: '录取名单' } },
+        { title: { contains: '名单公示' } },
+        { title: { contains: '公示名单' } },
+        { title: { contains: '公示已结束' } },
+        { title: { contains: '营员名单' } },
+        { title: { contains: '入围营员' } },
+        { title: { contains: '复试名单' } },
+        { title: { contains: '复试结果' } },
+        { title: { contains: '结果公示' } },
+        { title: { contains: '录取结果' } },
+        { title: { contains: '录取公示' } },
+        { title: { contains: '考试报名' } },
+        { title: { contains: '网上确认' } },
+        { title: '研究生招生信息网' },
+      ];
+      andConditions.push({
+        OR: [
+          { publishDate: { gte: freshnessStart } },
+          { deadline: { gte: freshnessStart } },
+          { startDate: { gte: freshnessStart } },
+          { endDate: { gte: freshnessStart } },
+        ],
+      });
+    }
 
     if (year) {
       const yearStart = new Date(year, 0, 1);
       const yearEnd = new Date(year + 1, 0, 1);
-      where.AND = [
-        {
-          OR: [
-            { publishDate: { gte: yearStart, lt: yearEnd } },
-            { deadline: { gte: yearStart, lt: yearEnd } },
-            { startDate: { gte: yearStart, lt: yearEnd } },
-            { endDate: { gte: yearStart, lt: yearEnd } },
-          ],
-        },
-      ];
+      andConditions.push({
+        OR: [
+          { publishDate: { gte: yearStart, lt: yearEnd } },
+          { deadline: { gte: yearStart, lt: yearEnd } },
+          { startDate: { gte: yearStart, lt: yearEnd } },
+          { endDate: { gte: yearStart, lt: yearEnd } },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     const [data, total] = await Promise.all([
@@ -54,7 +108,12 @@ export class CampService {
         where,
         skip,
         take: limit,
-        orderBy: { publishDate: 'desc' },
+        orderBy: actionableOnly
+          ? [
+              { publishDate: 'desc' },
+              { deadline: { sort: 'asc', nulls: 'last' } },
+            ]
+          : { publishDate: 'desc' },
         include: {
           university: true,
           major: true,

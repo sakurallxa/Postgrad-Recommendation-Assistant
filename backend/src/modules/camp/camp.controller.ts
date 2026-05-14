@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Param, ParseUUIDPipe, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Query, Param, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { CampService } from './camp.service';
 
@@ -16,7 +16,11 @@ export class CampController {
     @Query('universityIds') universityIds?: string,
     @Query('majorId') majorId?: string,
     @Query('status') status?: string,
+    @Query('announcementType') announcementType?: string,
     @Query('year') year?: string,
+    @Query('keyword') keyword?: string,
+    @Query('actionableOnly') actionableOnly?: string,
+    @Query('includeFramework') includeFramework?: string,
   ) {
     const parsedUniversityIds = universityIds
       ? universityIds.split(',').map(id => id.trim()).filter(Boolean)
@@ -29,7 +33,11 @@ export class CampController {
       universityIds: parsedUniversityIds,
       majorId,
       status,
+      announcementType,
       year: Number.isFinite(parsedYear) ? parsedYear : undefined,
+      keyword,
+      actionableOnly: actionableOnly !== 'false',
+      includeFramework: includeFramework === 'true',
     });
   }
 
