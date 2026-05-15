@@ -13,6 +13,7 @@
  *
  * 幂等：可重复运行，不会重复建条目。
  */
+/// <reference types="node" />
 import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';

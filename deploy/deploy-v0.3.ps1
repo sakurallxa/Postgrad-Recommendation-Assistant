@@ -50,11 +50,17 @@ git fetch origin refactor/ai-assistant
 git checkout refactor/ai-assistant
 git pull origin refactor/ai-assistant
 
-# ------- 2. backend 依赖 -------
+# ------- 2a. 先停 backend 服务，释放 prisma engine dll 锁 -------
 Write-Host ""
-Write-Host "[2/8] npm install (backend)" -ForegroundColor Yellow
+Write-Host "[2a/8] 暂停 baoyan-backend 服务（释放 dll 锁）" -ForegroundColor Yellow
+sc.exe stop baoyan-backend | Out-Null
+Start-Sleep -Seconds 3
+
+# ------- 2b. backend 依赖（含 devDependencies，nest CLI 是 dev 依赖）-------
+Write-Host ""
+Write-Host "[2b/8] npm install (backend)" -ForegroundColor Yellow
 Set-Location "$projectRoot\backend"
-npm install --omit=dev --no-audit --no-fund
+npm install --no-audit --no-fund
 
 # ------- 3. Prisma generate + migrate -------
 Write-Host ""
@@ -67,7 +73,11 @@ if ($LASTEXITCODE -ne 0) { Write-Error "❌ prisma migrate deploy 失败"; exit 
 Write-Host ""
 Write-Host "[4/8] seed Department 表（从 shared/university-departments.json）" -ForegroundColor Yellow
 if (Test-Path "$projectRoot\shared\university-departments.json") {
-  npx ts-node prisma/seed-from-university-departments.ts
+  # --transpile-only 跳过严格类型检查，避免 @types/node 之类的开发依赖问题
+  npx ts-node --transpile-only prisma/seed-from-university-departments.ts
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "⚠️  dept seed 失败，但 migration 已应用，继续部署" -ForegroundColor DarkYellow
+  }
 } else {
   Write-Host "⚠️  shared/university-departments.json 不存在，跳过 dept seed" -ForegroundColor DarkYellow
 }
