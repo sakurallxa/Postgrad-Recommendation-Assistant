@@ -1,203 +1,152 @@
-<view class="container">
-  <!-- 问候区 -->
-  <view class="greeting-card">
-    <text class="greeting-text">你好，保研er 👋</text>
-    <text class="stats-text">
-      已关注 {{stats.universityCount}} 所院校 · {{stats.campCount}} 个夏令营/预推免 · {{stats.reminderCount}} 个提醒
-    </text>
+<view class="page">
+  <!-- 顶部欢迎 -->
+  <view class="hero">
+    <view class="hero-title">你好，保研er 👋</view>
+    <view class="hero-subtitle">
+      <text wx:if="{{!hasSubscription}}">先选 3-5 所目标校，我来帮你盯紧新机会</text>
+      <text wx:elif="{{stats.recommendCount > 0}}">为你筛出 {{stats.recommendCount}} 个高匹配机会</text>
+      <text wx:else>暂时还没有新机会，提交一个公告 URL 试试 AI 助理？</text>
+    </view>
   </view>
 
-  <!-- MVP β场景：明确数据承诺范围（信任管理）-->
-  <view class="scope-banner">
-    <view class="scope-banner-title">
-      <text class="scope-banner-icon">⭐</text>
-      <text class="scope-banner-heading">本期重点覆盖 5 所</text>
+  <!-- 概览数据条 -->
+  <view class="stats-row" wx:if="{{hasSubscription}}">
+    <view class="stat-item" bindtap="onTapStat" data-action="undecided">
+      <view class="stat-value">{{stats.undecidedCount}}</view>
+      <view class="stat-label">待决策</view>
     </view>
-    <text class="scope-banner-schools">北京大学 · 上海交通大学 · 复旦大学 · 中国科学技术大学 · 中国人民大学</text>
-    <text class="scope-banner-tip">其他985可订阅但数据完整度无承诺，最终请以学校官网为准</text>
+    <view class="stat-divider"></view>
+    <view class="stat-item" bindtap="onTapStat" data-action="interested">
+      <view class="stat-value stat-value-success">{{stats.interestedCount}}</view>
+      <view class="stat-label">感兴趣</view>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item" bindtap="onTapStat" data-action="applied">
+      <view class="stat-value stat-value-primary">{{stats.appliedCount}}</view>
+      <view class="stat-label">已申请</view>
+    </view>
   </view>
 
-  <!-- 即将截止提醒区 -->
-  <view class="section">
-    <view class="section-header">
-      <text class="section-title">即将截止</text>
-      <navigator url="/packageCamp/pages/camp-list/index?mode=urgent" class="section-more">
-        查看全部
-        <text class="arrow-right">→</text>
-      </navigator>
+  <!-- 引导：未订阅院系 -->
+  <view wx:if="{{!hasSubscription}}" class="onboarding-card">
+    <view class="onboarding-step">
+      <view class="onboarding-icon">🎯</view>
+      <view class="onboarding-step-title">第 1 步 · 填写档案</view>
+      <view class="onboarding-step-desc">告诉 AI 你的 GPA、专业、目标方向</view>
+      <button class="onboarding-btn" bindtap="goProfile">填写档案</button>
     </view>
-    
-    <view wx:if="{{urgentCamps.length > 0}}" class="urgent-camps">
-      <view
-        wx:for="{{urgentCamps}}"
-        wx:key="id"
-        class="urgent-card"
-        bindtap="handleUrgentCampTap"
-        data-id="{{item.id}}"
-        data-announcement-type="{{item.announcementType}}"
-        data-title="{{item.title}}"
-      >
-        <view class="countdown {{item.statusClass}}">
-          <text class="countdown-number">{{item.daysRemaining}}</text>
-          <text class="countdown-unit">天</text>
+    <view class="onboarding-step">
+      <view class="onboarding-icon">🏫</view>
+      <view class="onboarding-step-title">第 2 步 · 选择目标校</view>
+      <view class="onboarding-step-desc">5 所重点校 × 你专业相关的院系</view>
+      <button class="onboarding-btn" bindtap="goSelector">选择院系</button>
+    </view>
+    <view class="onboarding-step">
+      <view class="onboarding-icon">✨</view>
+      <view class="onboarding-step-title">第 3 步 · 享受智能筛选</view>
+      <view class="onboarding-step-desc">AI 每天扫一遍，匹配你才推送</view>
+    </view>
+  </view>
+
+  <!-- 提交URL测试入口（始终显示，灰度阶段） -->
+  <view class="submit-url-card" bindtap="goSubmitUrl">
+    <view class="submit-url-icon">🔗</view>
+    <view class="submit-url-text">
+      <view class="submit-url-title">手动测试 AI 助理</view>
+      <view class="submit-url-desc">贴一条公告 URL，看 AI 给出的匹配判断</view>
+    </view>
+    <view class="submit-url-arrow">›</view>
+  </view>
+
+  <!-- 列表 Tab 切换 -->
+  <view class="tab-bar" wx:if="{{hasSubscription || opportunities.length > 0}}">
+    <view
+      class="tab-item {{activeTab === 'undecided' ? 'active' : ''}}"
+      data-tab="undecided"
+      bindtap="onSwitchTab"
+    >今日新机会</view>
+    <view
+      class="tab-item {{activeTab === 'interested' ? 'active' : ''}}"
+      data-tab="interested"
+      bindtap="onSwitchTab"
+    >已收藏</view>
+  </view>
+
+  <!-- 机会卡片列表 -->
+  <view class="match-list" wx:if="{{opportunities.length > 0}}">
+    <view
+      class="match-card"
+      wx:for="{{opportunities}}"
+      wx:key="id"
+      bindtap="onTapMatch"
+      data-id="{{item.id}}"
+    >
+      <!-- 顶部：推荐标签 + 学校 -->
+      <view class="match-head">
+        <view class="match-recommendation {{item.recommendationClass}}">
+          <text class="match-recommendation-icon">{{item.recommendationIcon}}</text>
+          <text class="match-recommendation-text">{{item.recommendationText}}</text>
         </view>
-        <view class="urgent-info">
-          <view class="urgent-meta">
-            <text class="university-name">{{item.universityName}}</text>
-            <view class="urgent-announcement-badge {{item.announcementType === 'pre_recommendation' ? 'pre-recommendation' : 'summer-camp'}}">
-              <text>{{item.announcementType === 'pre_recommendation' ? '预推免' : '夏令营'}}</text>
-            </view>
-          </view>
-          <text class="camp-title">{{item.title}}</text>
-          <text class="deadline">{{item.deadlineText}}</text>
+        <view class="match-score" wx:if="{{item.matchScore != null}}">
+          <text class="match-score-value">{{item.matchScore}}</text>
+          <text class="match-score-unit">%</text>
         </view>
       </view>
-    </view>
-    
-    <empty-state wx:else text="暂无即将截止的夏令营/预推免" />
-  </view>
 
-  <!-- 院校关注入口 -->
-  <view class="section">
-    <view class="section-header">
-      <text class="section-title">院校关注</text>
-      <view class="section-more" bindtap="handleOpenSelector">
-        <text>{{stats.universityCount > 0 ? '管理关注' : '去选择'}}</text>
-        <text class="arrow-right">→</text>
+      <!-- 学校院系 -->
+      <view class="match-affil">
+        <text class="match-univ">{{item.camp.universityName}}</text>
+        <text wx:if="{{item.camp.departmentName}}" class="match-dept">· {{item.camp.departmentName}}</text>
       </view>
-    </view>
-    <view class="follow-entry-card" bindtap="handleOpenSelector">
-      <text wx:if="{{stats.universityCount === 0}}" class="follow-entry-summary">暂未关注院校</text>
-      <text wx:if="{{stats.universityCount === 0}}" class="follow-entry-desc">
-        先选择关注院校，系统会自动聚合对应夏令营/预推免信息。
-      </text>
-      <view wx:else>
-        <text class="follow-entry-summary">已关注 {{stats.universityCount}} 所院校</text>
-      </view>
-      <view wx:if="{{stats.universityCount > 0}}" class="follow-entry-tags">
+
+      <!-- 标题 -->
+      <view class="match-title">{{item.camp.title}}</view>
+
+      <!-- AI 摘要 -->
+      <view class="match-summary" wx:if="{{item.extractedSummary}}">{{item.extractedSummary}}</view>
+
+      <!-- 关键要求（前2-3条） -->
+      <view class="req-list" wx:if="{{item.keyRequirementsPreview.length > 0}}">
         <view
-          wx:for="{{followedUniversitiesPreview}}"
-          wx:key="*this"
-          class="follow-entry-tag"
+          class="req-item"
+          wx:for="{{item.keyRequirementsPreview}}"
+          wx:for-item="req"
+          wx:key="index"
         >
-          <text class="follow-entry-tag-text">{{item}}</text>
+          <text class="req-icon req-icon-{{req.userMatch}}">{{req.icon}}</text>
+          <text class="req-text">{{req.requirement}}</text>
         </view>
-        <view wx:if="{{followedUniversitiesOverflow > 0}}" class="follow-entry-tag more">
-          <text class="follow-entry-tag-text">+{{followedUniversitiesOverflow}}</text>
+        <view wx:if="{{item.keyRequirementsMore > 0}}" class="req-more">
+          还有 {{item.keyRequirementsMore}} 项 ›
         </view>
       </view>
-    </view>
-  </view>
 
-  <!-- 保研机会池 -->
-  <view class="section">
-    <view class="section-header">
-      <text class="section-title">保研机会池</text>
-      <view class="section-more" bindtap="handleOpenOpportunityPool">
-        <text>查看全部</text>
-        <text class="arrow-right">→</text>
-      </view>
-    </view>
-    <view class="opportunity-pool-card">
-      <text class="opportunity-pool-desc">汇总全网公开公告，支持在机会池中查看所有学校机会</text>
-      <view wx:if="{{opportunityPoolCamps.length > 0}}" class="opportunity-list">
-        <navigator
-          wx:for="{{opportunityPoolCamps}}"
-          wx:key="id"
-          class="opportunity-item"
-          url="{{item.detailUrl}}"
-        >
-          <view class="opportunity-meta">
-            <text class="opportunity-university">{{item.universityName}}</text>
-            <view class="opportunity-type-badge {{item.announcementType === 'pre_recommendation' ? 'pre-recommendation' : 'summer-camp'}}">
-              <text>{{item.announcementType === 'pre_recommendation' ? '预推免' : '夏令营'}}</text>
-            </view>
+      <!-- 底部：截止 + 操作 -->
+      <view class="match-foot">
+        <view class="match-deadline" wx:if="{{item.deadlineText}}">
+          <text class="match-deadline-icon">⏰</text>
+          <text class="match-deadline-text">{{item.deadlineText}}</text>
+        </view>
+        <view class="match-actions" catchtap="noop">
+          <view class="match-action-btn" data-id="{{item.id}}" bindtap="onActionSkip">跳过</view>
+          <view class="match-action-btn match-action-primary" data-id="{{item.id}}" bindtap="onActionInterested">
+            <text wx:if="{{item.userAction !== 'interested'}}">感兴趣</text>
+            <text wx:else>已收藏</text>
           </view>
-          <text class="opportunity-title">{{item.title}}</text>
-          <text wx:if="{{item.deadline}}" class="opportunity-deadline">{{item.deadline}} 截止</text>
-        </navigator>
-      </view>
-      <text wx:else class="opportunity-empty">暂未发现新的公开机会</text>
-    </view>
-  </view>
-
-  <!-- 已关注公告区 -->
-  <view class="section">
-    <view class="section-header-vertical">
-      <view class="section-header title-with-more">
-        <text class="section-title">{{myCampsTitle}}</text>
-        <view class="section-more" wx:if="{{showCampListMore}}" bindtap="handleOpenFollowedCamps">
-          <text>{{campListMoreText}}</text>
-          <text class="arrow-right">→</text>
         </view>
-      </view>
-      <text class="section-subtext">{{myCampsSubtext}}</text>
-      <view class="filter-bar" wx:if="{{isLoggedIn}}">
-        <view class="filter-row">
-          <text class="filter-label">状态</text>
-          <scroll-view scroll-x enable-flex="true" class="filter-scroll">
-            <view
-              wx:for="{{statusFilterOptions}}"
-              wx:key="value"
-              class="filter-item {{activeStatusFilter === item.value ? 'active' : ''}}"
-              bindtap="handleFilterChange"
-              data-value="{{item.value}}"
-            >
-              {{item.label}}
-            </view>
-          </scroll-view>
-        </view>
-        <view class="filter-row">
-          <text class="filter-label">年份</text>
-          <scroll-view scroll-x enable-flex="true" class="filter-scroll">
-            <view
-              wx:for="{{yearFilterOptions}}"
-              wx:key="value"
-              class="filter-item {{activeYearFilter === item.value ? 'active' : ''}}"
-              bindtap="handleYearFilterChange"
-              data-value="{{item.value}}"
-            >
-              {{item.label}}
-            </view>
-          </scroll-view>
-        </view>
-        <view class="filter-row">
-          <text class="filter-label">院校</text>
-          <scroll-view scroll-x enable-flex="true" class="filter-scroll">
-            <view
-              wx:for="{{universityFilterOptions}}"
-              wx:key="value"
-              class="filter-item {{activeUniversityFilter === item.value ? 'active' : ''}}"
-              bindtap="handleUniversityFilterChange"
-              data-value="{{item.value}}"
-            >
-              {{item.label}}
-            </view>
-          </scroll-view>
-        </view>
-      </view>
-    </view>
-    
-    <view wx:if="{{followedPreviewCamps.length > 0}}" class="camp-list">
-      <camp-card 
-        wx:for="{{followedPreviewCamps}}" 
-        wx:key="id"
-        wx:if="{{item}}"
-        camp="{{item}}"
-        bindtap="handleCampTap"
-        bindremind="handleRemindTap"
-        data-id="{{item.id}}"
-        data-announcement-type="{{item.announcementType}}"
-        data-title="{{item.title}}"
-      />
-    </view>
-    
-    <view wx:else class="my-camps-empty">
-      <text class="my-camps-empty-text">{{myCampsEmptyText}}</text>
-      <view wx:if="{{stats.universityCount === 0 && isLoggedIn}}" class="my-camps-empty-action" bindtap="handleOpenSelector">
-        去关注目标院校
       </view>
     </view>
   </view>
 
+  <!-- 空状态 -->
+  <view wx:elif="{{hasSubscription && !loading}}" class="empty-state">
+    <view class="empty-state-icon">✨</view>
+    <view class="empty-state-text">{{emptyStateText}}</view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <view class="skeleton skeleton-card"></view>
+    <view class="skeleton skeleton-card"></view>
+  </view>
 </view>

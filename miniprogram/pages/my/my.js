@@ -1,168 +1,51 @@
-// 个人中心页面逻辑
-import { userStore } from '../../store/user'
-import { authService } from '../../services/auth'
+// 个人中心 v0.2 - 简化菜单
+import { profileV2Service } from '../../services/profile-v2'
+import { subscriptionService } from '../../services/subscription'
 
 Page({
   data: {
-    userInfo: {
-      nickname: '',
-      avatar: '',
-      openid: ''
+    userName: '保研er',
+    avatarInitial: '保',
+    profile: {
+      exists: false,
+      completeness: 0
     },
-    isLoggedIn: false,
-    profileHint: '登录后即可同步你的保研助手数据',
-    profileActionText: '微信登录'
-  },
-
-  loginPending: false,
-
-  onLoad() {
-    // 初始化页面
-    this.checkLoginStatus()
+    subscribedCount: 0
   },
 
   onShow() {
-    // 页面显示时检查登录状态
-    this.checkLoginStatus()
+    this.refresh()
   },
 
-  buildGuestUserInfo() {
-    return {
-      nickname: '',
-      avatar: '',
-      openid: ''
-    }
-  },
-
-  buildDisplayUserInfo(userInfo = {}) {
-    return {
-      nickname: userInfo?.nickname || '保研er',
-      avatar: userInfo?.avatar || '',
-      openid: userInfo?.openid || ''
-    }
-  },
-
-  // 检查登录状态
-  checkLoginStatus() {
-    if (userStore.isLoggedIn && userStore.userInfo) {
-      this.setData({
-        userInfo: this.buildDisplayUserInfo(userStore.userInfo),
-        isLoggedIn: true,
-        profileHint: '一期版本默认使用占位头像与昵称，可在个人保研档案中补充资料',
-        profileActionText: '已登录'
-      })
-    } else {
-      this.setData({
-        userInfo: this.buildGuestUserInfo(),
-        isLoggedIn: false,
-        profileHint: '一期版本先提供基础微信登录，手机号与头像授权暂不作为登录前置条件',
-        profileActionText: '微信登录'
-      })
-    }
-  },
-
-  // 处理微信登录
-  async handleLogin() {
-    if (this.loginPending) {
-      return
-    }
-
-    this.loginPending = true
-
+  async refresh() {
     try {
-      // 调用微信登录API
-      const loginRes = await new Promise((resolve, reject) => {
-        wx.login({
-          success: resolve,
-          fail: reject
-        })
+      const [profile, schools] = await Promise.all([
+        profileV2Service.get().catch(() => ({ exists: false })),
+        subscriptionService.listSchools().catch(() => ({ totalSubscribed: 0 }))
+      ])
+      const subscribedCount = schools?.totalSubscribed || 0
+      const name = profile?.schoolName ? `${profile.major || ''}学子` : '保研er'
+      this.setData({
+        profile: {
+          exists: profile?.exists || false,
+          completeness: profile?.completeness || 0
+        },
+        subscribedCount,
+        userName: name,
+        avatarInitial: (profile?.major || '保')[0]
       })
-
-      if (loginRes.code) {
-        // 调用登录服务
-        const loginData = await authService.login(loginRes.code)
-        
-        // 更新状态管理
-        userStore.setUserInfo(loginData.userInfo)
-        userStore.setToken(loginData.token)
-        
-        this.setData({
-          userInfo: this.buildDisplayUserInfo(loginData.userInfo),
-          isLoggedIn: true,
-          profileHint: '一期版本默认使用占位头像与昵称，可在个人保研档案中补充资料',
-          profileActionText: '已登录'
-        })
-        
-        wx.showToast({ title: '登录成功', icon: 'success' })
-      } else {
-        wx.showToast({ title: '登录失败', icon: 'none' })
-      }
-    } catch (error) {
-      console.error('登录失败详情:', error)
-      wx.showToast({
-        title: error?.message || error?.errMsg || '登录失败',
-        icon: 'none'
-      })
-    } finally {
-      this.loginPending = false
+    } catch (err) {
+      // ignore
     }
   },
 
-  // 跳转到目标院校管理
-  navigateToSelector() {
-    wx.navigateTo({
-      url: '/packageSelector/pages/selector/index'
-    })
+  goProfile() {
+    wx.navigateTo({ url: '/packageAssistant/pages/profile-edit/index' })
   },
-
-  // 跳转到个人保研档案
-  navigateToProfile() {
-    wx.navigateTo({
-      url: '/packageProfile/pages/profile/index'
-    })
+  goSelector() {
+    wx.navigateTo({ url: '/packageAssistant/pages/dept-selector/index' })
   },
-
-  // 处理意见反馈
-  handleFeedback() {
-    wx.showModal({
-      title: '意见反馈',
-      content: '请将您的建议或问题发送至邮箱：myrt.chaos@gmail.com',
-      showCancel: false,
-      confirmText: '确定'
-    })
-  },
-
-  // 处理关于我们
-  handleAbout() {
-    wx.showModal({
-      title: '关于我们',
-      content: '保研汪 v1.0.0\n\n专注为保研学子提供目标夏令营/预推免信息的精准聚合和进度管理服务，打造属于你个人的保研信息小助手。',
-      showCancel: false,
-      confirmText: '确定'
-    })
-  },
-
-  // 处理退出登录
-  handleLogout() {
-    wx.showModal({
-      title: '退出登录',
-      content: '确定要退出登录吗？',
-      success: (res) => {
-        if (res.confirm) {
-          // 清除状态管理
-          userStore.logout()
-          
-          // 更新页面状态
-          this.setData({
-            userInfo: this.buildGuestUserInfo(),
-            isLoggedIn: false,
-            profileHint: '一期版本先提供基础微信登录，手机号与头像授权暂不作为登录前置条件',
-            profileActionText: '微信登录'
-          })
-          
-          wx.showToast({ title: '已退出登录', icon: 'success' })
-        }
-      }
-    })
+  goSubmitUrl() {
+    wx.navigateTo({ url: '/packageAssistant/pages/submit-url/index' })
   }
 })

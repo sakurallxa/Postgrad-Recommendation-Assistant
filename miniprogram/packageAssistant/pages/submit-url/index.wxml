@@ -1,0 +1,49 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">让 AI 帮你判断</view>
+    <view class="hero-subtitle">贴一条公告 URL，AI 抽取关键信息 + 跟你档案对比</view>
+  </view>
+
+  <view class="form-section">
+    <view class="form-label">公告链接</view>
+    <textarea
+      class="url-input"
+      placeholder="https://..."
+      value="{{url}}"
+      bindinput="onInputUrl"
+      maxlength="500"
+      auto-height
+    ></textarea>
+    <view class="form-hint">支持学校研究生院/院系发布的公告链接</view>
+  </view>
+
+  <view class="form-section">
+    <view class="form-label">补充说明（可选）</view>
+    <input
+      class="hint-input"
+      placeholder="例如：清华CS 2026夏令营"
+      value="{{hintTitle}}"
+      bindinput="onInputHint"
+      maxlength="100"
+    />
+  </view>
+
+  <view class="action-area">
+    <button
+      class="btn-primary submit-btn"
+      bindtap="onSubmit"
+      loading="{{loading}}"
+      disabled="{{!url || loading}}"
+    >
+      {{loading ? 'AI 正在分析…(约5-15秒)' : '开始 AI 分析'}}
+    </button>
+  </view>
+
+  <!-- 使用提示 -->
+  <view class="tips">
+    <view class="tips-title">💡 怎么获取公告 URL？</view>
+    <view class="tips-item">· 在保研公众号文章里，复制学校的"原文链接"</view>
+    <view class="tips-item">· 在学校研究生院/院系官网，复制公告详情页地址</view>
+    <view class="tips-item">· 微信文章本身的链接也可以</view>
+  </view>
+</view>

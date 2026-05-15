@@ -1,0 +1,136 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">个人档案</view>
+    <view class="hero-subtitle">填得越完整，AI 匹配判断越准确</view>
+  </view>
+
+  <!-- 完整度进度条 -->
+  <view class="completeness-card">
+    <view class="completeness-head">
+      <text class="completeness-label">档案完整度</text>
+      <text class="completeness-value">{{form.completeness}}%</text>
+    </view>
+    <view class="completeness-bar">
+      <view class="completeness-fill" style="width:{{form.completeness}}%"></view>
+    </view>
+    <view class="completeness-hint">{{completenessHint}}</view>
+  </view>
+
+  <!-- 表单：必填 -->
+  <view class="form-section">
+    <view class="form-section-title">基本信息<text class="required">*</text></view>
+
+    <view class="form-item">
+      <view class="form-label">本科学校</view>
+      <input class="form-input"
+        placeholder="例如：北京理工大学"
+        value="{{form.schoolName}}"
+        bindinput="onInputSchool" />
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">本科专业</view>
+      <input class="form-input"
+        placeholder="例如：计算机科学与技术"
+        value="{{form.major}}"
+        bindinput="onInputMajor" />
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">GPA / 总成绩</view>
+      <input class="form-input"
+        placeholder="例如：3.85 或 88.6"
+        value="{{form.gpa}}"
+        bindinput="onInputGpa" />
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">专业排名</view>
+      <view class="form-row">
+        <input class="form-input form-input-flex"
+          type="digit"
+          placeholder="百分比，如 8.5"
+          value="{{form.gradeRankPercent}}"
+          bindinput="onInputRankPercent" />
+        <text class="form-suffix">%</text>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">英语水平</view>
+      <view class="form-row">
+        <picker class="form-picker"
+          mode="selector"
+          range="{{englishTypes}}"
+          value="{{englishTypeIndex}}"
+          bindchange="onPickEnglishType">
+          <view class="form-picker-value">{{form.englishType || '选择类型'}}</view>
+        </picker>
+        <input class="form-input form-input-flex"
+          type="digit"
+          placeholder="分数"
+          value="{{form.englishScore}}"
+          bindinput="onInputEnglishScore" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 表单：目标专业（关键） -->
+  <view class="form-section">
+    <view class="form-section-title">目标专业<text class="required">*</text></view>
+    <view class="form-section-desc">AI 据此决定推送哪些公告 · 可多选</view>
+
+    <view class="major-chips">
+      <view
+        wx:for="{{commonMajors}}"
+        wx:key="*this"
+        class="major-chip {{form.targetMajorsSet[item] ? 'selected' : ''}}"
+        data-major="{{item}}"
+        bindtap="onToggleMajor"
+      >{{item}}</view>
+    </view>
+
+    <view class="form-item" style="margin-top: var(--space-3);">
+      <view class="form-label">补充目标专业（用顿号分隔）</view>
+      <textarea
+        class="form-textarea"
+        placeholder="例如：智能科学、电子信息工程"
+        value="{{form.customMajors}}"
+        bindinput="onInputCustomMajors"
+        maxlength="200"
+      ></textarea>
+    </view>
+  </view>
+
+  <!-- 表单：推荐填 -->
+  <view class="form-section">
+    <view class="form-section-title">加分项<text class="optional">推荐</text></view>
+    <view class="form-section-desc">让 AI 知道你的亮点</view>
+
+    <view class="form-item">
+      <view class="form-label">科研经历</view>
+      <textarea
+        class="form-textarea"
+        placeholder="例如：参与XX国家级科研项目；发表论文..."
+        value="{{form.researchExperience}}"
+        bindinput="onInputResearch"
+        maxlength="1000"
+      ></textarea>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">竞赛奖项</view>
+      <textarea
+        class="form-textarea"
+        placeholder="例如：ACM-ICPC 区域金奖；数学建模国一..."
+        value="{{form.competitionAwards}}"
+        bindinput="onInputAwards"
+        maxlength="1000"
+      ></textarea>
+    </view>
+  </view>
+
+  <view class="form-actions">
+    <button class="btn-primary" bindtap="onSave" loading="{{saving}}">保存档案</button>
+  </view>
+</view>

@@ -1,10 +1,19 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/my-reminders/index",
     "pages/my/my"
   ],
   "subpackages": [
+    {
+      "root": "packageAssistant",
+      "name": "assistant",
+      "pages": [
+        "pages/profile-edit/index",
+        "pages/dept-selector/index",
+        "pages/submit-url/index",
+        "pages/match-detail/index"
+      ]
+    },
     {
       "root": "packageCamp",
       "name": "camp",
@@ -51,37 +60,31 @@
   "preloadRule": {
     "pages/index/index": {
       "network": "all",
-      "packages": ["camp"]
+      "packages": ["assistant"]
     }
   },
   "lazyCodeLoading": "requiredComponents",
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarBackgroundColor": "#F9FAFB",
     "navigationBarTitleText": "保研汪",
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
-    "color": "#5F6368",
-    "selectedColor": "#1A73E8",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "black",
+    "color": "#6B7280",
+    "selectedColor": "#4F46E5",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页",
+        "text": "新机会",
         "iconPath": "assets/images/icons/tab-home.png",
         "selectedIconPath": "assets/images/icons/tab-home-active.png"
       },
       {
-        "pagePath": "pages/my-reminders/index",
-        "text": "通知中心",
-        "iconPath": "assets/images/icons/tab-reminder.png",
-        "selectedIconPath": "assets/images/icons/tab-reminder-active.png"
-      },
-      {
         "pagePath": "pages/my/my",
-        "text": "个人中心",
+        "text": "我的",
         "iconPath": "assets/images/icons/tab-my.png",
         "selectedIconPath": "assets/images/icons/tab-my-active.png"
       }

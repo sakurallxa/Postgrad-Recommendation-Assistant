@@ -1,0 +1,200 @@
+.page {
+  padding: var(--space-4) var(--space-3) calc(env(safe-area-inset-bottom) + var(--space-7));
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.hero {
+  padding: var(--space-2) var(--space-2) var(--space-4);
+}
+.hero-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-1);
+}
+.hero-subtitle {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+
+/* 完整度 */
+.completeness-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+.completeness-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-2);
+}
+.completeness-label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.completeness-value {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-primary);
+}
+.completeness-bar {
+  height: 8rpx;
+  background: var(--bg-muted);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  margin-bottom: var(--space-2);
+}
+.completeness-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), #818CF8);
+  border-radius: var(--radius-pill);
+  transition: width 0.3s ease;
+}
+.completeness-hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* 表单段 */
+.form-section {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+  box-shadow: var(--shadow-sm);
+}
+.form-section-title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+.required {
+  color: var(--color-danger);
+  margin-left: 4rpx;
+}
+.optional {
+  font-size: var(--text-xs);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  padding: 2rpx 12rpx;
+  border-radius: var(--radius-pill);
+  margin-left: var(--space-1);
+  font-weight: var(--weight-regular);
+}
+.form-section-desc {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-3);
+}
+
+/* 表单项 */
+.form-item {
+  margin-top: var(--space-3);
+}
+.form-item:first-of-type {
+  margin-top: var(--space-2);
+}
+.form-label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+.form-input {
+  width: 100%;
+  background: var(--bg-page);
+  border: 2rpx solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  box-sizing: border-box;
+  min-height: 80rpx;
+}
+.form-input:focus {
+  border-color: var(--color-primary);
+  background: var(--bg-surface);
+}
+.form-input-flex { flex: 1; }
+.form-row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+.form-suffix {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+.form-picker {
+  flex: 0 0 200rpx;
+  background: var(--bg-page);
+  border: 2rpx solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+  box-sizing: border-box;
+  min-height: 80rpx;
+  display: flex;
+  align-items: center;
+}
+.form-picker-value {
+  color: var(--text-primary);
+}
+.form-textarea {
+  width: 100%;
+  min-height: 160rpx;
+  background: var(--bg-page);
+  border: 2rpx solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  box-sizing: border-box;
+}
+
+/* 专业 chips */
+.major-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.major-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  background: var(--bg-page);
+  border: 2rpx solid var(--border-default);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+.major-chip.selected {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+}
+
+/* 保存按钮 */
+.form-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-surface);
+  padding: var(--space-3) var(--space-3) calc(env(safe-area-inset-bottom) + var(--space-3));
+  box-shadow: 0 -4rpx 16rpx rgba(17, 24, 39, 0.04);
+}
+.form-actions .btn-primary {
+  width: 100%;
+  height: 96rpx;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+}

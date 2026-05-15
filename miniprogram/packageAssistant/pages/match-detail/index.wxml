@@ -1,0 +1,114 @@
+<view class="page" wx:if="{{!loading}}">
+  <!-- 顶部判断 -->
+  <view class="judgement-card">
+    <view class="judge-badge {{recommendationClass}}">
+      <text class="judge-icon">{{recommendationIcon}}</text>
+      <text class="judge-text">{{recommendationText}}</text>
+    </view>
+    <view wx:if="{{match.matchScore != null}}" class="judge-score">
+      <text class="score-value">{{match.matchScore}}</text>
+      <text class="score-unit">分</text>
+    </view>
+    <view class="judge-reasoning" wx:if="{{match.reasoning}}">{{match.reasoning}}</view>
+  </view>
+
+  <!-- 学校院系 -->
+  <view class="meta-card">
+    <view class="meta-row">
+      <text class="meta-label">学校</text>
+      <text class="meta-value">{{match.camp.universityName || '—'}}</text>
+    </view>
+    <view class="meta-row" wx:if="{{match.camp.departmentName}}">
+      <text class="meta-label">院系</text>
+      <text class="meta-value">{{match.camp.departmentName}}</text>
+    </view>
+    <view class="meta-row">
+      <text class="meta-label">类型</text>
+      <text class="meta-value">{{match.campType === 'pre_recommendation' ? '预推免' : '夏令营'}}</text>
+    </view>
+    <view class="meta-row" wx:if="{{match.matchesUserMajor != null}}">
+      <text class="meta-label">专业匹配</text>
+      <text class="meta-value {{match.matchesUserMajor ? 'value-success' : 'value-warning'}}">
+        {{match.matchesUserMajor ? '匹配你的目标专业' : '不在你的目标专业'}}
+      </text>
+    </view>
+  </view>
+
+  <!-- 标题 -->
+  <view class="title-card">
+    <view class="card-title">{{match.camp.title}}</view>
+    <view wx:if="{{match.extractedSummary}}" class="card-summary">{{match.extractedSummary}}</view>
+  </view>
+
+  <!-- 时间地点 -->
+  <view class="info-card">
+    <view class="info-row">
+      <text class="info-icon">⏰</text>
+      <view class="info-content">
+        <text class="info-label">报名截止</text>
+        <text class="info-value">{{deadlineText || '未提取到'}}</text>
+      </view>
+    </view>
+    <view class="info-row" wx:if="{{campPeriodText}}">
+      <text class="info-icon">📅</text>
+      <view class="info-content">
+        <text class="info-label">营期</text>
+        <text class="info-value">{{campPeriodText}}</text>
+      </view>
+    </view>
+    <view class="info-row" wx:if="{{match.extractedLocation}}">
+      <text class="info-icon">📍</text>
+      <view class="info-content">
+        <text class="info-label">地点</text>
+        <text class="info-value">{{match.extractedLocation}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 关键要求逐项 -->
+  <view class="req-card" wx:if="{{match.keyRequirements.length > 0}}">
+    <view class="req-card-title">要求逐项对比</view>
+    <view
+      class="req-row"
+      wx:for="{{match.keyRequirements}}"
+      wx:key="index"
+    >
+      <view class="req-icon-wrap req-icon-{{item.userMatch}}">
+        {{requirementIcons[item.userMatch]}}
+      </view>
+      <view class="req-content">
+        <view class="req-requirement">{{item.requirement}}</view>
+        <view class="req-explanation" wx:if="{{item.explanation}}">{{item.explanation}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 跳转原文 -->
+  <view class="source-card" bindtap="onCopySource">
+    <view class="source-text">
+      <view class="source-title">查看原文</view>
+      <view class="source-url">{{match.camp.sourceUrl}}</view>
+    </view>
+    <view class="source-action">复制链接</view>
+  </view>
+
+  <!-- 底部操作 -->
+  <view class="bottom-bar">
+    <view
+      class="action-btn action-secondary {{match.userAction === 'skipped' ? 'active-skip' : ''}}"
+      bindtap="onSkip"
+    >
+      跳过
+    </view>
+    <view
+      class="action-btn action-primary {{match.userAction === 'interested' || match.userAction === 'applied' ? 'active-interested' : ''}}"
+      bindtap="onInterested"
+    >
+      {{match.userAction === 'interested' || match.userAction === 'applied' ? '已收藏' : '感兴趣'}}
+    </view>
+  </view>
+</view>
+
+<view wx:else class="loading">
+  <view class="skeleton skeleton-card"></view>
+</view>

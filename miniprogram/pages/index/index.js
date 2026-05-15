@@ -1,797 +1,196 @@
-// 首页逻辑
-import { selectionStore } from '../../store/selection'
-import { campService } from '../../services/camp'
-import { http } from '../../services/http'
-import { normalizeAnnouncementType } from '../../services/announcement'
+// 首页 v0.2 - AI 助理今日新机会
+import { assistantService } from '../../services/assistant'
+import { profileV2Service } from '../../services/profile-v2'
+import { subscriptionService } from '../../services/subscription'
+
+const RECOMMENDATION_MAP = {
+  recommend: { icon: '🟢', text: '推荐', cls: 'match-recommendation-success' },
+  reference: { icon: '🟡', text: '可参考', cls: 'match-recommendation-warning' },
+  skip: { icon: '⚪', text: '可跳过', cls: 'match-recommendation-skip' }
+}
+
+const REQ_ICON_MAP = {
+  pass: '✓',
+  warn: '!',
+  fail: '✕',
+  unknown: '?'
+}
 
 Page({
   data: {
-    // 统计数据
-    stats: {
-      universityCount: 0,
-      campCount: 0,
-      reminderCount: 0
-    },
-    // 即将截止的夏令营
-    urgentCamps: [],
-    // 夏令营列表
-    campList: [],
-    allCampList: [],
-    opportunityPoolCamps: [],
-    // 状态筛选选项
-    statusFilterOptions: [
-      { label: '全部', value: 'all' },
-      { label: '报名中', value: 'published' },
-      { label: '已截止', value: 'expired' }
-    ],
-    yearFilterOptions: [{ label: '全部年份', value: 'all' }],
-    universityFilterOptions: [{ label: '全部', value: 'all' }],
-    followedUniversitiesPreview: [],
-    followedUniversitiesOverflow: 0,
-    myCampsTitle: '我的关注公告',
-    myCampsSubtext: '仅展示已关注院校的公告摘要',
-    myCampsEmptyText: '暂无关注结果',
-    followedPreviewCamps: [],
-    campListMoreText: '',
-    showCampListMore: false,
-    isLoggedIn: false,
-    // 当前激活的筛选
-    activeStatusFilter: 'all',
-    activeYearFilter: 'all',
-    activeUniversityFilter: 'all',
-    // 加载状态
     loading: false,
-    loadingMore: false,
-    hasMore: true,
-    // 分页信息
-    page: 1,
-    pageSize: 20
+    hasProfile: false,
+    hasSubscription: false,
+    activeTab: 'undecided', // undecided | interested
+    opportunities: [],
+    stats: {
+      undecidedCount: 0,
+      interestedCount: 0,
+      appliedCount: 0,
+      recommendCount: 0
+    },
+    emptyStateText: '今天没有新机会，明天再来看看'
   },
 
   onLoad() {
-    // 初始化页面
-    this.initPage()
+    this.refresh()
   },
 
   onShow() {
-    // 页面显示时刷新数据
-    this.setData({ isLoggedIn: this.hasAuthToken() })
-    this.loadUserSelection()
-    this.refreshData()
-  },
-
-  hasAuthToken() {
-    return Boolean(wx.getStorageSync('token'))
-  },
-
-  onReachBottom() {
-    // 触底加载更多
-    if (!this.data.loadingMore && this.data.hasMore) {
-      this.loadMoreCamps()
+    // 从子页面返回时刷新
+    if (this.data.hasProfile) {
+      this.refresh()
     }
   },
 
   onPullDownRefresh() {
-    // 下拉刷新
-    this.refreshData()
+    this.refresh().finally(() => wx.stopPullDownRefresh())
   },
 
-  initPage() {
-    // 初始化页面数据
-    this.setData({
-      page: 1,
-      campList: [],
-      allCampList: [],
-      hasMore: true,
-      isLoggedIn: this.hasAuthToken()
-    })
-    this.initYearFilters()
-    this.updateUniversityFilterOptions()
-  },
-
-  refreshData() {
-    // 刷新所有数据
-    wx.showLoading({ title: '加载中...' })
-    
-    Promise.all([
-      this.loadStats(),
-      this.loadUrgentCamps(),
-      this.loadCamps(true),
-      this.loadOpportunityPool()
-    ]).finally(() => {
-      wx.hideLoading()
-      wx.stopPullDownRefresh()
-    })
-  },
-
-  loadStats() {
-    const followed = this.getFollowedUniversities()
-    this.setData({
-      stats: {
-        ...this.data.stats,
-        universityCount: followed.length
-      }
-    })
-    return Promise.resolve()
-  },
-
-  async loadUserSelection() {
+  async refresh() {
+    this.setData({ loading: true })
     try {
-      if (!this.shouldUseRemoteUserApi() || !this.hasAuthToken()) {
-        return
-      }
-      const selection = await http.get('/user/selection', null, {
-        showLoading: false,
-        showError: false
-      })
-      const universities = selection?.universities || []
-      wx.setStorageSync('selectedUniversities', universities)
-      selectionStore.setSelection(universities, selection?.majors || [])
-    } catch (error) {
-      // 如果接口不可用，保持本地已有数据
-    } finally {
-      this.updateUniversityFilterOptions()
-    }
-  },
+      // 并行拉取档案 + 订阅状态 + 机会列表
+      const [profileResp, schoolsResp] = await Promise.all([
+        profileV2Service.get().catch(() => null),
+        subscriptionService.listSchools().catch(() => null)
+      ])
 
-  loadUrgentCamps() {
-    this.setData({ urgentCamps: [] })
-    if (!this.shouldUseRemoteCampApi()) {
-      const urgent = this.buildUrgentCamps(this.getMockCamps())
-      this.setData({ urgentCamps: urgent })
-      return Promise.resolve()
-    }
+      const hasProfile = !!profileResp?.exists
+      const hasSubscription = (schoolsResp?.totalSubscribed || 0) > 0
 
-    return campService.getCamps(
-      { page: 1, limit: 50, status: 'published' },
-      { showLoading: false, showError: false }
-    ).then(response => {
-      const fetchedList = Array.isArray(response?.data) ? response.data : []
-      const normalizedList = this.sanitizeCampList(
-        fetchedList.map(item => this.normalizeCampItem(item))
-      )
-      const urgent = this.buildUrgentCamps(normalizedList)
-      this.setData({ urgentCamps: urgent })
-    }).catch(() => {
-      const urgent = this.buildUrgentCamps(this.getMockCamps())
-      this.setData({ urgentCamps: urgent })
-    })
-  },
+      this.setData({ hasProfile, hasSubscription })
 
-  async loadCamps(isRefresh = false) {
-    if (!this.hasAuthToken()) {
-      this.setData({
-        loading: false,
-        loadingMore: false,
-        allCampList: [],
-        campList: [],
-        followedPreviewCamps: [],
-        hasMore: false,
-        stats: {
-          ...this.data.stats,
-          campCount: 0
-        }
-      })
-      this.updateUniversityFilterOptions()
-      return
-    }
-
-    const page = isRefresh ? 1 : this.data.page
-
-    if (isRefresh) {
-      this.setData({ loading: true })
-    } else {
-      this.setData({ loadingMore: true })
-    }
-
-    try {
-      if (this.shouldUseRemoteCampApi()) {
-        const queryParams = this.buildCampQueryParams(page)
-        const response = await campService.getCamps(queryParams, {
-          showLoading: false,
-          showError: false
-        })
-        const fetchedList = Array.isArray(response?.data) ? response.data : []
-        const normalizedList = this.sanitizeCampList(
-          fetchedList.map(item => this.normalizeCampItem(item))
-        )
-        const mergedList = isRefresh ? normalizedList : this.data.allCampList.concat(normalizedList)
-        const filteredList = this.applyCampFilters(mergedList)
-        const meta = response?.meta || {}
-
-        this.setData({
-          allCampList: mergedList,
-          campList: filteredList,
-          followedPreviewCamps: filteredList.slice(0, 5),
-          page: page + 1,
-          hasMore: Boolean(meta.totalPages ? page < meta.totalPages : normalizedList.length >= this.data.pageSize),
-          stats: {
-            ...this.data.stats,
-            campCount: filteredList.length
-          }
-        })
-        this.updateUniversityFilterOptions()
+      if (hasSubscription) {
+        await this.loadOpportunities()
       } else {
-        const mockList = this.getMockCamps()
-        const filteredList = this.applyCampFilters(mockList)
-        this.setData({
-          allCampList: mockList,
-          campList: filteredList,
-          followedPreviewCamps: filteredList.slice(0, 5),
-          hasMore: false,
-          stats: {
-            ...this.data.stats,
-            campCount: filteredList.length
-          }
-        })
-        this.updateUniversityFilterOptions()
+        this.setData({ opportunities: [] })
       }
-    } catch (error) {
-      // API不可用时回退到本地模拟数据，保证筛选功能可调试
-      const mockList = this.getMockCamps()
-      const filteredList = this.applyCampFilters(mockList)
-      this.setData({
-        allCampList: mockList,
-        campList: filteredList,
-        followedPreviewCamps: filteredList.slice(0, 5),
-        hasMore: false,
-        stats: {
-          ...this.data.stats,
-          campCount: filteredList.length
-        }
-      })
-      this.updateUniversityFilterOptions()
+    } catch (err) {
+      // 静默失败
     } finally {
+      this.setData({ loading: false })
+    }
+  },
+
+  async loadOpportunities() {
+    const action = this.data.activeTab
+    try {
+      const resp = await assistantService.getOpportunities({ action, limit: 30 })
+      const list = (resp?.data || []).map(this.normalizeOpportunity)
+
+      // 统计
+      const [undecidedResp, interestedResp, appliedResp] = await Promise.all([
+        assistantService.getOpportunities({ action: 'undecided', limit: 1 }).catch(() => ({ total: 0 })),
+        assistantService.getOpportunities({ action: 'interested', limit: 1 }).catch(() => ({ total: 0 })),
+        assistantService.getOpportunities({ action: 'applied', limit: 1 }).catch(() => ({ total: 0 }))
+      ])
+
+      const recommendCount = list.filter(x => x.overallRecommendation === 'recommend').length
+
       this.setData({
-        loading: false,
-        loadingMore: false
+        opportunities: list,
+        stats: {
+          undecidedCount: undecidedResp.total || 0,
+          interestedCount: interestedResp.total || 0,
+          appliedCount: appliedResp.total || 0,
+          recommendCount
+        },
+        emptyStateText: action === 'interested'
+          ? '还没有收藏的机会，发现感兴趣的点"感兴趣"即可'
+          : '今天没有新机会，明天再来看看'
       })
+    } catch (err) {
+      this.setData({ opportunities: [] })
     }
-
   },
 
-  loadOpportunityPool() {
-    if (!this.shouldUseRemoteCampApi()) {
-      this.setData({
-        opportunityPoolCamps: this.buildOpportunityPoolPreview(this.getMockCamps())
-      })
-      return Promise.resolve()
-    }
+  normalizeOpportunity(raw) {
+    const rec = RECOMMENDATION_MAP[raw.overallRecommendation] || RECOMMENDATION_MAP.reference
+    const allReqs = Array.isArray(raw.keyRequirements) ? raw.keyRequirements : []
+    const preview = allReqs.slice(0, 3).map(r => ({
+      requirement: r.requirement,
+      userMatch: r.userMatch,
+      icon: REQ_ICON_MAP[r.userMatch] || '?'
+    }))
 
-    return campService.getCamps(
-      { page: 1, limit: 60, status: 'published' },
-      { showLoading: false, showError: false }
-    ).then(response => {
-      const fetchedList = Array.isArray(response?.data) ? response.data : []
-      const normalizedList = this.sanitizeCampList(
-        fetchedList.map(item => this.normalizeCampItem(item))
-      )
-      this.setData({
-        opportunityPoolCamps: this.buildOpportunityPoolPreview(normalizedList)
-      })
-    }).catch(() => {
-      this.setData({
-        opportunityPoolCamps: this.buildOpportunityPoolPreview(this.getMockCamps())
-      })
-    })
-  },
-
-  loadMoreCamps() {
-    // 加载更多夏令营
-    this.loadCamps(false)
-  },
-
-  handleFilterChange(e) {
-    const value = e.currentTarget.dataset.value
-    this.setData({
-      activeStatusFilter: value,
-      page: 1,
-      campList: [],
-      allCampList: [],
-      hasMore: true
-    })
-    this.loadCamps(true)
-  },
-
-  handleYearFilterChange(e) {
-    const value = e.currentTarget.dataset.value
-    this.setData({
-      activeYearFilter: value,
-      page: 1,
-      campList: [],
-      allCampList: [],
-      hasMore: true
-    })
-    this.loadCamps(true)
-  },
-
-  handleUniversityFilterChange(e) {
-    const value = e.currentTarget.dataset.value
-    this.setData({
-      activeUniversityFilter: value,
-      page: 1,
-      campList: [],
-      allCampList: [],
-      hasMore: true
-    })
-    this.loadCamps(true)
-  },
-
-  handleCampTap(e) {
-    // 处理夏令营点击
-    const detail = e.detail || {}
-    const dataset = (e.currentTarget && e.currentTarget.dataset) || {}
-    this.navigateToCampDetail({
-      campId: detail.campId || dataset.id || dataset.campId || '',
-      announcementType: detail.announcementType || dataset.announcementType || '',
-      title: detail.title || dataset.title || ''
-    })
-  },
-
-  handleUrgentCampTap(e) {
-    // 处理即将截止卡片点击
-    const dataset = (e.currentTarget && e.currentTarget.dataset) || {}
-    this.navigateToCampDetail({
-      campId: dataset.id || '',
-      announcementType: dataset.announcementType || '',
-      title: dataset.title || ''
-    })
-  },
-
-  navigateToCampDetail({ campId = '', announcementType = '', title = '' } = {}) {
-    if (!campId) {
-      wx.showToast({
-        title: '公告信息缺失',
-        icon: 'none'
-      })
-      return
-    }
-
-    const query = [`id=${encodeURIComponent(campId)}`]
-    if (announcementType) {
-      query.push(`announcementType=${encodeURIComponent(announcementType)}`)
-    }
-    if (title) {
-      query.push(`title=${encodeURIComponent(title)}`)
-    }
-
-    wx.navigateTo({
-      url: `/packageCamp/pages/camp-detail/index?${query.join('&')}`
-    })
-  },
-
-  handleRemindTap(e) {
-    // 处理设置提醒
-    const { campId, title = '', deadline = '', universityName = '' } = e.detail || {}
-    const query = [
-      `campId=${encodeURIComponent(campId || '')}`,
-      `title=${encodeURIComponent(title)}`,
-      `deadline=${encodeURIComponent(deadline)}`,
-      `universityName=${encodeURIComponent(universityName)}`
-    ].join('&')
-    wx.navigateTo({
-      url: `/packageReminder/pages/reminder-create/index?${query}`
-    })
-  },
-
-  initYearFilters() {
-    const currentYear = new Date().getFullYear()
-    const yearFilterOptions = [
-      { label: '全部年份', value: 'all' },
-      { label: String(currentYear), value: String(currentYear) },
-      { label: String(currentYear - 1), value: String(currentYear - 1) },
-      { label: String(currentYear - 2), value: String(currentYear - 2) }
-    ]
-    this.setData({ yearFilterOptions })
-  },
-
-  updateUniversityFilterOptions() {
-    const followed = this.getFollowedUniversities()
-    const options = [{ label: '全部院校', value: 'all' }]
-    const preview = followed.slice(0, 4).map(uni => uni.name)
-
-    if (followed.length > 0) {
-      followed.forEach(uni => {
-        options.push({ label: uni.name, value: uni.id })
-      })
-    }
-
-    const currentActiveUniversity = this.data.activeUniversityFilter || 'all'
-    const activeUniversityExists = options.some(item => String(item.value) === String(currentActiveUniversity))
-    const nextActiveUniversityFilter = activeUniversityExists ? currentActiveUniversity : 'all'
-
-    this.setData({
-      universityFilterOptions: options,
-      activeUniversityFilter: nextActiveUniversityFilter,
-      followedUniversitiesPreview: preview,
-      followedUniversitiesOverflow: Math.max(0, followed.length - preview.length),
-      isLoggedIn: this.hasAuthToken(),
-      myCampsTitle: '我的关注公告',
-      myCampsSubtext: this.hasAuthToken() ? '仅展示已关注院校的公告摘要' : '登录后展示你已关注院校的公告',
-      campListMoreText: '查看全部已关注公告',
-      showCampListMore: this.hasAuthToken() && this.data.campList.length > 5,
-      myCampsEmptyText: followed.length === 0
-        ? (this.hasAuthToken() ? '暂无关注结果，先关注目标院校' : '登录后可查看已关注院校公告')
-        : '暂无匹配夏令营/预推免'
-    })
-  },
-
-  handleOpenSelector() {
-    if (!this.hasAuthToken()) {
-      this.handleOpenLogin()
-      return
-    }
-    wx.navigateTo({
-      url: '/packageSelector/pages/selector/index'
-    })
-  },
-
-  handleOpenOpportunityPool() {
-    wx.navigateTo({
-      url: '/packageCamp/pages/camp-list/index?mode=opportunity'
-    })
-  },
-
-  handleOpenFollowedCamps() {
-    if (!this.hasAuthToken()) {
-      this.handleOpenLogin()
-      return
-    }
-    wx.navigateTo({
-      url: '/packageCamp/pages/camp-list/index?mode=followed'
-    })
-  },
-
-  handleOpenLogin() {
-    wx.showModal({
-      title: '需要先登录',
-      content: '登录后关注院校会保存到你的账号，并用于生成我的关注公告。',
-      confirmText: '去登录',
-      success: (res) => {
-        if (res.confirm) {
-          wx.switchTab({ url: '/pages/my/my' })
-        }
-      }
-    })
-  },
-
-  buildCampDetailUrl({ id = '', announcementType = '', title = '' } = {}) {
-    if (!id) {
-      return ''
-    }
-    const query = [`id=${encodeURIComponent(id)}`]
-    if (announcementType) {
-      query.push(`announcementType=${encodeURIComponent(announcementType)}`)
-    }
-    if (title) {
-      query.push(`title=${encodeURIComponent(title)}`)
-    }
-    return `/packageCamp/pages/camp-detail/index?${query.join('&')}`
-  },
-
-  mergeUniversities(storeUniversities, localUniversities) {
-    const merged = {}
-    const all = [].concat(storeUniversities || [], localUniversities || [])
-    all.forEach(item => {
-      if (!item) return
-      const id = item.id || item.universityId
-      const name = item.name || item.universityName
-      if (!id || !name) return
-      merged[id] = { ...item, id, name }
-    })
-    return Object.keys(merged).map(id => merged[id])
-  },
-
-  getFollowedUniversities() {
-    if (!this.hasAuthToken()) {
-      return []
-    }
-    const storeUniversities = selectionStore.selectedUniversities || []
-    const localUniversities = wx.getStorageSync('selectedUniversities') || []
-    const userSelection = wx.getStorageSync('userSelection') || {}
-    const selectionUniversities = userSelection.universities || []
-    return this.mergeUniversities(storeUniversities, localUniversities.concat(selectionUniversities))
-  },
-
-  getCampUniversities() {
-    return []
-  },
-
-  shouldUseRemoteCampApi() {
-    const app = getApp()
-    const baseUrl = app?.globalData?.apiBaseUrl || ''
-    const forceRemote = wx.getStorageSync('forceRemoteCampApi')
-    if (forceRemote === true) {
-      return true
-    }
-    return Boolean(baseUrl)
-  },
-
-  shouldUseRemoteUserApi() {
-    const app = getApp()
-    const baseUrl = app?.globalData?.apiBaseUrl || ''
-    return Boolean(baseUrl)
-  },
-
-  buildCampQueryParams(page) {
-    const {
-      pageSize,
-      activeStatusFilter,
-      activeYearFilter,
-      activeUniversityFilter
-    } = this.data
-    const followedIds = this.getFollowedUniversities().map(item => item.id)
-
-    const params = { page, limit: pageSize }
-    if (activeStatusFilter !== 'all') params.status = activeStatusFilter
-    if (activeYearFilter !== 'all') params.year = activeYearFilter
-    if (activeUniversityFilter === 'all') {
-      if (followedIds.length > 0) {
-        params.universityIds = followedIds
-      }
-    } else {
-      params.universityId = activeUniversityFilter
-    }
-
-    return params
-  },
-
-  applyCampFilters(sourceList) {
-    const {
-      activeStatusFilter,
-      activeYearFilter,
-      activeUniversityFilter
-    } = this.data
-    const followedIds = this.getFollowedUniversities().map(item => item.id)
-
-    return sourceList.filter(camp => {
-      if (!camp || typeof camp !== 'object') {
-        return false
-      }
-      if (activeStatusFilter !== 'all' && camp.status !== activeStatusFilter) {
-        return false
-      }
-
-      if (activeYearFilter !== 'all' && String(this.getCampYear(camp)) !== String(activeYearFilter)) {
-        return false
-      }
-
-    if (activeUniversityFilter === 'all') {
-      if (followedIds.length > 0 && followedIds.indexOf(camp.universityId) === -1) {
-        return false
-      }
-    } else if (camp.universityId !== activeUniversityFilter) {
-      return false
-    }
-
-      return true
-    })
-  },
-
-  getCampYear(camp) {
-    if (!camp || typeof camp !== 'object') {
-      return new Date().getFullYear()
-    }
-    const dateFields = [camp.publishDate, camp.deadline, camp.startDate, camp.endDate]
-    for (let i = 0; i < dateFields.length; i += 1) {
-      const value = dateFields[i]
-      if (!value) continue
-      const date = new Date(value)
-      if (!Number.isNaN(date.getTime())) {
-        return date.getFullYear()
-      }
-    }
-
-    const matched = String(camp.title || '').match(/(20\d{2})/)
-    if (matched) {
-      return Number(matched[1])
-    }
-
-    return new Date().getFullYear()
-  },
-
-  normalizeCampItem(item) {
-    if (!item || typeof item !== 'object') {
-      return null
-    }
-    const normalized = normalizeAnnouncementType({
-      ...item,
-      universityName: item.universityName || item.university?.name || '',
-      universityLogo: item.universityLogo || item.university?.logo || '',
-      universityId: item.universityId || item.university?.id || '',
-      universityWebsite: item.universityWebsite || item.university?.website || ''
-    })
     return {
-      ...normalized,
-      title: this.sanitizeCampTitle(normalized.title),
-      publishDate: this.formatDateOnly(normalized.publishDate),
-      deadline: this.formatDateOnly(normalized.deadline),
-      startDate: this.formatDateOnly(normalized.startDate),
-      endDate: this.formatDateOnly(normalized.endDate)
+      ...raw,
+      recommendationIcon: rec.icon,
+      recommendationText: rec.text,
+      recommendationClass: rec.cls,
+      keyRequirementsPreview: preview,
+      keyRequirementsMore: Math.max(0, allReqs.length - 3),
+      deadlineText: this.formatDeadline(raw.extractedDeadline)
     }
   },
 
-  sanitizeCampList(list) {
-    if (!Array.isArray(list)) return []
-    return list.filter(item => item && typeof item === 'object')
+  formatDeadline(iso) {
+    if (!iso) return ''
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return ''
+    const now = Date.now()
+    const diff = d.getTime() - now
+    const days = Math.ceil(diff / 86400000)
+    const dateStr = `${d.getMonth() + 1}月${d.getDate()}日`
+    if (days < 0) return `已过期（${dateStr}）`
+    if (days === 0) return `今日截止 ${dateStr}`
+    if (days <= 3) return `${dateStr} · 剩 ${days} 天 🔥`
+    return `${dateStr} · 剩 ${days} 天`
   },
 
-  buildUrgentCamps(sourceList) {
-    return sourceList
-      .filter(item => item && typeof item === 'object')
-      .filter(item => item.status === 'published')
-      .filter(item => item.deadline)
-      .map(item => {
-        const deadlineDate = new Date(item.deadline)
-        const daysRemaining = Math.ceil((deadlineDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
-        return {
-          id: item.id,
-          universityName: item.universityName,
-          announcementType: item.announcementType,
-          announcementTypeLabel: item.announcementTypeLabel,
-          title: item.title,
-          deadline: item.deadline,
-          daysRemaining,
-          deadlineText: `${this.formatDateOnly(item.deadline)} 截止`,
-          statusClass: daysRemaining <= 3 ? 'urgent' : (daysRemaining <= 7 ? 'warning' : 'normal')
-        }
-      })
-      .filter(item => item.daysRemaining >= 0)
-      .sort((a, b) => a.daysRemaining - b.daysRemaining)
-      .slice(0, 5)
+  // ============ 交互 ============
+
+  onSwitchTab(e) {
+    const tab = e.currentTarget.dataset.tab
+    if (tab === this.data.activeTab) return
+    this.setData({ activeTab: tab }, () => this.loadOpportunities())
   },
 
-  buildOpportunityPoolPreview(sourceList) {
-    return sourceList
-      .filter(item => item && typeof item === 'object')
-      .filter(item => item.status === 'published')
-      .filter(item => {
-        if (!item.deadline) return true
-        const deadlineDate = new Date(item.deadline)
-        if (Number.isNaN(deadlineDate.getTime())) return true
-        return deadlineDate.getTime() >= Date.now()
-      })
-      .sort((a, b) => {
-        const aDate = new Date(a.deadline || '2999-12-31')
-        const bDate = new Date(b.deadline || '2999-12-31')
-        const aTime = Number.isNaN(aDate.getTime()) ? new Date('2999-12-31').getTime() : aDate.getTime()
-        const bTime = Number.isNaN(bDate.getTime()) ? new Date('2999-12-31').getTime() : bDate.getTime()
-        return aTime - bTime
-      })
-      .map(item => ({
-        ...item,
-        title: this.sanitizeCampTitle(item.title),
-        deadline: this.formatDateOnly(item.deadline),
-        detailUrl: this.buildCampDetailUrl({
-          id: item.id,
-          announcementType: item.announcementType,
-          title: item.title
-        })
-      }))
-      .slice(0, 5)
+  onTapStat(e) {
+    const action = e.currentTarget.dataset.action
+    this.setData({ activeTab: action === 'applied' ? 'interested' : action }, () => this.loadOpportunities())
   },
 
-  sanitizeCampTitle(title = '') {
-    const original = String(title || '').trim()
-    let text = original
-    if (!text) return ''
+  onTapMatch(e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({ url: `/packageAssistant/pages/match-detail/index?id=${id}` })
+  },
 
-    const genericPattern = /^(首页|正文|通知公告|硕士招生公示|信息公开|招生信息|招生公告)$/u
-    const weakGenericPattern = /^(首页|正文)$/u
-    text = text.replace(/^(?:当前您的位置|您当前的位置|当前位置)[:：]?\s*/u, '')
-    const parts = text.split(/\s*>\s*/).map(item => item.trim()).filter(Boolean)
-    if (parts.length > 1) {
-      const meaningfulParts = parts.filter(item => !genericPattern.test(item))
-      const fallbackParts = parts.filter(item => !weakGenericPattern.test(item))
-      text = meaningfulParts[meaningfulParts.length - 1] || fallbackParts[fallbackParts.length - 1] || parts[parts.length - 1] || text
+  async onActionInterested(e) {
+    const id = e.currentTarget.dataset.id
+    try {
+      await assistantService.updateAction(id, 'interested')
+      wx.showToast({ title: '已收藏', icon: 'success' })
+      this.loadOpportunities()
+    } catch (err) {
+      wx.showToast({ title: '操作失败', icon: 'none' })
     }
-    text = text.replace(
-      /^.+?(?:信息公开|通知公告|招生信息|招生公告|研究生院|研究生招生信息网|研究生招生网站|研招网)\s+(?=.{0,80}(?:夏令营|暑期学校|推免|预推免|推荐免试|免试攻读))/u,
-      ''
-    ).trim()
-    text = text.replace(
-      /^(?:(?:信息公开|通知公告|招生信息|招生公告|研究生院|研究生招生信息网|研究生招生网站|研招网)\s+)+/u,
-      ''
-    ).trim()
-    text = text.replace(/\s*[-|｜_]\s*[^-|｜_]{0,60}(研究生招生网站|研招网|研究生院|招生信息网)$/u, '').trim()
-    text = text.replace(weakGenericPattern, '').trim()
-    return text || parts?.[parts.length - 2] || original
   },
 
-  formatDateOnly(value) {
-    const text = String(value || '').trim()
-    if (!text) return ''
-    const parsed = new Date(text)
-    if (!Number.isNaN(parsed.getTime())) {
-      const year = parsed.getFullYear()
-      const month = `${parsed.getMonth() + 1}`.padStart(2, '0')
-      const day = `${parsed.getDate()}`.padStart(2, '0')
-      return `${year}-${month}-${day}`
+  async onActionSkip(e) {
+    const id = e.currentTarget.dataset.id
+    try {
+      await assistantService.updateAction(id, 'skipped')
+      this.loadOpportunities()
+    } catch (err) {
+      wx.showToast({ title: '操作失败', icon: 'none' })
     }
-    const match = text.match(/(20\d{2})[-/年](\d{1,2})[-/月](\d{1,2})/)
-    if (match) {
-      return `${match[1]}-${String(match[2]).padStart(2, '0')}-${String(match[3]).padStart(2, '0')}`
-    }
-    return text.replace(/T.*$/, '').replace(/\s+\d{2}:\d{2}.*$/, '')
   },
 
-  getMockCamps() {
-    return [
-      {
-        id: '1',
-        universityId: '1',
-        universityName: '清华大学',
-        universityLogo: '',
-        title: '计算机学院2026年优秀大学生夏令营',
-        announcementType: 'summer_camp',
-        publishDate: '2026-03-01',
-        deadline: '2026-03-18',
-        startDate: '2026-05-10',
-        endDate: '2026-05-15',
-        location: '北京市',
-        status: 'published',
-        hasReminder: true
-      },
-      {
-        id: '2',
-        universityId: '2',
-        universityName: '北京大学',
-        universityLogo: '',
-        title: '软件与微电子学院2025年保研夏令营',
-        announcementType: 'summer_camp',
-        publishDate: '2025-03-01',
-        deadline: '2025-03-22',
-        startDate: '2025-05-15',
-        endDate: '2025-05-20',
-        location: '北京市',
-        status: 'expired',
-        hasReminder: false
-      },
-      {
-        id: '3',
-        universityId: '3',
-        universityName: '复旦大学',
-        universityLogo: '',
-        title: 'AI研究院2024年预推免通知',
-        announcementType: 'pre_recommendation',
-        publishDate: '2026-02-22',
-        deadline: '2026-03-12',
-        startDate: '2026-04-18',
-        endDate: '2026-04-22',
-        location: '上海市',
-        status: 'published',
-        hasReminder: false
-      },
-      {
-        id: '4',
-        universityId: '4',
-        universityName: '上海交通大学',
-        universityLogo: '',
-        title: '电子信息与电气工程学院2026年夏令营',
-        announcementType: 'summer_camp',
-        publishDate: '2026-02-20',
-        deadline: '2026-04-05',
-        startDate: '2026-05-25',
-        endDate: '2026-05-30',
-        location: '上海市',
-        status: 'published',
-        hasReminder: true
-      },
-      {
-        id: '5',
-        universityId: '5',
-        universityName: '浙江大学',
-        universityLogo: '',
-        title: '计算机科学与技术学院2025年预推免工作通知',
-        announcementType: 'pre_recommendation',
-        publishDate: '2026-02-15',
-        deadline: '2026-04-10',
-        startDate: '2026-06-01',
-        endDate: '2026-06-05',
-        location: '杭州市',
-        status: 'published',
-        hasReminder: true
-      }
-    ]
+  noop() {},
+
+  // ============ 导航 ============
+
+  goProfile() {
+    wx.navigateTo({ url: '/packageAssistant/pages/profile-edit/index' })
+  },
+
+  goSelector() {
+    wx.navigateTo({ url: '/packageAssistant/pages/dept-selector/index' })
+  },
+
+  goSubmitUrl() {
+    wx.navigateTo({ url: '/packageAssistant/pages/submit-url/index' })
   }
 })

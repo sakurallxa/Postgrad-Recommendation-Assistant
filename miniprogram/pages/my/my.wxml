@@ -1,69 +1,39 @@
-<view class="container">
-  <!-- 用户信息区 -->
-  <view class="user-info-card">
-    <view class="user-avatar">
-      <image src="{{userInfo.avatar || (isLoggedIn ? '/assets/images/icons/avatar-logged-in.jpg' : '/assets/images/icons/avatar-default.png')}}" mode="aspectFill" />
+<view class="page">
+  <view class="hero">
+    <view class="avatar-wrap">
+      <view class="avatar">{{avatarInitial}}</view>
     </view>
-    <view class="user-details">
-      <text class="user-name">{{userInfo.nickname || '未登录'}}</text>
-      <text class="user-openid">{{profileActionText}}</text>
-    </view>
-    <button wx:if="{{!isLoggedIn}}" class="login-btn" bindtap="handleLogin">
-      微信登录
-    </button>
-    <button wx:else class="logout-btn" bindtap="handleLogout">
-      退出登录
-    </button>
+    <view class="hero-name">{{userName}}</view>
+    <view class="hero-meta" wx:if="{{profile.completeness > 0}}">档案完整度 {{profile.completeness}}%</view>
+    <view class="hero-meta" wx:else>未填写档案</view>
   </view>
 
-  <!-- 功能列表 -->
-  <view class="menu-section">
-    <view class="menu-item" bindtap="navigateToSelector">
-      <view class="menu-icon">🎓</view>
-      <view class="menu-content">
-        <text class="menu-title">目标院校管理</text>
-        <text class="menu-desc">管理关注的院校和专业</text>
+  <view class="menu-card">
+    <view class="menu-item" bindtap="goProfile">
+      <view class="menu-icon">🎯</view>
+      <view class="menu-text">
+        <view class="menu-title">个人档案</view>
+        <view class="menu-desc">{{profile.exists ? '已填写 · 点击修改' : '完善后 AI 匹配更精准'}}</view>
       </view>
-      <view class="menu-arrow">→</view>
+      <view class="menu-arrow">›</view>
     </view>
-
-    <view class="menu-item" bindtap="navigateToProfile">
-      <view class="menu-icon">🧾</view>
-      <view class="menu-content">
-        <text class="menu-title">个人保研档案</text>
-        <text class="menu-desc">用于完善资料、匹配申请条件与门槛</text>
+    <view class="menu-item" bindtap="goSelector">
+      <view class="menu-icon">🏫</view>
+      <view class="menu-text">
+        <view class="menu-title">关注的院系</view>
+        <view class="menu-desc">已订阅 {{subscribedCount}} 个院系</view>
       </view>
-      <view class="menu-arrow">→</view>
+      <view class="menu-arrow">›</view>
     </view>
-    
-    <view class="menu-item" bindtap="handleFeedback">
-      <view class="menu-icon">💬</view>
-      <view class="menu-content">
-        <text class="menu-title">意见反馈</text>
-        <text class="menu-desc">提交建议和问题</text>
+    <view class="menu-item" bindtap="goSubmitUrl">
+      <view class="menu-icon">🔗</view>
+      <view class="menu-text">
+        <view class="menu-title">手动测试 AI 助理</view>
+        <view class="menu-desc">贴 URL 让 AI 分析匹配度</view>
       </view>
-      <view class="menu-arrow">→</view>
-    </view>
-    
-    <view class="menu-item" bindtap="handleAbout">
-      <view class="menu-icon">ℹ️</view>
-      <view class="menu-content">
-        <text class="menu-title">关于我们</text>
-        <text class="menu-desc">了解保研汪</text>
-      </view>
-      <view class="menu-arrow">→</view>
+      <view class="menu-arrow">›</view>
     </view>
   </view>
 
-  <!-- 免责声明 -->
-  <view class="disclaimer">
-    <text class="disclaimer-text">
-      免责声明：本小程序提供的夏令营/预推免信息仅供参考，具体信息以院校官网为准。
-    </text>
-  </view>
-
-  <!-- 版本信息 -->
-  <view class="version-info">
-    <text>版本号: v1.0.0</text>
-  </view>
+  <view class="footer-tip">v0.2 · AI 保研助理</view>
 </view>

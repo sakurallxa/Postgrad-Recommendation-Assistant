@@ -1,0 +1,65 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">选择目标院系</view>
+    <view class="hero-subtitle">{{schools.length}} 所重点校 · 已选 <text class="hero-emph">{{selectedCount}}</text> 个院系</view>
+  </view>
+
+  <!-- AI 推荐 -->
+  <view wx:if="{{recommendations.length > 0}}" class="recommend-card">
+    <view class="recommend-head">
+      <text class="recommend-icon">✨</text>
+      <text class="recommend-title">基于你的目标专业，AI 推荐：</text>
+    </view>
+    <view class="recommend-list">
+      <view
+        wx:for="{{recommendations}}"
+        wx:key="departmentId"
+        class="recommend-chip"
+        data-id="{{item.departmentId}}"
+        bindtap="onTapRecommend"
+      >
+        {{item.universityName}}-{{item.departmentName}}
+      </view>
+    </view>
+    <view class="recommend-action" bindtap="onAcceptAllRecommendations">一键全选 AI 推荐</view>
+  </view>
+
+  <!-- 学校列表 -->
+  <view class="school-list">
+    <view wx:for="{{schools}}" wx:for-item="school" wx:key="schoolSlug" class="school-block">
+      <view class="school-head" bindtap="onToggleSchool" data-slug="{{school.schoolSlug}}">
+        <view class="school-name">
+          <text class="school-name-text">{{school.universityName}}</text>
+          <text class="school-count" wx:if="{{school.subscribedCount > 0}}">已选 {{school.subscribedCount}}</text>
+        </view>
+        <text class="school-toggle">{{school.expanded ? '▾' : '▸'}}</text>
+      </view>
+      <view wx:if="{{school.expanded}}" class="dept-list">
+        <view
+          wx:for="{{school.departments}}"
+          wx:for-item="dept"
+          wx:key="id"
+          class="dept-item {{dept.subscribed ? 'selected' : ''}}"
+          data-id="{{dept.id}}"
+          bindtap="onToggleDept"
+        >
+          <view class="dept-info">
+            <view class="dept-name">{{dept.name}}</view>
+            <view class="dept-majors">{{dept.majorsText}}</view>
+          </view>
+          <view class="dept-check">
+            <view class="dept-check-box {{dept.subscribed ? 'checked' : ''}}">
+              <text wx:if="{{dept.subscribed}}">✓</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部保存 -->
+  <view class="bottom-bar">
+    <view class="bottom-info">已选 <text class="bottom-info-emph">{{selectedCount}}</text> 个院系</view>
+    <button class="btn-primary bottom-save" bindtap="onSave" loading="{{saving}}">保存</button>
+  </view>
+</view>
