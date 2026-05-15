@@ -5,31 +5,28 @@
     <view class="hero-tip">建议聚焦 3-5 所，AI 帮你盯紧</view>
   </view>
 
-  <!-- AI 推荐 -->
-  <view wx:if="{{recommendations.length > 0}}" class="recommend-card">
-    <view class="recommend-head">
-      <text class="recommend-icon">✨</text>
-      <text class="recommend-title">基于你的目标专业，AI 推荐：</text>
-    </view>
-    <view class="recommend-list">
-      <view
-        wx:for="{{recommendations}}"
-        wx:key="departmentId"
-        class="recommend-chip"
-        data-id="{{item.departmentId}}"
-        bindtap="onTapRecommend"
-      >
-        {{item.universityName}}-{{item.departmentName}}
-      </view>
-    </view>
-    <view class="recommend-action" bindtap="onAcceptAllRecommendations">一键全选 AI 推荐</view>
+  <!-- 搜索 -->
+  <view class="search-bar">
+    <text class="search-icon">🔍</text>
+    <input
+      class="search-input"
+      placeholder="搜索学校名称（支持拼音首字母，如 bjdx）"
+      value="{{keyword}}"
+      bindinput="onSearchInput"
+      confirm-type="search"
+    />
+    <text wx:if="{{keyword}}" class="search-clear" bindtap="onClearSearch">✕</text>
   </view>
 
-  <!-- 学校列表 -->
+  <!-- 学校列表（按拼音首字母分组）-->
   <view class="school-list">
-    <view wx:for="{{schools}}" wx:for-item="school" wx:key="schoolSlug" class="school-block">
+    <view wx:if="{{filteredSchools.length === 0}}" class="empty-search">
+      未找到匹配学校
+    </view>
+    <view wx:for="{{filteredSchools}}" wx:for-item="school" wx:key="schoolSlug" class="school-block">
       <view class="school-head" bindtap="onToggleSchool" data-slug="{{school.schoolSlug}}">
         <view class="school-name">
+          <text class="school-letter">{{school.firstLetter}}</text>
           <text class="school-name-text">{{school.universityName}}</text>
           <text class="school-count" wx:if="{{school.subscribedCount > 0}}">已选 {{school.subscribedCount}}</text>
         </view>

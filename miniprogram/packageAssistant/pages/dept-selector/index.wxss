@@ -26,6 +26,63 @@
   color: var(--color-warning);
 }
 
+/* 搜索框 */
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: var(--bg-surface);
+  border-radius: var(--radius-pill);
+  padding: 16rpx 24rpx;
+  margin-bottom: var(--space-3);
+  box-shadow: var(--shadow-xs);
+  gap: var(--space-2);
+}
+.search-icon {
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+.search-input {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  min-height: 56rpx;
+}
+.search-clear {
+  flex-shrink: 0;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 20rpx;
+  background: var(--bg-muted);
+  color: var(--text-tertiary);
+  font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-search {
+  padding: var(--space-5);
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+/* 学校字母前缀 */
+.school-letter {
+  display: inline-flex;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 18rpx;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--space-2);
+  flex-shrink: 0;
+}
+
 /* AI 推荐卡 */
 .recommend-card {
   background: linear-gradient(135deg, rgba(79, 70, 229, 0.06), rgba(79, 70, 229, 0.02));
