@@ -3,10 +3,10 @@ App({
   onLaunch() {
     // 初始化全局数据
     this.initGlobalData()
-    
-    // 检查登录状态
+
+    // 检查登录状态（仅恢复已有 token，登录由 http.js 懒加载触发）
     this.checkLoginStatus()
-    
+
     // 初始化MobX store
     this.initStores()
   },
@@ -29,8 +29,10 @@ App({
       savedApiBaseUrl.indexOf('api.baoyan.com') > -1 ||
       savedApiBaseUrl.indexOf('tcb.qcloud.la') > -1
     )
+    // v0.2 本地开发：默认指向本地后端
+    // 生产部署时改回 'https://baoyanwang-helper.cn/api/v1'
     const resolvedApiBaseUrl = (!savedApiBaseUrl || isLegacyInvalidDomain)
-      ? 'https://baoyanwang-helper.cn/api/v1'
+      ? 'http://localhost:3000/api/v1'
       : savedApiBaseUrl
     this.globalData = {
       userInfo: null,
@@ -48,6 +50,7 @@ App({
       this.globalData.isLoggedIn = true
     }
   },
+
   
   initStores() {
     // 延迟加载store，避免包体积过大

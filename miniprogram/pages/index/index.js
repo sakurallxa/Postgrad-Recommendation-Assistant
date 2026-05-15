@@ -21,6 +21,8 @@ Page({
     loading: false,
     hasProfile: false,
     hasSubscription: false,
+    profileCompleteness: 0,
+    subscribedCount: 0,
     activeTab: 'undecided', // undecided | interested
     opportunities: [],
     stats: {
@@ -37,10 +39,8 @@ Page({
   },
 
   onShow() {
-    // 从子页面返回时刷新
-    if (this.data.hasProfile) {
-      this.refresh()
-    }
+    // 从子页面（档案/选校）返回时强制刷新状态
+    this.refresh()
   },
 
   onPullDownRefresh() {
@@ -59,7 +59,12 @@ Page({
       const hasProfile = !!profileResp?.exists
       const hasSubscription = (schoolsResp?.totalSubscribed || 0) > 0
 
-      this.setData({ hasProfile, hasSubscription })
+      this.setData({
+        hasProfile,
+        hasSubscription,
+        profileCompleteness: profileResp?.completeness || 0,
+        subscribedCount: schoolsResp?.totalSubscribed || 0
+      })
 
       if (hasSubscription) {
         await this.loadOpportunities()

@@ -1,9 +1,23 @@
 import { http } from './http'
 
+// v0.2 本地开发：检测后端是否为 localhost，是的话用 dev-login 跳过微信
+function isLocalDev() {
+  try {
+    const app = getApp()
+    const base = app?.globalData?.apiBaseUrl || ''
+    return /localhost|127\.0\.0\.1/.test(base)
+  } catch (e) {
+    return false
+  }
+}
+
 export const authService = {
   async login(code) {
     try {
-      const res = await http.post('/auth/wx-login', { code }, { showLoading: false })
+      // 本地开发模式：用 dev-login 跳过微信
+      const endpoint = isLocalDev() ? '/auth/dev-login' : '/auth/wx-login'
+      const payload = isLocalDev() ? {} : { code }
+      const res = await http.post(endpoint, payload, { showLoading: false })
       const accessToken = res?.accessToken || ''
       if (!accessToken) {
         throw new Error('登录响应缺少 accessToken')

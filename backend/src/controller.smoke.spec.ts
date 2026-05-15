@@ -22,7 +22,12 @@ describe('Controller smoke', () => {
       wxLogin: jest.fn().mockResolvedValue({ accessToken: 'a' }),
       refreshToken: jest.fn().mockResolvedValue({ accessToken: 'b' }),
     };
-    const controller = new AuthController(service as any);
+    const controller = new AuthController(
+      service as any,
+      {} as any, // prisma
+      {} as any, // jwtService
+      {} as any, // configService
+    );
 
     await controller.wxLogin({ code: 'code_1' } as any);
     expect(service.wxLogin).toHaveBeenCalledWith('code_1');

@@ -20,6 +20,11 @@
   color: var(--color-primary);
   font-weight: var(--weight-semibold);
 }
+.hero-tip {
+  margin-top: 8rpx;
+  font-size: var(--text-xs);
+  color: var(--color-warning);
+}
 
 /* AI 推荐卡 */
 .recommend-card {

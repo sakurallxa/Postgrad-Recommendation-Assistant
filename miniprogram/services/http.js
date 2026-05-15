@@ -4,6 +4,95 @@ class HttpClient {
   constructor() {
     this.requestQueue = new Map()
     this.loadingCounter = 0
+    this.loginPromise = null
+  }
+
+  /**
+   * 自动登录（去重并发请求）
+   * 本地开发走 /auth/dev-login，生产走 wx.login + /auth/wx-login
+   */
+  async ensureToken() {
+    // 已有 token 直接返回
+    if (userStore.token) return userStore.token
+    const cached = wx.getStorageSync('token')
+    if (cached) {
+      userStore.setToken && userStore.setToken(cached)
+      return cached
+    }
+    // 并发请求合并到同一个登录 Promise
+    if (this.loginPromise) return this.loginPromise
+
+    this.loginPromise = (async () => {
+      try {
+        const baseUrl = this.getBaseUrl()
+        const isLocal = /localhost|127\.0\.0\.1/.test(baseUrl)
+        const fallbackBaseUrl = this.getFallbackBaseUrl(baseUrl)
+
+        let code = ''
+        if (!isLocal) {
+          try {
+            const loginRes = await new Promise((resolve, reject) => {
+              wx.login({ success: resolve, fail: reject })
+            })
+            code = loginRes.code || ''
+          } catch (e) {
+            console.error('wx.login 失败', e)
+          }
+        }
+
+        const path = isLocal ? '/auth/dev-login' : '/auth/wx-login'
+        const payload = isLocal ? {} : { code }
+
+        const doLogin = (urlBase) => new Promise((resolve, reject) => {
+          wx.request({
+            url: `${urlBase}${path}`,
+            method: 'POST',
+            data: payload,
+            header: { 'Content-Type': 'application/json' },
+            success: (res) => {
+              if (res.statusCode >= 200 && res.statusCode < 300) {
+                resolve(res.data)
+              } else {
+                reject(new Error(`login ${res.statusCode}`))
+              }
+            },
+            fail: (err) => reject(new Error(err.errMsg || 'login network failed'))
+          })
+        })
+
+        let data
+        try {
+          data = await doLogin(baseUrl)
+        } catch (err) {
+          if (fallbackBaseUrl) {
+            data = await doLogin(fallbackBaseUrl)
+          } else {
+            throw err
+          }
+        }
+
+        const accessToken = data?.accessToken || data?.token || ''
+        if (!accessToken) throw new Error('login 响应缺少 accessToken')
+
+        wx.setStorageSync('token', accessToken)
+        if (data?.refreshToken) wx.setStorageSync('refreshToken', data.refreshToken)
+        userStore.setToken && userStore.setToken(accessToken)
+        userStore.setUserInfo && userStore.setUserInfo({ id: data?.user?.id || '' })
+        try {
+          const app = getApp()
+          if (app?.globalData) {
+            app.globalData.token = accessToken
+            app.globalData.isLoggedIn = true
+          }
+        } catch (e) {}
+        console.log('[http] 自动登录成功, userId:', data?.user?.id)
+        return accessToken
+      } finally {
+        // 无论成败都释放锁，下次失败可以重试
+        setTimeout(() => { this.loginPromise = null }, 500)
+      }
+    })()
+    return this.loginPromise
   }
 
   getBaseUrl() {
@@ -12,7 +101,8 @@ class HttpClient {
     if (configured) {
       return configured
     }
-    return 'https://baoyanwang-helper.cn/api/v1'
+    // v0.2 本地开发：默认 localhost；生产部署改为 'https://baoyanwang-helper.cn/api/v1'
+    return 'http://localhost:3000/api/v1'
   }
 
   getFallbackBaseUrl(baseUrl) {
@@ -65,7 +155,18 @@ class HttpClient {
       this.showLoadingSafely()
     }
 
+    // 跳过登录端点本身，避免循环
+    const isAuthEndpoint = url.startsWith('/auth/')
+
     try {
+      // 如果没 token 且不是 auth 端点，先尝试自动登录
+      if (!userStore.token && !isAuthEndpoint) {
+        try {
+          await this.ensureToken()
+        } catch (e) {
+          console.warn('[http] ensureToken 失败，继续无 token 请求', e?.message)
+        }
+      }
       const token = userStore.token
       const headers = {
         'Content-Type': 'application/json',
@@ -116,8 +217,8 @@ class HttpClient {
                 }
               })
             } else if (res.statusCode === 401) {
-              this.handleUnauthorized()
-              reject(new Error('登录已过期'))
+              // 401：清掉旧 token，标记需要重试
+              reject({ _retry401: true, message: '登录已过期' })
             } else {
               reject(new Error(`请求失败: ${res.statusCode}`))
             }
@@ -139,6 +240,22 @@ class HttpClient {
       // 兼容标准REST响应（无 code/data 包裹）
       return response
     } catch (error) {
+      // 401 且非登录端点：自动重新登录后重试一次
+      if (error?._retry401 && !isAuthEndpoint && !config._retried) {
+        try {
+          userStore.logout && userStore.logout()
+          wx.removeStorageSync('token')
+          await this.ensureToken()
+          if (showLoading) this.hideLoadingSafely()
+          this.requestQueue.delete(requestKey)
+          return this.request({ ...config, _retried: true })
+        } catch (retryErr) {
+          if (showError) {
+            wx.showToast({ title: '登录失败', icon: 'none', duration: 2000 })
+          }
+          throw retryErr
+        }
+      }
       if (showError) {
         wx.showToast({
           title: error.message || '请求失败',

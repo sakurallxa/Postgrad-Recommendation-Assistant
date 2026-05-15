@@ -53,17 +53,23 @@ export class AssistantController {
     description: 'β场景核心入口：用户/系统贴 URL，AI 一次性判断是否相关 + 提取关键字段 + 与档案匹配',
   })
   async submitUrl(@Body() body: SubmitUrlDto, @CurrentUser() user: any) {
-    if (!user?.id) throw new BadRequestException('需要登录');
+    if (!user?.sub) throw new BadRequestException('需要登录');
 
     // 1. 抓 URL
     const fetched = await this.urlFetcher.fetch(body.url);
     if (!fetched) {
-      throw new BadRequestException('URL 无法访问或内容过短');
+      throw new BadRequestException('URL 无法访问，请检查链接');
+    }
+    // 检查是否是 404/错误页（学校网站常返回 200 但内容是错误页）
+    if (fetched.content.length < 200 || /404|找不到|page not found|页面不存在/i.test(fetched.title)) {
+      throw new BadRequestException(
+        `这个 URL 的内容看起来是错误页或已失效（标题: "${fetched.title || '?'}"），请贴一个真实的公告详情页链接`,
+      );
     }
 
     // 2. 加载用户档案
     const profile = await this.prisma.userProfile.findUnique({
-      where: { userId: user.id },
+      where: { userId: user.sub },
     });
 
     const profileForLlm = this.buildProfileForLlm(profile);
@@ -76,7 +82,10 @@ export class AssistantController {
     );
 
     if (!match) {
-      throw new BadRequestException('AI 分析失败，请稍后再试');
+      this.logger.warn(`LLM 分析返回 null，URL=${body.url}, content len=${fetched.content.length}`);
+      throw new BadRequestException(
+        'AI 暂时无法分析这条公告，可能原因：内容过短/格式特殊/网络抖动。请稍后重试或换条 URL',
+      );
     }
 
     // 4. 入库
@@ -92,9 +101,9 @@ export class AssistantController {
     });
 
     const matchResult = await this.prisma.campMatchResult.upsert({
-      where: { userId_campId: { userId: user.id, campId: camp.id } },
+      where: { userId_campId: { userId: user.sub, campId: camp.id } },
       create: {
-        userId: user.id,
+        userId: user.sub,
         campId: camp.id,
         isRelevant: match.isRelevant,
         campType: match.campType,
@@ -139,10 +148,10 @@ export class AssistantController {
     @Query('action') action?: string,
     @Query('limit') limit?: string,
   ) {
-    if (!user?.id) throw new BadRequestException('需要登录');
+    if (!user?.sub) throw new BadRequestException('需要登录');
     const take = Math.min(parseInt(limit || '20', 10) || 20, 100);
 
-    const where: any = { userId: user.id, isRelevant: true };
+    const where: any = { userId: user.sub, isRelevant: true };
     if (action === 'undecided') where.userAction = null;
     else if (action) where.userAction = action;
 
@@ -171,7 +180,7 @@ export class AssistantController {
       include: { camp: { include: { university: true, department: true } } },
     });
     if (!item) throw new NotFoundException('匹配结果不存在');
-    if (item.userId !== user.id) throw new BadRequestException('无权访问');
+    if (item.userId !== user.sub) throw new BadRequestException('无权访问');
     return this.serializeMatchResult(item, item.camp);
   }
 
@@ -184,7 +193,7 @@ export class AssistantController {
   ) {
     const item = await this.prisma.campMatchResult.findUnique({ where: { id } });
     if (!item) throw new NotFoundException('匹配结果不存在');
-    if (item.userId !== user.id) throw new BadRequestException('无权访问');
+    if (item.userId !== user.sub) throw new BadRequestException('无权访问');
     const updated = await this.prisma.campMatchResult.update({
       where: { id },
       data: { userAction: body.action, userActionAt: new Date() },

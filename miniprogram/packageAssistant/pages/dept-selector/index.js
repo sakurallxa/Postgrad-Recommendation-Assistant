@@ -25,13 +25,14 @@ Page({
           if (d.subscribed) selectedIds.push(d.id)
           return {
             ...d,
-            majorsText: (d.majors || []).join(' · ')
+            majorsText: (d.majors || []).slice(0, 4).join(' · ')
           }
         })
         return {
           ...school,
           departments,
-          expanded: departments.some(d => d.subscribed) || departments.length <= 6,
+          // 默认：仅有详细院系或已订阅的学校自动展开，其他收起
+          expanded: school.hasDetailedDepts && departments.some(d => d.subscribed),
           subscribedCount: departments.filter(d => d.subscribed).length
         }
       })

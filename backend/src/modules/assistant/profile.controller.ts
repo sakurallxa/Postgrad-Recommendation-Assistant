@@ -97,9 +97,9 @@ export class ProfileController {
   @Get()
   @ApiOperation({ summary: '获取我的档案' })
   async get(@CurrentUser() user: any) {
-    if (!user?.id) throw new BadRequestException('需要登录');
+    if (!user?.sub) throw new BadRequestException('需要登录');
     const profile = await this.prisma.userProfile.findUnique({
-      where: { userId: user.id },
+      where: { userId: user.sub },
     });
     const result = profile
       ? this.serialize(profile)
@@ -110,7 +110,7 @@ export class ProfileController {
   @Put()
   @ApiOperation({ summary: '更新我的档案（部分更新）' })
   async update(@Body() body: UpdateProfileDto, @CurrentUser() user: any) {
-    if (!user?.id) throw new BadRequestException('需要登录');
+    if (!user?.sub) throw new BadRequestException('需要登录');
 
     const data: any = { ...body };
     if (body.targetMajors !== undefined) {
@@ -121,8 +121,8 @@ export class ProfileController {
     }
 
     const profile = await this.prisma.userProfile.upsert({
-      where: { userId: user.id },
-      create: { userId: user.id, ...data },
+      where: { userId: user.sub },
+      create: { userId: user.sub, ...data },
       update: data,
     });
 

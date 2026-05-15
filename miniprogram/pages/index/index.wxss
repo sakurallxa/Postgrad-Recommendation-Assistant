@@ -74,7 +74,25 @@
 }
 .onboarding-step:last-child { border-bottom: none; padding-bottom: 0; }
 .onboarding-step:first-child { padding-top: 0; }
-.onboarding-icon { font-size: 40rpx; margin-bottom: var(--space-1); }
+.onboarding-step.completed {
+  opacity: 0.7;
+}
+.onboarding-icon-wrap {
+  margin-bottom: var(--space-1);
+}
+.onboarding-icon { font-size: 40rpx; }
+.onboarding-check {
+  display: inline-flex;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 24rpx;
+  background: var(--color-success);
+  color: #FFFFFF;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: var(--weight-bold);
+}
 .onboarding-step-title {
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
@@ -301,4 +319,26 @@
 .loading-state {
   display: flex;
   flex-direction: column;
+}
+
+/* 空状态优化 */
+.empty-state-text {
+  font-size: var(--text-md);
+  color: var(--text-primary);
+  margin-bottom: 8rpx;
+  font-weight: var(--weight-medium);
+}
+.empty-state-sub {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-3);
+  padding: 0 var(--space-3);
+}
+.empty-state-action {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
 }

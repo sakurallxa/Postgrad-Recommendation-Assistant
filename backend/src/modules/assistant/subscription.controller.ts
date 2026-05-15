@@ -28,53 +28,68 @@ export class SubscriptionController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get('schools')
-  @ApiOperation({ summary: '获取5校结构（学校→院系→专业）供选择' })
+  @ApiOperation({ summary: '获取所有 985 学校及其院系，用户可自由订阅' })
   async listSchools(@CurrentUser() user: any) {
-    // 拉所有 active 院系 + 用户当前订阅状态
-    const departments = await this.prisma.department.findMany({
-      where: { active: true },
-      include: { university: true },
-      orderBy: [{ schoolSlug: 'asc' }, { name: 'asc' }],
+    // 拉所有 985 大学（覆盖所有可选范围）
+    const universities = await this.prisma.university.findMany({
+      where: { level: '985' },
+      include: {
+        departments: { where: { active: true }, orderBy: { name: 'asc' } },
+      },
     });
 
-    const userSubs = user?.id
+    const userSubs = user?.sub
       ? await this.prisma.userDepartmentSubscription.findMany({
-          where: { userId: user.id, active: true },
+          where: { userId: user.sub, active: true },
           select: { departmentId: true },
         })
       : [];
     const subscribedIds = new Set(userSubs.map((s) => s.departmentId));
 
-    // 分组
-    const grouped: Record<string, any> = {};
-    for (const d of departments) {
-      const slug = d.schoolSlug;
-      if (!grouped[slug]) {
-        grouped[slug] = {
-          schoolSlug: slug,
-          universityId: d.universityId,
-          universityName: d.university?.name || slug,
-          shortName: d.university?.name?.slice(0, 4) || slug,
-          logo: d.university?.logo || null,
-          departments: [],
+    // 排序：用户已订阅的学校 > 详细院系（>1个）> 默认院系（仅1个）
+    const schools = universities
+      .map((u) => {
+        const deptList = u.departments.map((d) => {
+          let majors: string[] = [];
+          try {
+            majors = JSON.parse(d.majors);
+          } catch {}
+          return {
+            id: d.id,
+            name: d.name,
+            shortName: d.shortName,
+            majors,
+            homepage: d.homepage,
+            subscribed: subscribedIds.has(d.id),
+          };
+        });
+        const subscribedCount = deptList.filter((d) => d.subscribed).length;
+        const hasDetailedDepts = deptList.length > 1;
+        return {
+          schoolSlug: u.id, // 用 universityId 作为唯一标识
+          universityId: u.id,
+          universityName: u.name,
+          shortName: u.name.slice(0, 4),
+          logo: u.logo || null,
+          hasDetailedDepts,
+          subscribedCount,
+          departments: deptList,
         };
-      }
-      let majors: string[] = [];
-      try {
-        majors = JSON.parse(d.majors);
-      } catch {}
-      grouped[slug].departments.push({
-        id: d.id,
-        name: d.name,
-        shortName: d.shortName,
-        majors,
-        homepage: d.homepage,
-        subscribed: subscribedIds.has(d.id),
+      })
+      .sort((a, b) => {
+        // 已订阅在前
+        if (a.subscribedCount !== b.subscribedCount) {
+          return b.subscribedCount - a.subscribedCount;
+        }
+        // 有详细院系的在前
+        if (a.hasDetailedDepts !== b.hasDetailedDepts) {
+          return a.hasDetailedDepts ? -1 : 1;
+        }
+        return a.universityName.localeCompare(b.universityName);
       });
-    }
 
     return {
-      schools: Object.values(grouped),
+      schools,
       totalSubscribed: subscribedIds.size,
     };
   }
@@ -82,7 +97,7 @@ export class SubscriptionController {
   @Post('batch')
   @ApiOperation({ summary: '批量订阅院系（覆盖式：传入的成为最新订阅，其余取消）' })
   async batchSubscribe(@Body() body: BatchSubscribeDto, @CurrentUser() user: any) {
-    if (!user?.id) throw new BadRequestException('需要登录');
+    if (!user?.sub) throw new BadRequestException('需要登录');
     const validDepts = await this.prisma.department.findMany({
       where: { id: { in: body.departmentIds }, active: true },
       select: { id: true },
@@ -94,7 +109,7 @@ export class SubscriptionController {
 
     // 当前订阅
     const current = await this.prisma.userDepartmentSubscription.findMany({
-      where: { userId: user.id },
+      where: { userId: user.sub },
     });
     const currentIds = new Set(current.map((c) => c.departmentId));
 
@@ -112,7 +127,7 @@ export class SubscriptionController {
     if (toAdd.length) {
       await this.prisma.userDepartmentSubscription.createMany({
         data: toAdd.map((deptId) => ({
-          userId: user.id,
+          userId: user.sub,
           departmentId: deptId,
           active: true,
         })),
@@ -146,7 +161,7 @@ export class SubscriptionController {
     @CurrentUser() user: any,
   ) {
     await this.prisma.userDepartmentSubscription.updateMany({
-      where: { userId: user.id, departmentId },
+      where: { userId: user.sub, departmentId },
       data: { active: false },
     });
     return { ok: true };
@@ -158,9 +173,9 @@ export class SubscriptionController {
     description: '用于"首次使用引导"或"完善订阅"提示',
   })
   async recommend(@CurrentUser() user: any) {
-    if (!user?.id) throw new BadRequestException('需要登录');
+    if (!user?.sub) throw new BadRequestException('需要登录');
     const profile = await this.prisma.userProfile.findUnique({
-      where: { userId: user.id },
+      where: { userId: user.sub },
     });
     if (!profile?.targetMajors) {
       return { recommendations: [], reason: 'targetMajors 未设置' };

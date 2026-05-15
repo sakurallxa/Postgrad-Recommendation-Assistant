@@ -28,23 +28,41 @@
   </view>
 
   <!-- 引导：未订阅院系 -->
-  <view wx:if="{{!hasSubscription}}" class="onboarding-card">
-    <view class="onboarding-step">
-      <view class="onboarding-icon">🎯</view>
-      <view class="onboarding-step-title">第 1 步 · 填写档案</view>
-      <view class="onboarding-step-desc">告诉 AI 你的 GPA、专业、目标方向</view>
-      <button class="onboarding-btn" bindtap="goProfile">填写档案</button>
+  <view wx:if="{{!hasSubscription || !hasProfile}}" class="onboarding-card">
+    <view class="onboarding-step {{hasProfile ? 'completed' : ''}}">
+      <view class="onboarding-icon-wrap">
+        <view class="onboarding-icon" wx:if="{{!hasProfile}}">🎯</view>
+        <view class="onboarding-check" wx:else>✓</view>
+      </view>
+      <view class="onboarding-step-title">第 1 步 · 填写档案 {{hasProfile ? '· 已完成' : ''}}</view>
+      <view class="onboarding-step-desc">
+        <text wx:if="{{!hasProfile}}">告诉 AI 你的 GPA、专业、目标方向</text>
+        <text wx:else>档案完整度 {{profileCompleteness}}%，可点击修改</text>
+      </view>
+      <button class="onboarding-btn" bindtap="goProfile">
+        {{hasProfile ? '修改档案' : '填写档案'}}
+      </button>
+    </view>
+    <view class="onboarding-step {{hasSubscription ? 'completed' : ''}}">
+      <view class="onboarding-icon-wrap">
+        <view class="onboarding-icon" wx:if="{{!hasSubscription}}">🏫</view>
+        <view class="onboarding-check" wx:else>✓</view>
+      </view>
+      <view class="onboarding-step-title">第 2 步 · 选择目标校 {{hasSubscription ? '· 已完成' : ''}}</view>
+      <view class="onboarding-step-desc">
+        <text wx:if="{{!hasSubscription}}">从 39 所 985 中选你的目标 · 推荐 3-5 所</text>
+        <text wx:else>已订阅 {{subscribedCount}} 个院系，可点击调整</text>
+      </view>
+      <button class="onboarding-btn" bindtap="goSelector">
+        {{hasSubscription ? '调整订阅' : '选择院系'}}
+      </button>
     </view>
     <view class="onboarding-step">
-      <view class="onboarding-icon">🏫</view>
-      <view class="onboarding-step-title">第 2 步 · 选择目标校</view>
-      <view class="onboarding-step-desc">5 所重点校 × 你专业相关的院系</view>
-      <button class="onboarding-btn" bindtap="goSelector">选择院系</button>
-    </view>
-    <view class="onboarding-step">
-      <view class="onboarding-icon">✨</view>
+      <view class="onboarding-icon-wrap">
+        <view class="onboarding-icon">✨</view>
+      </view>
       <view class="onboarding-step-title">第 3 步 · 享受智能筛选</view>
-      <view class="onboarding-step-desc">AI 每天扫一遍，匹配你才推送</view>
+      <view class="onboarding-step-desc">AI 每天扫一遍，匹配你才推送（v0.3 上线）</view>
     </view>
   </view>
 
@@ -140,8 +158,15 @@
 
   <!-- 空状态 -->
   <view wx:elif="{{hasSubscription && !loading}}" class="empty-state">
-    <view class="empty-state-icon">✨</view>
+    <view class="empty-state-icon">🔍</view>
     <view class="empty-state-text">{{emptyStateText}}</view>
+    <view class="empty-state-sub">
+      <text wx:if="{{activeTab === 'undecided'}}">爬虫 v0.3 上线后会自动监控你订阅的 {{subscribedCount}} 个院系</text>
+      <text wx:else>发现机会后点"感兴趣"加入收藏</text>
+    </view>
+    <view class="empty-state-action" bindtap="goSubmitUrl" wx:if="{{activeTab === 'undecided'}}">
+      或者手动贴一个公告 URL 让 AI 立刻分析 →
+    </view>
   </view>
 
   <!-- 加载状态 -->
