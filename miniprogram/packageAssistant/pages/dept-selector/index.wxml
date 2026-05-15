@@ -1,9 +1,29 @@
 <view class="page">
   <view class="hero">
     <view class="hero-title">选择目标院系</view>
-    <view class="hero-subtitle">从 39 所 985 自由选择 · 已选 <text class="hero-emph">{{selectedCount}}</text> 个院系</view>
-    <view class="hero-tip">建议聚焦 3-5 所，AI 帮你盯紧</view>
+    <view class="hero-subtitle">从 39 所 985 自由选择 · 已选 <text class="hero-emph">{{selectedCount}}</text> / 5 个院系</view>
+    <view class="hero-tip">最多关注 5 个 · AI 帮你精准盯紧</view>
   </view>
+
+  <!-- 已选 chip 标签 -->
+  <scroll-view
+    wx:if="{{selectedChips.length > 0}}"
+    class="chip-bar"
+    scroll-x="true"
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <view
+      wx:for="{{selectedChips}}"
+      wx:key="schoolSlug"
+      class="chip"
+      data-slug="{{item.schoolSlug}}"
+      bindtap="onRemoveChip"
+    >
+      <text class="chip-text">{{item.displayText}}</text>
+      <text class="chip-close">×</text>
+    </view>
+  </scroll-view>
 
   <!-- 搜索 -->
   <view class="search-bar">
@@ -18,40 +38,65 @@
     <text wx:if="{{keyword}}" class="search-clear" bindtap="onClearSearch">✕</text>
   </view>
 
-  <!-- 学校列表（按拼音首字母分组）-->
-  <view class="school-list">
-    <view wx:if="{{filteredSchools.length === 0}}" class="empty-search">
-      未找到匹配学校
-    </view>
-    <view wx:for="{{filteredSchools}}" wx:for-item="school" wx:key="schoolSlug" class="school-block">
-      <view class="school-head" bindtap="onToggleSchool" data-slug="{{school.schoolSlug}}">
-        <view class="school-name">
-          <text class="school-letter">{{school.firstLetter}}</text>
-          <text class="school-name-text">{{school.universityName}}</text>
-          <text class="school-count" wx:if="{{school.subscribedCount > 0}}">已选 {{school.subscribedCount}}</text>
-        </view>
-        <text class="school-toggle">{{school.expanded ? '▾' : '▸'}}</text>
+  <!-- 学校列表（可滚动）+ 右侧字母索引 -->
+  <view class="list-area">
+    <scroll-view
+      class="school-list-scroll"
+      scroll-y="true"
+      scroll-into-view="{{scrollIntoView}}"
+      scroll-with-animation="true"
+    >
+      <view wx:if="{{filteredSchools.length === 0}}" class="empty-search">
+        未找到匹配学校
       </view>
-      <view wx:if="{{school.expanded}}" class="dept-list">
-        <view
-          wx:for="{{school.departments}}"
-          wx:for-item="dept"
-          wx:key="id"
-          class="dept-item {{dept.subscribed ? 'selected' : ''}}"
-          data-id="{{dept.id}}"
-          bindtap="onToggleDept"
-        >
-          <view class="dept-info">
-            <view class="dept-name">{{dept.name}}</view>
-            <view class="dept-majors">{{dept.majorsText}}</view>
+      <view
+        wx:for="{{filteredSchools}}"
+        wx:for-item="school"
+        wx:key="schoolSlug"
+        id="school-{{school.schoolSlug}}"
+        class="school-block"
+      >
+        <view class="school-head" bindtap="onToggleSchool" data-slug="{{school.schoolSlug}}">
+          <view class="school-name">
+            <text class="school-letter">{{school.firstLetter}}</text>
+            <text class="school-name-text">{{school.universityName}}</text>
+            <text class="school-count" wx:if="{{school.subscribedCount > 0}}">已选 {{school.subscribedCount}}</text>
           </view>
-          <view class="dept-check">
-            <view class="dept-check-box {{dept.subscribed ? 'checked' : ''}}">
-              <text wx:if="{{dept.subscribed}}">✓</text>
+          <text class="school-toggle">{{school.expanded ? '▾' : '▸'}}</text>
+        </view>
+        <view wx:if="{{school.expanded}}" class="dept-list">
+          <view
+            wx:for="{{school.departments}}"
+            wx:for-item="dept"
+            wx:key="id"
+            class="dept-item {{dept.subscribed ? 'selected' : ''}}"
+            data-id="{{dept.id}}"
+            bindtap="onToggleDept"
+          >
+            <view class="dept-info">
+              <view class="dept-name">{{dept.name}}</view>
+              <view class="dept-majors">{{dept.majorsText}}</view>
+            </view>
+            <view class="dept-check">
+              <view class="dept-check-box {{dept.subscribed ? 'checked' : ''}}">
+                <text wx:if="{{dept.subscribed}}">✓</text>
+              </view>
             </view>
           </view>
         </view>
       </view>
+    </scroll-view>
+
+    <!-- 右侧 A-Z 字母索引条 -->
+    <view class="letter-index" wx:if="{{!keyword}}">
+      <view
+        wx:for="{{availableLetters}}"
+        wx:key="*this"
+        wx:for-item="letter"
+        class="letter-item {{activeLetter === letter ? 'active' : ''}}"
+        data-letter="{{letter}}"
+        bindtap="onTapLetter"
+      >{{letter}}</view>
     </view>
   </view>
 

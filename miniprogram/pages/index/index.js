@@ -23,28 +23,169 @@ Page({
     hasSubscription: false,
     profileCompleteness: 0,
     subscribedCount: 0,
-    activeTab: 'undecided', // undecided | interested
+    // Tab：new=新机会(未操作), bookmarked=已收藏, applied=已申请
+    // 数据层仍用 null/interested/applied，前端做映射
+    activeTab: 'new',
     opportunities: [],
     stats: {
-      undecidedCount: 0,
-      interestedCount: 0,
+      bookmarkedCount: 0,  // 等于后端 interested
       appliedCount: 0,
       recommendCount: 0
     },
-    emptyStateText: '今天没有新机会，明天再来看看'
+    emptyStateText: '今天没有新机会，明天再来看看',
+    // 探探式叠加卡片状态
+    deckIndex: 0,          // 当前最上层卡片的索引
+    swipeOffsetX: 0,       // 顶层卡片当前 x 偏移
+    swipeOffsetY: 0,       // 顶层卡片当前 y 偏移
+    swiping: false,        // 是否正在拖拽
+    swipeFlying: '',       // 'left' | 'right' 飞出方向
+    SWIPE_TRIGGER: 100,    // 触发飞出的距离阈值（px）
+    // 撤销 Toast 状态
+    undoVisible: false,
+    undoCard: null,         // 被隐藏的卡片对象（用于回插）
+    undoCardIndex: 0,       // 被隐藏前在 opportunities 数组中的索引
+    undoCountdown: 5        // 倒计时秒数
   },
 
-  onLoad() {
+  onLoad(query) {
     this.refresh()
+    const jobId = (query && query.jobId) || wx.getStorageSync('activeCrawlJobId') || ''
+    if (jobId) this.startJobPolling(jobId)
+    else this.restoreLatestJobBanner()
   },
 
   onShow() {
-    // 从子页面（档案/选校）返回时强制刷新状态
     this.refresh()
+    const jobId = this.data.activeJobId || wx.getStorageSync('activeCrawlJobId')
+    if (jobId && !this._jobPollTimer) this.startJobPolling(jobId)
   },
+
+  // 点击需要登录的功能时调用：未登录则弹"去登录"，已登录则放行
+  requireLoginOrPrompt(thenAction) {
+    if (wx.getStorageSync('token')) {
+      thenAction && thenAction()
+      return
+    }
+    wx.showModal({
+      title: '需要先登录',
+      content: '登录后才能保存档案、订阅院系、收到 AI 抓取的公告。',
+      confirmText: '去登录',
+      cancelText: '稍后再说',
+      success: (res) => {
+        if (res.confirm) wx.switchTab({ url: '/pages/my/my' })
+      }
+    })
+  },
+
+  // 各引导卡片点击
+  onTapGuideProfile() {
+    this.requireLoginOrPrompt(() =>
+      wx.navigateTo({ url: '/packageAssistant/pages/profile-edit/index' })
+    )
+  },
+  onTapGuideSelector() {
+    this.requireLoginOrPrompt(() =>
+      wx.navigateTo({ url: '/packageAssistant/pages/dept-selector/index' })
+    )
+  },
+  onTapGuideSubmitUrl() {
+    this.requireLoginOrPrompt(() =>
+      wx.navigateTo({ url: '/packageAssistant/pages/submit-url/index' })
+    )
+  },
+
+  onHide() { this.stopJobPolling(); this.clearUndoTimers && this.clearUndoTimers() },
+  onUnload() { this.stopJobPolling(); this.clearUndoTimers && this.clearUndoTimers() },
 
   onPullDownRefresh() {
     this.refresh().finally(() => wx.stopPullDownRefresh())
+  },
+
+  // ============ 抓取作业进度 banner ============
+  async restoreLatestJobBanner() {
+    // 首页冷启时，如果用户最近一次作业还在 running，自动接上
+    try {
+      const latest = await subscriptionService.getLatestCrawlJob()
+      if (latest && latest.jobId && (latest.status === 'queued' || latest.status === 'running')) {
+        wx.setStorageSync('activeCrawlJobId', latest.jobId)
+        this.startJobPolling(latest.jobId)
+      }
+    } catch (e) {
+      // 未登录或网络问题，静默
+    }
+  },
+
+  startJobPolling(jobId) {
+    if (!jobId) return
+    this.stopJobPolling()
+    this.setData({ activeJobId: jobId, jobBanner: { visible: true, status: 'loading', progressPercent: 0 } })
+    this.fetchJobOnce(jobId)
+    this._jobPollTimer = setInterval(() => this.fetchJobOnce(jobId), 15000)
+  },
+
+  stopJobPolling() {
+    if (this._jobPollTimer) {
+      clearInterval(this._jobPollTimer)
+      this._jobPollTimer = null
+    }
+  },
+
+  async fetchJobOnce(jobId) {
+    try {
+      const job = await subscriptionService.getCrawlJob(jobId)
+      const eta = job.etaSeconds || 0
+      const etaText = eta < 60 ? `${eta} 秒` : `${Math.ceil(eta / 60)} 分钟`
+      this.setData({
+        jobBanner: {
+          visible: true,
+          jobId,
+          status: job.status,
+          progressPercent: job.progressPercent || 0,
+          completedTargets: job.completedTargets,
+          totalTargets: job.totalTargets,
+          campsFound: job.campsFound,
+          etaSeconds: eta,
+          etaText,
+          isSlowWarning: !!job.isSlowWarning,
+          emptyTargets: job.emptyTargets || []
+        }
+      })
+      if (job.status === 'completed' || job.status === 'failed') {
+        this.stopJobPolling()
+        wx.removeStorageSync('activeCrawlJobId')
+        // 完成后刷新首页"今日新机会"
+        this.refresh()
+        if (job.status === 'completed') {
+          setTimeout(() => this.setData({ 'jobBanner.collapsed': true }), 8000)
+        }
+      }
+    } catch (e) {
+      console.warn('[job poll]', e && e.message)
+    }
+  },
+
+  onCloseJobBanner() {
+    this.stopJobPolling()
+    wx.removeStorageSync('activeCrawlJobId')
+    this.setData({ jobBanner: { visible: false } })
+  },
+
+  onJobBannerEmptyFeedback(e) {
+    const { deptId, deptName } = e.currentTarget.dataset
+    const jobId = this.data.activeJobId
+    if (!jobId) return
+    wx.showActionSheet({
+      itemList: ['公告页地址错误', '该学院已发布但未抓到', '其他原因'],
+      success: (res) => {
+        const issueType = ['link_dead', 'crawl_missed', 'other'][res.tapIndex]
+        subscriptionService.submitCrawlJobFeedback(jobId, {
+          departmentId: deptId,
+          issueType
+        })
+          .then(() => wx.showToast({ title: '已收到反馈', icon: 'success' }))
+          .catch(() => wx.showToast({ title: '反馈失败', icon: 'none' }))
+      }
+    })
   },
 
   async refresh() {
@@ -78,15 +219,21 @@ Page({
     }
   },
 
+  // 前端 tab → 后端 action 映射
+  tabToAction(tab) {
+    if (tab === 'bookmarked') return 'interested'
+    if (tab === 'applied') return 'applied'
+    return 'undecided' // 'new' tab → 未操作过的
+  },
+
   async loadOpportunities() {
-    const action = this.data.activeTab
+    const action = this.tabToAction(this.data.activeTab)
     try {
       const resp = await assistantService.getOpportunities({ action, limit: 30 })
-      const list = (resp?.data || []).map(this.normalizeOpportunity)
+      const list = (resp?.data || []).map(this.normalizeOpportunity.bind(this))
 
-      // 统计
-      const [undecidedResp, interestedResp, appliedResp] = await Promise.all([
-        assistantService.getOpportunities({ action: 'undecided', limit: 1 }).catch(() => ({ total: 0 })),
+      // 统计：只关心收藏数 + 已申请数
+      const [bookmarkedResp, appliedResp] = await Promise.all([
         assistantService.getOpportunities({ action: 'interested', limit: 1 }).catch(() => ({ total: 0 })),
         assistantService.getOpportunities({ action: 'applied', limit: 1 }).catch(() => ({ total: 0 }))
       ])
@@ -95,15 +242,20 @@ Page({
 
       this.setData({
         opportunities: list,
+        deckIndex: 0,
+        swipeOffsetX: 0,
+        swipeOffsetY: 0,
+        swiping: false,
+        swipeFlying: '',
         stats: {
-          undecidedCount: undecidedResp.total || 0,
-          interestedCount: interestedResp.total || 0,
+          bookmarkedCount: bookmarkedResp.total || 0,
           appliedCount: appliedResp.total || 0,
           recommendCount
         },
-        emptyStateText: action === 'interested'
-          ? '还没有收藏的机会，发现感兴趣的点"感兴趣"即可'
-          : '今天没有新机会，明天再来看看'
+        emptyStateText:
+          this.data.activeTab === 'bookmarked' ? '还没有收藏的公告，右滑卡片或点⭐ 收藏'
+          : this.data.activeTab === 'applied' ? '还没有已申请的，看到合适的点"我已申请"标记'
+          : '今天没有新机会，订阅的院系有动静会自动出现在这里'
       })
     } catch (err) {
       this.setData({ opportunities: [] })
@@ -112,22 +264,50 @@ Page({
 
   normalizeOpportunity(raw) {
     const rec = RECOMMENDATION_MAP[raw.overallRecommendation] || RECOMMENDATION_MAP.reference
-    const allReqs = Array.isArray(raw.keyRequirements) ? raw.keyRequirements : []
-    const preview = allReqs.slice(0, 3).map(r => ({
-      requirement: r.requirement,
-      userMatch: r.userMatch,
-      icon: REQ_ICON_MAP[r.userMatch] || '?'
-    }))
+    // 匹配度文案 — 用户要求"不要纯数字"
+    const score = raw.matchScore || 0
+    let matchLabel = ''
+    let matchClass = ''
+    if (raw.overallRecommendation === 'recommend') {
+      matchLabel = '高度匹配你的档案'
+      matchClass = 'match-tag-recommend'
+    } else if (raw.overallRecommendation === 'reference') {
+      matchLabel = '部分匹配 · 可作为备选'
+      matchClass = 'match-tag-reference'
+    } else {
+      matchLabel = '与你方向不符'
+      matchClass = 'match-tag-skip'
+    }
+
+    // 过期状态
+    const deadlineInfo = this.formatDeadlineCompact(raw.extractedDeadline)
 
     return {
       ...raw,
       recommendationIcon: rec.icon,
       recommendationText: rec.text,
       recommendationClass: rec.cls,
-      keyRequirementsPreview: preview,
-      keyRequirementsMore: Math.max(0, allReqs.length - 3),
-      deadlineText: this.formatDeadline(raw.extractedDeadline)
+      matchLabel,
+      matchClass,
+      matchScoreShort: score,
+      deadlineText: deadlineInfo.text,
+      deadlineUrgent: deadlineInfo.urgent,
+      deadlineExpired: deadlineInfo.expired
     }
+  },
+
+  // 探探卡只关心"过期 / 紧迫 / 普通"三态
+  formatDeadlineCompact(iso) {
+    if (!iso) return { text: '截止日期未知', urgent: false, expired: false }
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return { text: '截止日期未知', urgent: false, expired: false }
+    const diff = d.getTime() - Date.now()
+    const days = Math.ceil(diff / 86400000)
+    const m = d.getMonth() + 1, dd = d.getDate()
+    if (days < 0) return { text: `已过期（${m}月${dd}日截止）`, urgent: false, expired: true }
+    if (days === 0) return { text: `今日截止 · ${m}月${dd}日`, urgent: true, expired: false }
+    if (days <= 7) return { text: `剩 ${days} 天 · ${m}月${dd}日截止 🔥`, urgent: true, expired: false }
+    return { text: `剩 ${days} 天 · ${m}月${dd}日截止`, urgent: false, expired: false }
   },
 
   formatDeadline(iso) {
@@ -153,8 +333,8 @@ Page({
   },
 
   onTapStat(e) {
-    const action = e.currentTarget.dataset.action
-    this.setData({ activeTab: action === 'applied' ? 'interested' : action }, () => this.loadOpportunities())
+    const tab = e.currentTarget.dataset.tab
+    this.setData({ activeTab: tab }, () => this.loadOpportunities())
   },
 
   onTapMatch(e) {
@@ -162,25 +342,202 @@ Page({
     wx.navigateTo({ url: `/packageAssistant/pages/match-detail/index?id=${id}` })
   },
 
-  async onActionInterested(e) {
+  // ============ 主操作：收藏 / 已申请 / 隐藏 ============
+  async onActionBookmark(e) {
     const id = e.currentTarget.dataset.id
     try {
       await assistantService.updateAction(id, 'interested')
-      wx.showToast({ title: '已收藏', icon: 'success' })
+      wx.showToast({ title: '已收藏 · 截止前会提醒你', icon: 'success', duration: 1800 })
       this.loadOpportunities()
     } catch (err) {
       wx.showToast({ title: '操作失败', icon: 'none' })
     }
   },
 
-  async onActionSkip(e) {
+  async onActionApplied(e) {
     const id = e.currentTarget.dataset.id
     try {
-      await assistantService.updateAction(id, 'skipped')
+      await assistantService.updateAction(id, 'applied')
+      wx.showToast({ title: '已标记为已申请', icon: 'success' })
       this.loadOpportunities()
     } catch (err) {
       wx.showToast({ title: '操作失败', icon: 'none' })
     }
+  },
+
+  async onActionHide(e) {
+    const id = e.currentTarget.dataset.id
+    try {
+      await assistantService.updateAction(id, 'hidden')
+      this.loadOpportunities()
+    } catch (err) {
+      wx.showToast({ title: '操作失败', icon: 'none' })
+    }
+  },
+
+  // ============ 探探叠加卡：左右滑 + 飞出动画 ============
+  _touchStartX: 0,
+  _touchStartY: 0,
+  _swipeBusy: false, // 飞出动画期间冻结手势
+
+  onDeckTouchStart(e) {
+    if (this._swipeBusy) return
+    this._touchStartX = e.touches[0].clientX
+    this._touchStartY = e.touches[0].clientY
+    this.setData({ swiping: true })
+  },
+
+  onDeckTouchMove(e) {
+    if (this._swipeBusy || !this.data.swiping) return
+    const dx = e.touches[0].clientX - this._touchStartX
+    const dy = e.touches[0].clientY - this._touchStartY
+    // 垂直占优时不响应（留给页面滚动）
+    if (Math.abs(dy) > Math.abs(dx) * 1.5) return
+    this.setData({ swipeOffsetX: dx, swipeOffsetY: dy * 0.3 })
+  },
+
+  onDeckTouchEnd() {
+    if (this._swipeBusy) return
+    const { swipeOffsetX, SWIPE_TRIGGER, deckIndex, opportunities } = this.data
+    const current = opportunities[deckIndex]
+
+    if (!current) {
+      this.setData({ swipeOffsetX: 0, swipeOffsetY: 0, swiping: false })
+      return
+    }
+
+    if (swipeOffsetX >= SWIPE_TRIGGER) {
+      this.flyAway('right', current)
+    } else if (swipeOffsetX <= -SWIPE_TRIGGER) {
+      this.flyAway('left', current)
+    } else {
+      // 不够阈值 → 回弹
+      this.setData({ swipeOffsetX: 0, swipeOffsetY: 0, swiping: false })
+    }
+  },
+
+  flyAway(direction, card) {
+    this._swipeBusy = true
+    this.setData({ swipeFlying: direction, swiping: false })
+    const hiddenIndex = this.data.deckIndex
+    setTimeout(() => {
+      const action = direction === 'right' ? 'interested' : 'hidden'
+      assistantService.updateAction(card.id, action).catch(() => null)
+      if (direction === 'right') {
+        wx.showToast({ title: '已收藏 · 截止前会提醒', icon: 'success', duration: 1200 })
+      }
+      // 推进到下一张
+      this.setData({
+        deckIndex: this.data.deckIndex + 1,
+        swipeOffsetX: 0,
+        swipeOffsetY: 0,
+        swipeFlying: ''
+      })
+      this._swipeBusy = false
+
+      // 左滑（隐藏）触发可撤销 Toast
+      if (direction === 'left') {
+        this.showUndoBanner(card, hiddenIndex)
+      }
+    }, 320)
+  },
+
+  // ============ 撤销 Toast ============
+  _undoTimer: null,
+  _undoCountdownTimer: null,
+
+  showUndoBanner(card, originalIndex) {
+    this.clearUndoTimers()
+    this.setData({
+      undoVisible: true,
+      undoCard: card,
+      undoCardIndex: originalIndex,
+      undoCountdown: 5
+    })
+    // 倒计时秒数显示
+    this._undoCountdownTimer = setInterval(() => {
+      const next = this.data.undoCountdown - 1
+      if (next <= 0) {
+        this.dismissUndoBanner()
+      } else {
+        this.setData({ undoCountdown: next })
+      }
+    }, 1000)
+    // 兜底关闭（5s 后无操作自动消失）
+    this._undoTimer = setTimeout(() => this.dismissUndoBanner(), 5200)
+  },
+
+  clearUndoTimers() {
+    if (this._undoTimer) { clearTimeout(this._undoTimer); this._undoTimer = null }
+    if (this._undoCountdownTimer) { clearInterval(this._undoCountdownTimer); this._undoCountdownTimer = null }
+  },
+
+  dismissUndoBanner() {
+    this.clearUndoTimers()
+    this.setData({ undoVisible: false, undoCard: null })
+  },
+
+  // 点击撤销
+  async onUndoHide() {
+    const card = this.data.undoCard
+    const idx = this.data.undoCardIndex
+    if (!card) return
+    this.clearUndoTimers()
+    this.setData({ undoVisible: false, undoCard: null })
+
+    try {
+      // 1) 后端：reset → 清空 userAction，公告回到"新机会"列表
+      await assistantService.updateAction(card.id, 'reset')
+    } catch (e) {
+      // 即使后端失败，前端也回插一张让用户看到
+    }
+
+    // 2) 前端：把卡片重新插回到 opportunities 数组的 deckIndex 位置
+    //    并把 deckIndex 退回去一格，下一次渲染时就显示这张卡
+    const list = this.data.opportunities.slice()
+    const insertAt = Math.min(idx, list.length)
+    list.splice(insertAt, 0, card)
+    this.setData({
+      opportunities: list,
+      deckIndex: insertAt
+    })
+    wx.showToast({ title: '已恢复', icon: 'success', duration: 1000 })
+  },
+
+  onTapCurrentCard() {
+    // 必须没在滑动才算 tap
+    if (this.data.swiping || Math.abs(this.data.swipeOffsetX) > 6) return
+    const { opportunities, deckIndex } = this.data
+    const card = opportunities[deckIndex]
+    if (!card) return
+    wx.navigateTo({ url: `/packageAssistant/pages/match-detail/index?id=${card.id}` })
+  },
+
+  // 卡片底部按钮 - 同样推进下一张
+  async onDeckActionBookmark() {
+    const card = this.data.opportunities[this.data.deckIndex]
+    if (!card || this._swipeBusy) return
+    this.flyAway('right', card)
+  },
+
+  async onDeckActionApplied() {
+    const card = this.data.opportunities[this.data.deckIndex]
+    if (!card || this._swipeBusy) return
+    this._swipeBusy = true
+    try {
+      await assistantService.updateAction(card.id, 'applied')
+      wx.showToast({ title: '已标记为已申请', icon: 'success' })
+      this.setData({ deckIndex: this.data.deckIndex + 1, swipeOffsetX: 0, swipeOffsetY: 0 })
+    } catch (e) {
+      wx.showToast({ title: '操作失败', icon: 'none' })
+    } finally {
+      this._swipeBusy = false
+    }
+  },
+
+  // 用户想"看完所有"，再加载下一批（这里简单刷新）
+  onDeckExhausted() {
+    this.loadOpportunities()
   },
 
   noop() {},

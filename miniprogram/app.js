@@ -24,22 +24,44 @@ App({
   },
   
   initGlobalData() {
+    // ============ 环境切换开关 ============
+    // 本地预览：true  → http://localhost:3000/api/v1
+    // 发布生产：false → https://baoyanwang-helper.cn/api/v1
+    // ⚠️ 上线前务必改为 false
+    const USE_LOCAL_BACKEND = false
+    const LOCAL_BACKEND_URL = 'http://localhost:3000/api/v1'
+    const PROD_BACKEND_URL = 'https://baoyanwang-helper.cn/api/v1'
+    // ====================================
+
     const savedApiBaseUrl = wx.getStorageSync('apiBaseUrl')
     const isLegacyInvalidDomain = typeof savedApiBaseUrl === 'string' && (
       savedApiBaseUrl.indexOf('api.baoyan.com') > -1 ||
-      savedApiBaseUrl.indexOf('tcb.qcloud.la') > -1
+      savedApiBaseUrl.indexOf('tcb.qcloud.la') > -1 ||
+      savedApiBaseUrl.indexOf('localhost') > -1 ||
+      savedApiBaseUrl.indexOf('127.0.0.1') > -1
     )
-    // v0.2 本地开发：默认指向本地后端
-    // 生产部署时改回 'https://baoyanwang-helper.cn/api/v1'
-    const resolvedApiBaseUrl = (!savedApiBaseUrl || isLegacyInvalidDomain)
-      ? 'http://localhost:3000/api/v1'
-      : savedApiBaseUrl
+
+    let resolvedApiBaseUrl
+    if (USE_LOCAL_BACKEND) {
+      resolvedApiBaseUrl = LOCAL_BACKEND_URL
+      try { wx.setStorageSync('apiBaseUrl', LOCAL_BACKEND_URL) } catch (e) {}
+      console.log('[环境] 使用本地后端:', LOCAL_BACKEND_URL)
+    } else {
+      // 生产模式：如果本地缓存的是 localhost/旧域名，强制覆盖为生产域名
+      if (isLegacyInvalidDomain || !savedApiBaseUrl) {
+        resolvedApiBaseUrl = PROD_BACKEND_URL
+        try { wx.setStorageSync('apiBaseUrl', PROD_BACKEND_URL) } catch (e) {}
+      } else {
+        resolvedApiBaseUrl = savedApiBaseUrl
+      }
+    }
+
     this.globalData = {
       userInfo: null,
       token: '',
       isLoggedIn: false,
-      // 默认使用已在开发者工具配置的合法域名，可通过 wx.setStorageSync('apiBaseUrl', '...') 覆盖
-      apiBaseUrl: resolvedApiBaseUrl
+      apiBaseUrl: resolvedApiBaseUrl,
+      isLocalDev: USE_LOCAL_BACKEND
     }
   },
   

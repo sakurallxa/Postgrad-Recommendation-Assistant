@@ -1,73 +1,122 @@
 <view class="page">
+  <!-- 按需抓取作业进度 banner -->
+  <view wx:if="{{jobBanner.visible && !jobBanner.collapsed}}" class="job-banner job-banner-{{jobBanner.status}} {{jobBanner.isSlowWarning ? 'job-banner-slow' : ''}}">
+    <view class="job-banner-head">
+      <text class="job-banner-title">
+        <block wx:if="{{jobBanner.status === 'running' || jobBanner.status === 'queued' || jobBanner.status === 'loading'}}">🔄 正在为你抓取公告</block>
+        <block wx:elif="{{jobBanner.status === 'completed'}}">✅ 抓取完成</block>
+        <block wx:elif="{{jobBanner.status === 'failed'}}">⚠️ 抓取失败</block>
+      </text>
+      <view class="job-banner-close" bindtap="onCloseJobBanner">×</view>
+    </view>
+
+    <block wx:if="{{jobBanner.status === 'running' || jobBanner.status === 'queued' || jobBanner.status === 'loading'}}">
+      <view class="job-banner-progress">
+        <view class="job-banner-bar"><view class="job-banner-fill" style="width: {{jobBanner.progressPercent}}%"></view></view>
+        <text class="job-banner-num">{{jobBanner.completedTargets}}/{{jobBanner.totalTargets}}</text>
+      </view>
+      <text class="job-banner-eta" wx:if="{{jobBanner.etaSeconds > 0 && !jobBanner.isSlowWarning}}">预计还需 {{jobBanner.etaText}}</text>
+      <text class="job-banner-eta job-banner-slow-text" wx:if="{{jobBanner.isSlowWarning}}">抓取较慢，可继续等待或先看其他内容</text>
+    </block>
+
+    <block wx:elif="{{jobBanner.status === 'completed'}}">
+      <text class="job-banner-summary">共抓到 {{jobBanner.campsFound}} 条公告</text>
+      <view wx:if="{{jobBanner.emptyTargets.length > 0}}" class="job-banner-empty-list">
+        <view class="job-banner-empty-head">⚠ 以下 {{jobBanner.emptyTargets.length}} 个学院未抓到近期公告：</view>
+        <view
+          wx:for="{{jobBanner.emptyTargets}}"
+          wx:key="departmentId"
+          class="job-banner-empty-row"
+          data-dept-id="{{item.departmentId}}"
+          data-dept-name="{{item.departmentName}}"
+          bindtap="onJobBannerEmptyFeedback"
+        >
+          <text class="job-banner-empty-name">{{item.departmentName}}</text>
+          <text class="job-banner-empty-action">反馈 ›</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
   <!-- 顶部欢迎 -->
   <view class="hero">
     <view class="hero-title">你好，保研er 👋</view>
     <view class="hero-subtitle">
-      <text wx:if="{{!hasSubscription}}">先选 3-5 所目标校，我来帮你盯紧新机会</text>
+      <text wx:if="{{!hasSubscription}}">AI 帮你盯紧夏令营和预推免公告</text>
       <text wx:elif="{{stats.recommendCount > 0}}">为你筛出 {{stats.recommendCount}} 个高匹配机会</text>
-      <text wx:else>暂时还没有新机会，提交一个公告 URL 试试 AI 助理？</text>
+      <text wx:else>暂时还没有新机会，订阅的院系有动静会自动出现</text>
     </view>
   </view>
 
+  <!-- ============ 未订阅引导：欢迎页 ============ -->
+  <block wx:if="{{!hasSubscription}}">
+    <view class="welcome-card">
+      <view class="welcome-title">3 步开始你的保研追踪</view>
+      <view class="welcome-sub">登录后免费使用 · 数据云端同步</view>
+
+      <view class="welcome-step" bindtap="onTapGuideProfile">
+        <view class="welcome-step-num {{hasProfile ? 'done' : ''}}">{{hasProfile ? '✓' : '1'}}</view>
+        <view class="welcome-step-body">
+          <view class="welcome-step-title">填写个人档案</view>
+          <view class="welcome-step-desc">告诉 AI 你的 GPA、专业、目标方向 · AI 才能精准匹配</view>
+        </view>
+        <view class="welcome-step-arrow">›</view>
+      </view>
+
+      <view class="welcome-step" bindtap="onTapGuideSelector">
+        <view class="welcome-step-num">2</view>
+        <view class="welcome-step-body">
+          <view class="welcome-step-title">选择目标院校（最多 5 个）</view>
+          <view class="welcome-step-desc">从 39 所 985 中选定你的目标 · 系统点对点抓取这些学院的公告</view>
+        </view>
+        <view class="welcome-step-arrow">›</view>
+      </view>
+
+      <view class="welcome-step welcome-step-passive">
+        <view class="welcome-step-num">3</view>
+        <view class="welcome-step-body">
+          <view class="welcome-step-title">坐等推送 + 截止提醒</view>
+          <view class="welcome-step-desc">AI 自动抓取并匹配你的档案 · 截止前 7/3/1 天微信推送</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="welcome-secondary" bindtap="onTapGuideSubmitUrl">
+      <view class="welcome-secondary-icon">🔗</view>
+      <view class="welcome-secondary-text">
+        <view class="welcome-secondary-title">先试试 AI 助理</view>
+        <view class="welcome-secondary-desc">贴一条公告 URL，看 AI 怎么帮你判断匹配度</view>
+      </view>
+      <view class="welcome-secondary-arrow">›</view>
+    </view>
+  </block>
+
+  <!-- ============ 已订阅：完整 feed ============ -->
   <!-- 概览数据条 -->
   <view class="stats-row" wx:if="{{hasSubscription}}">
-    <view class="stat-item" bindtap="onTapStat" data-action="undecided">
-      <view class="stat-value">{{stats.undecidedCount}}</view>
-      <view class="stat-label">待决策</view>
+    <view class="stat-item" bindtap="onTapStat" data-tab="bookmarked">
+      <view class="stat-value stat-value-success">⭐ {{stats.bookmarkedCount}}</view>
+      <view class="stat-label">我的收藏</view>
     </view>
     <view class="stat-divider"></view>
-    <view class="stat-item" bindtap="onTapStat" data-action="interested">
-      <view class="stat-value stat-value-success">{{stats.interestedCount}}</view>
-      <view class="stat-label">感兴趣</view>
-    </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item" bindtap="onTapStat" data-action="applied">
-      <view class="stat-value stat-value-primary">{{stats.appliedCount}}</view>
+    <view class="stat-item" bindtap="onTapStat" data-tab="applied">
+      <view class="stat-value stat-value-primary">✓ {{stats.appliedCount}}</view>
       <view class="stat-label">已申请</view>
     </view>
   </view>
 
-  <!-- 引导：未订阅院系 -->
-  <view wx:if="{{!hasSubscription || !hasProfile}}" class="onboarding-card">
-    <view class="onboarding-step {{hasProfile ? 'completed' : ''}}">
-      <view class="onboarding-icon-wrap">
-        <view class="onboarding-icon" wx:if="{{!hasProfile}}">🎯</view>
-        <view class="onboarding-check" wx:else>✓</view>
-      </view>
-      <view class="onboarding-step-title">第 1 步 · 填写档案 {{hasProfile ? '· 已完成' : ''}}</view>
-      <view class="onboarding-step-desc">
-        <text wx:if="{{!hasProfile}}">告诉 AI 你的 GPA、专业、目标方向</text>
-        <text wx:else>档案完整度 {{profileCompleteness}}%，可点击修改</text>
-      </view>
-      <button class="onboarding-btn" bindtap="goProfile">
-        {{hasProfile ? '修改档案' : '填写档案'}}
-      </button>
+  <!-- 已订阅但未填档案的轻量提示 -->
+  <view wx:if="{{hasSubscription && !hasProfile}}" class="profile-nudge" bindtap="onTapGuideProfile">
+    <text class="profile-nudge-icon">🎯</text>
+    <view class="profile-nudge-text">
+      <view class="profile-nudge-title">补充档案，匹配更准</view>
+      <view class="profile-nudge-desc">还差 GPA、英语、目标方向就完整</view>
     </view>
-    <view class="onboarding-step {{hasSubscription ? 'completed' : ''}}">
-      <view class="onboarding-icon-wrap">
-        <view class="onboarding-icon" wx:if="{{!hasSubscription}}">🏫</view>
-        <view class="onboarding-check" wx:else>✓</view>
-      </view>
-      <view class="onboarding-step-title">第 2 步 · 选择目标校 {{hasSubscription ? '· 已完成' : ''}}</view>
-      <view class="onboarding-step-desc">
-        <text wx:if="{{!hasSubscription}}">从 39 所 985 中选你的目标 · 推荐 3-5 所</text>
-        <text wx:else>已订阅 {{subscribedCount}} 个院系，可点击调整</text>
-      </view>
-      <button class="onboarding-btn" bindtap="goSelector">
-        {{hasSubscription ? '调整订阅' : '选择院系'}}
-      </button>
-    </view>
-    <view class="onboarding-step">
-      <view class="onboarding-icon-wrap">
-        <view class="onboarding-icon">✨</view>
-      </view>
-      <view class="onboarding-step-title">第 3 步 · 享受智能筛选</view>
-      <view class="onboarding-step-desc">AI 每天扫一遍，匹配你才推送（v0.3 上线）</view>
-    </view>
+    <text class="profile-nudge-arrow">›</text>
   </view>
 
-  <!-- 提交URL测试入口（始终显示，灰度阶段） -->
-  <view class="submit-url-card" bindtap="goSubmitUrl">
+  <!-- 提交URL测试入口（已订阅时也保留） -->
+  <view wx:if="{{hasSubscription}}" class="submit-url-card" bindtap="onTapGuideSubmitUrl">
     <view class="submit-url-icon">🔗</view>
     <view class="submit-url-text">
       <view class="submit-url-title">手动测试 AI 助理</view>
@@ -76,84 +125,125 @@
     <view class="submit-url-arrow">›</view>
   </view>
 
-  <!-- 列表 Tab 切换 -->
-  <view class="tab-bar" wx:if="{{hasSubscription || opportunities.length > 0}}">
+  <!-- 列表 Tab 切换：只在已订阅时显示 -->
+  <view class="tab-bar" wx:if="{{hasSubscription}}">
     <view
-      class="tab-item {{activeTab === 'undecided' ? 'active' : ''}}"
-      data-tab="undecided"
+      class="tab-item {{activeTab === 'new' ? 'active' : ''}}"
+      data-tab="new"
       bindtap="onSwitchTab"
-    >今日新机会</view>
+    >新机会</view>
     <view
-      class="tab-item {{activeTab === 'interested' ? 'active' : ''}}"
-      data-tab="interested"
+      class="tab-item {{activeTab === 'bookmarked' ? 'active' : ''}}"
+      data-tab="bookmarked"
       bindtap="onSwitchTab"
-    >已收藏</view>
+    >⭐ 我的收藏</view>
+    <view
+      class="tab-item {{activeTab === 'applied' ? 'active' : ''}}"
+      data-tab="applied"
+      bindtap="onSwitchTab"
+    >✓ 已申请</view>
   </view>
 
-  <!-- 机会卡片列表 -->
-  <view class="match-list" wx:if="{{opportunities.length > 0}}">
+  <!-- ============ 新机会 tab：探探式叠加卡（已订阅时才显示）============ -->
+  <block wx:if="{{hasSubscription && activeTab === 'new' && opportunities.length > deckIndex}}">
+    <view class="swipe-hint">💡 右滑收藏 · 左滑不感兴趣 · 点击看详情</view>
+    <view class="deck-container">
+      <!-- 背景两张（下一张+下下张），向上偏移，露出上沿 + 学校名预览 -->
+      <view
+        class="deck-card deck-card-back2"
+        wx:if="{{opportunities[deckIndex + 2]}}"
+      >
+        <view class="deck-peek-univ">{{opportunities[deckIndex + 2].camp.universityName}}</view>
+      </view>
+      <view
+        class="deck-card deck-card-back1"
+        wx:if="{{opportunities[deckIndex + 1]}}"
+      >
+        <view class="deck-peek-univ">{{opportunities[deckIndex + 1].camp.universityName}}</view>
+        <view class="deck-peek-title">{{opportunities[deckIndex + 1].camp.title}}</view>
+      </view>
+
+      <!-- 顶层（可交互）-->
+      <view
+        class="deck-card deck-card-top {{swipeFlying ? 'deck-flying-' + swipeFlying : ''}}"
+        style="transform: translate({{swipeOffsetX}}px, {{swipeOffsetY}}px) rotate({{swipeOffsetX * 0.06}}deg);"
+        bindtouchstart="onDeckTouchStart"
+        bindtouchmove="onDeckTouchMove"
+        bindtouchend="onDeckTouchEnd"
+        bindtouchcancel="onDeckTouchEnd"
+        bindtap="onTapCurrentCard"
+      >
+        <!-- 滑动方向蒙层提示 -->
+        <view class="swipe-overlay swipe-overlay-right" style="opacity: {{swipeOffsetX > 0 ? swipeOffsetX / 100 : 0}};">⭐ 收藏</view>
+        <view class="swipe-overlay swipe-overlay-left" style="opacity: {{swipeOffsetX < 0 ? -swipeOffsetX / 100 : 0}};">🙈 不感兴趣</view>
+
+        <!-- 匹配度大标签 -->
+        <view class="deck-match-tag {{opportunities[deckIndex].matchClass}}">
+          <text class="deck-match-label">{{opportunities[deckIndex].matchLabel}}</text>
+          <text class="deck-match-score">匹配度 {{opportunities[deckIndex].matchScoreShort}}%</text>
+        </view>
+
+        <!-- 学校 + 院系 -->
+        <view class="deck-affil">
+          <text class="deck-univ">{{opportunities[deckIndex].camp.universityName}}</text>
+          <text wx:if="{{opportunities[deckIndex].camp.departmentName}}" class="deck-dept">· {{opportunities[deckIndex].camp.departmentName}}</text>
+        </view>
+
+        <!-- 公告标题（卡片主视觉） -->
+        <view class="deck-title">{{opportunities[deckIndex].camp.title}}</view>
+
+        <!-- 过期/截止状态 -->
+        <view class="deck-deadline {{opportunities[deckIndex].deadlineExpired ? 'deck-deadline-expired' : opportunities[deckIndex].deadlineUrgent ? 'deck-deadline-urgent' : ''}}">
+          {{opportunities[deckIndex].deadlineText}}
+        </view>
+
+        <!-- 点击提示 -->
+        <view class="deck-tap-hint">点击查看完整匹配分析 ›</view>
+
+        <!-- 底部按钮（备选交互）-->
+        <view class="deck-actions" catchtap="noop">
+          <view class="deck-action-btn" bindtap="onDeckActionBookmark">⭐ 收藏</view>
+          <view class="deck-action-btn deck-action-primary" bindtap="onDeckActionApplied">✓ 我已申请</view>
+        </view>
+      </view>
+
+      <!-- 剩余张数提示 -->
+      <view class="deck-counter">还有 {{opportunities.length - deckIndex - 1}} 张</view>
+    </view>
+  </block>
+
+  <!-- ============ 已收藏 / 已申请 tab：精简列表 ============ -->
+  <view class="simple-list" wx:elif="{{hasSubscription && (activeTab === 'bookmarked' || activeTab === 'applied') && opportunities.length > 0}}">
     <view
-      class="match-card"
+      class="simple-card"
       wx:for="{{opportunities}}"
       wx:key="id"
       bindtap="onTapMatch"
       data-id="{{item.id}}"
     >
-      <!-- 顶部：推荐标签 + 学校 -->
-      <view class="match-head">
-        <view class="match-recommendation {{item.recommendationClass}}">
-          <text class="match-recommendation-icon">{{item.recommendationIcon}}</text>
-          <text class="match-recommendation-text">{{item.recommendationText}}</text>
+      <view class="simple-card-head">
+        <view class="deck-match-tag {{item.matchClass}} simple-match-tag">
+          <text>{{item.matchLabel}}</text>
         </view>
-        <view class="match-score" wx:if="{{item.matchScore != null}}">
-          <text class="match-score-value">{{item.matchScore}}</text>
-          <text class="match-score-unit">%</text>
-        </view>
+        <text class="simple-score">匹配度 {{item.matchScoreShort}}%</text>
       </view>
-
-      <!-- 学校院系 -->
-      <view class="match-affil">
-        <text class="match-univ">{{item.camp.universityName}}</text>
-        <text wx:if="{{item.camp.departmentName}}" class="match-dept">· {{item.camp.departmentName}}</text>
+      <view class="simple-affil">
+        <text>{{item.camp.universityName}}</text>
+        <text wx:if="{{item.camp.departmentName}}"> · {{item.camp.departmentName}}</text>
       </view>
-
-      <!-- 标题 -->
-      <view class="match-title">{{item.camp.title}}</view>
-
-      <!-- AI 摘要 -->
-      <view class="match-summary" wx:if="{{item.extractedSummary}}">{{item.extractedSummary}}</view>
-
-      <!-- 关键要求（前2-3条） -->
-      <view class="req-list" wx:if="{{item.keyRequirementsPreview.length > 0}}">
-        <view
-          class="req-item"
-          wx:for="{{item.keyRequirementsPreview}}"
-          wx:for-item="req"
-          wx:key="index"
-        >
-          <text class="req-icon req-icon-{{req.userMatch}}">{{req.icon}}</text>
-          <text class="req-text">{{req.requirement}}</text>
-        </view>
-        <view wx:if="{{item.keyRequirementsMore > 0}}" class="req-more">
-          还有 {{item.keyRequirementsMore}} 项 ›
-        </view>
-      </view>
-
-      <!-- 底部：截止 + 操作 -->
-      <view class="match-foot">
-        <view class="match-deadline" wx:if="{{item.deadlineText}}">
-          <text class="match-deadline-icon">⏰</text>
-          <text class="match-deadline-text">{{item.deadlineText}}</text>
-        </view>
-        <view class="match-actions" catchtap="noop">
-          <view class="match-action-btn" data-id="{{item.id}}" bindtap="onActionSkip">跳过</view>
-          <view class="match-action-btn match-action-primary" data-id="{{item.id}}" bindtap="onActionInterested">
-            <text wx:if="{{item.userAction !== 'interested'}}">感兴趣</text>
-            <text wx:else>已收藏</text>
-          </view>
-        </view>
+      <view class="simple-title">{{item.camp.title}}</view>
+      <view class="simple-deadline {{item.deadlineExpired ? 'deck-deadline-expired' : item.deadlineUrgent ? 'deck-deadline-urgent' : ''}}">
+        {{item.deadlineText}}
       </view>
     </view>
+  </view>
+
+  <!-- 新机会全部刷完 -->
+  <view wx:elif="{{hasSubscription && activeTab === 'new' && opportunities.length > 0 && deckIndex >= opportunities.length}}" class="deck-done">
+    <view class="deck-done-icon">🎉</view>
+    <view class="deck-done-title">这批公告看完啦</view>
+    <view class="deck-done-sub">在「⭐ 我的收藏」里查看你已经收藏的 {{stats.bookmarkedCount}} 个</view>
+    <view class="deck-done-btn" bindtap="onDeckExhausted">再来一批</view>
   </view>
 
   <!-- 空状态 -->
@@ -161,10 +251,11 @@
     <view class="empty-state-icon">🔍</view>
     <view class="empty-state-text">{{emptyStateText}}</view>
     <view class="empty-state-sub">
-      <text wx:if="{{activeTab === 'undecided'}}">爬虫 v0.3 上线后会自动监控你订阅的 {{subscribedCount}} 个院系</text>
-      <text wx:else>发现机会后点"感兴趣"加入收藏</text>
+      <text wx:if="{{activeTab === 'new'}}">订阅的 {{subscribedCount}} 个院系有新公告会自动出现</text>
+      <text wx:elif="{{activeTab === 'bookmarked'}}">在"新机会"里右滑卡片或点 ⭐ 收藏 即可</text>
+      <text wx:else>看到合适的点"我已申请"标记进度</text>
     </view>
-    <view class="empty-state-action" bindtap="goSubmitUrl" wx:if="{{activeTab === 'undecided'}}">
+    <view class="empty-state-action" bindtap="goSubmitUrl" wx:if="{{activeTab === 'new'}}">
       或者手动贴一个公告 URL 让 AI 立刻分析 →
     </view>
   </view>
@@ -173,5 +264,15 @@
   <view wx:if="{{loading}}" class="loading-state">
     <view class="skeleton skeleton-card"></view>
     <view class="skeleton skeleton-card"></view>
+  </view>
+
+  <!-- 撤销 Toast (左滑隐藏后 5 秒可撤销) -->
+  <view wx:if="{{undoVisible}}" class="undo-toast">
+    <view class="undo-toast-icon">🙈</view>
+    <view class="undo-toast-text">
+      <view class="undo-toast-title">已隐藏一张公告</view>
+      <view class="undo-toast-sub">{{undoCountdown}} 秒后消失</view>
+    </view>
+    <view class="undo-toast-btn" bindtap="onUndoHide">撤销</view>
   </view>
 </view>

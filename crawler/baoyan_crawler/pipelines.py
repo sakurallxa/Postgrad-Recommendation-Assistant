@@ -256,7 +256,7 @@ class DatabasePipeline:
 
     def _to_backend_item(self, item, spider) -> Dict[str, Any]:
         now_iso = datetime.utcnow().isoformat()
-        return {
+        payload = {
             'title': (item.get('title') or '').strip(),
             'announcementType': item.get('announcement_type') or 'summer_camp',
             'subType': item.get('sub_type') or 'specific',
@@ -276,6 +276,12 @@ class DatabasePipeline:
             'crawlTime': now_iso,
             'spiderName': spider.name,
         }
+        # v0.3 按需点对点抓取归因
+        if item.get('department_id'):
+            payload['departmentId'] = item.get('department_id')
+        if item.get('crawl_job_id'):
+            payload['crawlJobId'] = item.get('crawl_job_id')
+        return payload
 
     def _dedupe_key(self, item: Dict[str, Any]) -> Tuple[str, str]:
         return (

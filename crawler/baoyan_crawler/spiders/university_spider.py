@@ -277,11 +277,15 @@ class UniversitySpider(scrapy.Spider):
         ),
     }
     
-    def __init__(self, university_id=None, priority=None, year_span=3, **kwargs):
+    def __init__(self, university_id=None, priority=None, year_span=3,
+                 dept_ids=None, job_id=None, **kwargs):
         """
         初始化爬虫
-        :param university_id: 指定院校ID
+        :param university_id: 指定院校ID (逗号分隔)
         :param priority: 指定优先级(P0/P1/P2/P3)
+        :param dept_ids: 按需点对点抓取的 department.id 列表 (逗号分隔)
+                         传了 dept_ids 就只抓这些学院（学校级 fallback 关闭）
+        :param job_id: 关联的 CrawlJob.id，用于后端归因/heartbeat
         """
         super().__init__(**kwargs)
         self.university_id = university_id
@@ -291,6 +295,16 @@ class UniversitySpider(scrapy.Spider):
             if item and item.strip()
         }
         self.priority = priority
+        # 按需点对点模式：只抓指定院系
+        self.dept_targets = [
+            item.strip()
+            for item in (dept_ids or '').split(',')
+            if item and item.strip()
+        ]
+        self.job_id = (job_id or '').strip()
+        self.is_ondemand_mode = bool(self.dept_targets)
+        # 按需模式下：跑完就退出，不做长跑批处理
+        self.department_meta = {}  # dept_id -> {homepage, noticeUrl, universityName, universityId, name}
         try:
             parsed_span = int(year_span)
         except (TypeError, ValueError):
@@ -465,17 +479,60 @@ class UniversitySpider(scrapy.Spider):
         
     def start_requests(self):
         """生成初始请求"""
-        # 从数据库或配置加载院校列表
+        # ============= 按需点对点模式 =============
+        if self.is_ondemand_mode:
+            self.logger.info(
+                f"按需模式启动: dept_ids={self.dept_targets} job_id={self.job_id}"
+            )
+            departments = self.fetch_departments_by_ids(self.dept_targets)
+            self.batch_summary['plannedDeptCount'] = len(departments)
+            self.batch_summary['mode'] = 'ondemand'
+            self.batch_summary['jobId'] = self.job_id
+
+            for dept in departments:
+                urls = self.build_dept_urls(dept)
+                self.logger.info(
+                    f"  ↳ {dept.get('universityName')}/{dept.get('name')}: {len(urls)} entry"
+                )
+                # 把 dept 信息缓存供 pipeline 用
+                self.department_meta[dept['id']] = dept
+                # 模拟一个 university 上下文塞 meta（兼容现有 parse_list 流程）
+                pseudo_uni = {
+                    'id': dept.get('universityId') or '',
+                    'name': dept.get('universityName') or '',
+                    'slug': dept.get('schoolSlug') or '',
+                    'website': dept.get('homepage') or '',
+                    'grad_website': dept.get('homepage') or '',
+                    'priority': 'P0',
+                    'entry_points': urls,
+                    'strict_entry_points': True,
+                    '_dept_id': dept['id'],
+                }
+                for url_info in urls:
+                    yield scrapy.Request(
+                        url=url_info['url'],
+                        callback=self.parse_list,
+                        meta={
+                            'university': pseudo_uni,
+                            'department_id': dept['id'],
+                            'url_type': url_info['type'],
+                            'depth': 0,
+                            'stage': 'list',
+                        },
+                        errback=self.handle_error,
+                    )
+            return
+
+        # ============= 老的全量模式 =============
         universities = self.load_universities()
         self.batch_summary['plannedUniversityCount'] = len(universities)
-        
+
         for uni in universities:
-            # 构建研究生院招生信息页面URL
             urls = self.build_urls(uni)
             school = self.get_school_summary(uni)
             school['plannedEntryCount'] = len(urls)
             school['plannedEntryUrls'] = [item['url'] for item in urls[:20]]
-            
+
             for url_info in urls:
                 yield scrapy.Request(
                     url=url_info['url'],
@@ -619,7 +676,51 @@ class UniversitySpider(scrapy.Spider):
             })
             for item in self.crawl_overrides
         ]
-    
+
+    # ============ 按需点对点：从后端拉取指定院系 ============
+    def fetch_departments_by_ids(self, dept_ids):
+        """调后端 /api/v1/internal/departments/by-ids?ids=... 取院系详情。
+        返回 [{id, name, schoolSlug, universityId, universityName, homepage, noticeUrl, majors}]
+        """
+        if not dept_ids:
+            return []
+        try:
+            resp = requests.get(
+                f'{self.backend_base_url}/api/v1/internal/departments/by-ids',
+                params={'ids': ','.join(dept_ids)},
+                headers={'X-Internal-Token': os.getenv('INTERNAL_API_TOKEN', '')},
+                timeout=max(5, self.backend_timeout_seconds),
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+            return payload.get('departments') if isinstance(payload, dict) else []
+        except Exception as exc:
+            self.logger.error(f'fetch_departments_by_ids 失败: {exc}')
+            return []
+
+    def build_dept_urls(self, dept):
+        """对单个院系，构造入口 URL 列表（来自 noticeUrl + homepage + 探测路径）"""
+        urls = []
+        notice = (dept.get('noticeUrl') or '').strip()
+        if notice:
+            urls.append({'url': notice, 'type': 'dept_notice'})
+        homepage = (dept.get('homepage') or '').strip()
+        if homepage:
+            base = homepage.rstrip('/') + '/'
+            urls.append({'url': base, 'type': 'dept_home'})
+            # 学院常见公告路径
+            for probe in ['tzgg.htm', 'zsxx.htm', 'yjs/', 'yjsjy/', 'news/']:
+                urls.append({'url': urljoin(base, probe), 'type': 'dept_probe'})
+        # 去重
+        seen = set()
+        out = []
+        for u in urls:
+            if u['url'] in seen:
+                continue
+            seen.add(u['url'])
+            out.append(u)
+        return out
+
     def build_urls(self, university):
         """构建爬取URL列表"""
         urls = []
@@ -1114,6 +1215,12 @@ class UniversitySpider(scrapy.Spider):
             item['announcement_type'] = announcement_type
             item['sub_type'] = camp_info.get('sub_type') or self.detect_sub_type(title, content, announcement_type)
             item['university_id'] = university['id']
+            # 按需点对点模式：把 department_id 一并传给后端
+            dept_id_meta = response.meta.get('department_id') or university.get('_dept_id') or ''
+            if dept_id_meta:
+                item['department_id'] = dept_id_meta
+            if self.job_id:
+                item['crawl_job_id'] = self.job_id
             item['source_url'] = response.url
             item['publish_date'] = camp_info.get('publish_date')
             item['deadline'] = camp_info.get('deadline')

@@ -23,6 +23,31 @@ class SubscriptionService {
   async unsubscribe(departmentId) {
     return http.delete(`/subscription/${departmentId}`)
   }
+
+  /** 触发按需点对点抓取作业（订阅保存后立即调用） */
+  async createCrawlJob(departmentIds, triggerType = 'initial_selection') {
+    return http.post('/crawl-jobs', { departmentIds, triggerType })
+  }
+
+  /** 查作业进度（前端 15s 轮询） */
+  async getCrawlJob(jobId) {
+    return http.get(`/crawl-jobs/${jobId}`)
+  }
+
+  /** 我最近的一次作业（用于首页 banner 复位） */
+  async getLatestCrawlJob() {
+    return http.get('/crawl-jobs/latest')
+  }
+
+  /** 作业最终结果 */
+  async getCrawlJobResults(jobId) {
+    return http.get(`/crawl-jobs/${jobId}/results`)
+  }
+
+  /** 提交"抓不到"反馈 */
+  async submitCrawlJobFeedback(jobId, payload) {
+    return http.post(`/crawl-jobs/${jobId}/feedback`, payload)
+  }
 }
 
 export const subscriptionService = new SubscriptionService()

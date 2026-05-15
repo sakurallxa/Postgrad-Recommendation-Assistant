@@ -32,9 +32,50 @@ model User {
   // v0.2 重构新增
   departmentSubscriptions UserDepartmentSubscription[]
   matchResults            CampMatchResult[]
+  // 按需抓取作业
+  crawlJobs               CrawlJob[]
 
   @@index([openidHash])
   @@map("users")
+}
+
+// 按需抓取作业（用户保存订阅时触发，或手动刷新）
+model CrawlJob {
+  id              String   @id @default(uuid())
+  userId          String
+  triggerType     String   // initial_selection / refresh / incremental
+  status          String   @default("queued") // queued / running / partial / completed / failed
+  scopeJson       String   // [{"departmentId","schoolSlug","universityName","departmentName"}]
+  totalTargets    Int
+  completedTargets Int     @default(0)
+  campsFound      Int      @default(0)
+  emptyTargetsJson String? // 没抓到的 (departmentId, reason) 列表
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  errorMsg        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("crawl_jobs")
+}
+
+// 学院级抓取缓存（24h TTL）
+model DepartmentCrawlCache {
+  id              String   @id @default(uuid())
+  departmentId    String   @unique
+  lastCrawledAt   DateTime
+  campsFoundLast  Int      @default(0)
+  status          String   // ok / empty / error
+  ttlExpiresAt    DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([ttlExpiresAt])
+  @@map("department_crawl_caches")
 }
 
 // 用户保研档案

@@ -5,25 +5,31 @@
 }
 
 .hero {
-  padding: var(--space-2) var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-3) var(--space-3);
 }
 .hero-title {
   font-size: var(--text-2xl);
   font-weight: var(--weight-bold);
-  margin-bottom: var(--space-1);
+  margin-bottom: var(--space-2);
+  letter-spacing: -0.5rpx;
 }
 .hero-subtitle {
   font-size: var(--text-base);
   color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
 }
 .hero-emph {
   color: var(--color-primary);
   font-weight: var(--weight-semibold);
 }
 .hero-tip {
-  margin-top: 8rpx;
+  margin-top: var(--space-2);
   font-size: var(--text-xs);
   color: var(--color-warning);
+  background: var(--color-warning-soft);
+  padding: 8rpx 16rpx;
+  border-radius: var(--radius-md);
+  display: inline-block;
 }
 
 /* 搜索框 */
@@ -32,8 +38,8 @@
   align-items: center;
   background: var(--bg-surface);
   border-radius: var(--radius-pill);
-  padding: 16rpx 24rpx;
-  margin-bottom: var(--space-3);
+  padding: 20rpx 28rpx;
+  margin: 0 var(--space-2) var(--space-3);
   box-shadow: var(--shadow-xs);
   gap: var(--space-2);
 }
@@ -70,12 +76,12 @@
 /* 学校字母前缀 */
 .school-letter {
   display: inline-flex;
-  width: 36rpx;
-  height: 36rpx;
-  border-radius: 18rpx;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
   background: var(--color-primary-soft);
   color: var(--color-primary);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--weight-bold);
   align-items: center;
   justify-content: center;
@@ -136,7 +142,7 @@
 }
 .school-block {
   background: var(--bg-surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
@@ -144,7 +150,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4) var(--space-4);
 }
 .school-head:active { background: var(--bg-muted); }
 .school-name {
@@ -246,4 +252,91 @@
   height: 88rpx;
   font-size: var(--text-md);
   font-weight: var(--weight-medium);
+}
+
+/* ============ 已选 chip 标签 ============ */
+.chip-bar {
+  white-space: nowrap;
+  padding: var(--space-3) var(--space-2) var(--space-3);
+  margin-bottom: var(--space-1);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 12rpx 24rpx;
+  margin-right: var(--space-2);
+  background: var(--color-primary-soft);
+  border: 2rpx solid transparent;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  font-weight: var(--weight-medium);
+  max-width: 380rpx;
+  transition: transform 0.15s;
+}
+.chip:active { transform: scale(0.96); }
+.chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300rpx;
+}
+.chip-close {
+  font-size: 30rpx;
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  opacity: 0.65;
+}
+
+/* ============ 列表区 + 字母索引并排 ============ */
+.list-area {
+  display: flex;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.school-list-scroll {
+  flex: 1;
+  padding: 0 var(--space-3) 240rpx;
+  box-sizing: border-box;
+  max-height: 70vh;
+}
+/* 学校间距使用统一 token */
+.school-list-scroll .school-block {
+  margin-bottom: var(--space-3);
+}
+.school-list-scroll .school-block:last-child {
+  margin-bottom: 0;
+}
+.letter-index {
+  position: absolute;
+  right: 4rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+  padding: var(--space-2) 4rpx;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-xs);
+  z-index: 10;
+}
+.letter-item {
+  font-size: 20rpx;
+  color: var(--text-tertiary);
+  width: 36rpx;
+  height: 36rpx;
+  text-align: center;
+  line-height: 36rpx;
+  font-weight: var(--weight-semibold);
+  border-radius: 50%;
+  transition: all 0.15s;
+}
+.letter-item.active {
+  background: var(--color-primary);
+  color: var(--bg-surface);
+  transform: scale(1.15);
 }

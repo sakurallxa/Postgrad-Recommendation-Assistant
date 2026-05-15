@@ -45,12 +45,19 @@ const SCHOOL_PINYIN_MAP = {
 
 Page({
   data: {
-    schools: [],          // 全部学校
-    filteredSchools: [],  // 搜索过滤后的展示数据
+    schools: [],            // 全部学校
+    filteredSchools: [],    // 搜索过滤后的展示数据
     keyword: '',
     selectedIds: [],
     selectedCount: 0,
-    saving: false
+    saving: false,
+    // 已选 chip 数据：{name, schoolSlug, firstDeptName, count}
+    selectedChips: [],
+    // 字母索引可用项（学校列表里实际存在的字母）
+    availableLetters: [],
+    activeLetter: '',
+    // scroll-into-view 目标
+    scrollIntoView: ''
   },
 
   async onLoad() {
@@ -94,7 +101,9 @@ Page({
         schools,
         filteredSchools: schools,
         selectedIds,
-        selectedCount: selectedIds.length
+        selectedCount: selectedIds.length,
+        availableLetters: this.computeAvailableLetters(schools),
+        selectedChips: this.computeChips(schools)
       })
     } catch (err) {
       wx.showToast({
@@ -145,6 +154,23 @@ Page({
 
   onToggleDept(e) {
     const id = e.currentTarget.dataset.id
+    const MAX_SELECTED = 5
+
+    // 找当前 dept 是否已选；若未选且即将超限 → 阻断
+    let isAdding = false
+    for (const s of this.data.schools) {
+      const d = s.departments.find(x => x.id === id)
+      if (d) { isAdding = !d.subscribed; break }
+    }
+    if (isAdding && this.data.selectedCount >= MAX_SELECTED) {
+      wx.showToast({
+        title: `最多关注 ${MAX_SELECTED} 个院系`,
+        icon: 'none',
+        duration: 1500
+      })
+      return
+    }
+
     const schools = this.data.schools.map((school) => {
       const departments = school.departments.map((d) => (
         d.id === id ? { ...d, subscribed: !d.subscribed } : d
@@ -157,11 +183,81 @@ Page({
     })
     const selectedIds = []
     schools.forEach(s => s.departments.forEach(d => d.subscribed && selectedIds.push(d.id)))
-    this.setData({ schools, selectedIds, selectedCount: selectedIds.length })
+    this.setData({
+      schools,
+      selectedIds,
+      selectedCount: selectedIds.length,
+      selectedChips: this.computeChips(schools)
+    })
     this.applyFilter(this.data.keyword)
   },
 
-  // ============ 保存 ============
+  // 从已选院系生成 chip 列表，每所学校一个 chip
+  computeChips(schools) {
+    const chips = []
+    for (const s of schools) {
+      const picked = s.departments.filter(d => d.subscribed)
+      if (picked.length === 0) continue
+      chips.push({
+        schoolSlug: s.schoolSlug,
+        universityName: s.universityName,
+        // 显示文本：第一个院系 + (+N) 形式
+        displayText:
+          picked.length === 1
+            ? `${s.universityName} · ${picked[0].name}`
+            : `${s.universityName} · ${picked[0].name} +${picked.length - 1}`,
+        // 要取消所有的话，传整个院系 id 列表
+        deptIds: picked.map(d => d.id),
+      })
+    }
+    return chips
+  },
+
+  // 字母索引：扫描 schools 拿到出现过的首字母去重排序
+  computeAvailableLetters(schools) {
+    const set = new Set()
+    for (const s of schools) {
+      if (s.firstLetter) set.add(s.firstLetter)
+    }
+    return Array.from(set).sort()
+  },
+
+  // 点 chip 取消该校所有订阅
+  onRemoveChip(e) {
+    const { slug } = e.currentTarget.dataset
+    const schools = this.data.schools.map((school) => {
+      if (school.schoolSlug !== slug) return school
+      const departments = school.departments.map(d => ({ ...d, subscribed: false }))
+      return { ...school, departments, subscribedCount: 0 }
+    })
+    const selectedIds = []
+    schools.forEach(s => s.departments.forEach(d => d.subscribed && selectedIds.push(d.id)))
+    this.setData({
+      schools,
+      selectedIds,
+      selectedCount: selectedIds.length,
+      selectedChips: this.computeChips(schools)
+    })
+    this.applyFilter(this.data.keyword)
+  },
+
+  // 点字母 → 滚到该字母第一所学校
+  onTapLetter(e) {
+    const letter = e.currentTarget.dataset.letter
+    if (!letter) return
+    // 找到该字母下第一所学校的 slug 作为 scrollIntoView 目标
+    const target = this.data.filteredSchools.find(s => s.firstLetter === letter)
+    if (target) {
+      this.setData({
+        activeLetter: letter,
+        scrollIntoView: 'school-' + target.schoolSlug
+      })
+      // 250ms 后清空 scrollIntoView，下一次点同字母才会重新触发
+      setTimeout(() => this.setData({ scrollIntoView: '' }), 250)
+    }
+  },
+
+  // ============ 保存（订阅 + 立即触发按需抓取作业）============
   async onSave() {
     if (this.data.selectedIds.length === 0) {
       wx.showToast({ title: '请至少选 1 个院系', icon: 'none' })
@@ -169,13 +265,36 @@ Page({
     }
     this.setData({ saving: true })
     try {
+      // 1) 保存订阅
       const result = await subscriptionService.batchSubscribe(this.data.selectedIds)
       const total = result?.totalActive || this.data.selectedIds.length
+
+      // 2) 立即触发按需抓取作业（点对点，只抓刚选的学院）
+      let job = null
+      try {
+        job = await subscriptionService.createCrawlJob(this.data.selectedIds, 'initial_selection')
+        if (job?.jobId) {
+          wx.setStorageSync('activeCrawlJobId', job.jobId)
+        }
+      } catch (jobErr) {
+        console.warn('[dept-selector] 触发抓取作业失败', jobErr)
+        // 订阅已成功；抓取失败不阻塞用户
+      }
+
       wx.showToast({
-        title: `已订阅 ${total} 个院系`,
-        icon: 'success'
+        title: job?.jobId ? `已开始抓取 (${total} 个院系)` : `已订阅 ${total} 个院系`,
+        icon: 'success',
+        duration: 1500
       })
-      setTimeout(() => wx.navigateBack(), 800)
+
+      // 3) 回首页，带上 jobId，首页会渲染进度 banner
+      setTimeout(() => {
+        if (job?.jobId) {
+          wx.reLaunch({ url: `/pages/index/index?jobId=${job.jobId}` })
+        } else {
+          wx.navigateBack()
+        }
+      }, 1200)
     } catch (err) {
       wx.showToast({
         title: err?.message || '保存失败',

@@ -10,6 +10,7 @@ import { CrawlerModule } from './modules/crawler/crawler.module';
 import { UserModule } from './modules/user/user.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
+import { CrawlJobModule } from './modules/crawl-job/crawl-job.module';
 import { CommonModule } from './common/common.module';
 import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
@@ -42,6 +43,7 @@ import { HealthController } from './health.controller';
     UserModule,
     ProgressModule,
     AssistantModule,
+    CrawlJobModule,
   ],
 })
 export class AppModule implements NestModule {

@@ -47,5 +47,34 @@ Page({
   },
   goSubmitUrl() {
     wx.navigateTo({ url: '/packageAssistant/pages/submit-url/index' })
+  },
+
+  onLogout() {
+    wx.showModal({
+      title: '退出登录',
+      content: '确定要退出当前账号吗？订阅和收藏数据保留在云端，下次登录可继续。',
+      confirmText: '退出',
+      confirmColor: '#d94343',
+      success: (res) => {
+        if (!res.confirm) return
+        try {
+          wx.removeStorageSync('token')
+          wx.removeStorageSync('accessToken')
+          wx.removeStorageSync('refreshToken')
+          wx.removeStorageSync('activeCrawlJobId')
+          wx.removeStorageSync('userSelectionDepartments')
+          const app = getApp()
+          if (app && app.globalData) {
+            app.globalData.token = ''
+            app.globalData.isLoggedIn = false
+            app.globalData.userInfo = null
+          }
+        } catch (e) {}
+        wx.showToast({ title: '已退出登录', icon: 'success', duration: 1000 })
+        setTimeout(() => {
+          wx.reLaunch({ url: '/pages/index/index' })
+        }, 1000)
+      }
+    })
   }
 })

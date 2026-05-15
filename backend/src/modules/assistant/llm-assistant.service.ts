@@ -112,9 +112,15 @@ export class LlmAssistantService {
     profile: StudentProfileForLlm,
     options: { sourceUrl?: string; existingTitle?: string } = {},
   ): Promise<AssistantMatchResult | null> {
-    if (!this.apiKey) {
-      this.logger.error('DEEPSEEK_API_KEY 未配置');
-      return null;
+    // Mock fallback：开发环境（ALLOW_MOCK_WECHAT_LOGIN=true）或未配 API key 时走本地 mock
+    const isMockMode =
+      !this.apiKey ||
+      this.apiKey.startsWith('sk-placeholder') ||
+      this.apiKey === 'mock' ||
+      this.configService.get<string>('ALLOW_MOCK_WECHAT_LOGIN') === 'true';
+    if (isMockMode) {
+      this.logger.warn('启用 mock LLM 模式（ALLOW_MOCK_WECHAT_LOGIN=true 或未配 API key）');
+      return this.buildMockResult(rawContent, profile, options);
     }
     if (!rawContent || rawContent.trim().length < 30) {
       this.logger.warn('原文过短，跳过 LLM 调用');
@@ -277,5 +283,182 @@ export class LlmAssistantService {
       this.logger.error(`LLM 输出解析失败: ${error.message}, raw=${content.slice(0, 200)}`);
       return null;
     }
+  }
+
+  /**
+   * Mock 模式：DEEPSEEK_API_KEY 未配置时返回逼真的匹配结果。
+   * 让前端"手动测试 AI 助理"入口在开发模式下也能跑。
+   */
+  private buildMockResult(
+    rawContent: string,
+    profile: StudentProfileForLlm,
+    options: { sourceUrl?: string; existingTitle?: string },
+  ): AssistantMatchResult {
+    const isPreRec = /预推免|推免|推荐免试/.test(rawContent + (options.existingTitle || ''));
+    const campType = isPreRec ? 'pre_recommendation' : 'summer_camp';
+    const title =
+      options.existingTitle ||
+      (rawContent.split('\n').find((l) => l.trim().length > 5 && l.trim().length < 60) || '').trim() ||
+      '示例公告';
+
+    // 模拟根据 profile 做匹配
+    const userMajorsArr = profile?.targetMajors || [];
+    const userMajors = userMajorsArr.join(',');
+    const hasResearch = !!profile?.researchExperience && profile.researchExperience.length > 10;
+    const hasAward = !!profile?.competitionAwards && profile.competitionAwards.length > 5;
+    const gpaNum = parseFloat(profile?.gpa || '0') || 0;
+    const englishStr = profile?.englishStandardized || ''; // "CET6:568"
+    const englishScoreMatch = englishStr.match(/(\d{3,4})/);
+    const englishScore = englishScoreMatch ? parseInt(englishScoreMatch[1], 10) : 0;
+    const englishOk = englishScore >= 425;
+    const schoolStr = profile?.undergraduateSchool || '';
+    const isTier985Or211 = /985|211/.test(schoolStr);
+
+    // === 真正的专业匹配判断 ===
+    // 从 rawContent + title 里提取公告招生方向，与用户 targetMajors 比对
+    const campText = `${title}\n${rawContent.slice(0, 3000)}`;
+    const userMajorHits: string[] = [];
+    for (const m of userMajorsArr) {
+      // 完全匹配 或 关键字部分匹配
+      if (campText.includes(m)) {
+        userMajorHits.push(m);
+        continue;
+      }
+      // 部分关键字（去掉"科学与技术"等后缀）
+      const stem = m.replace(/科学与技术|工程|学|与技术|科学/g, '').trim();
+      if (stem.length >= 2 && campText.includes(stem)) {
+        userMajorHits.push(m);
+      }
+    }
+    // 公告招生大领域关键字（用于反查"无关"）
+    const campIsEngineering = /工科|工学|理工|计算机|电子|信息|通信|机械|能源|材料|化学|物理|建筑|生物医学/.test(campText);
+    const userIsEngineering =
+      userMajorsArr.length > 0 &&
+      userMajorsArr.some((m) => /计算机|电子|信息|通信|机械|自动化|材料|化学|物理|工程|建筑|能源|生物医学/.test(m));
+    const userIsLiberal =
+      userMajorsArr.length > 0 &&
+      userMajorsArr.some((m) => /文学|历史|哲学|社会|经济|管理|法学|教育|心理|新闻|设计|艺术/.test(m));
+
+    // matchesUserMajor 真实判断
+    const majorMatches = userMajorHits.length > 0;
+    const majorClearlyMismatch = !majorMatches && campIsEngineering && userIsLiberal;
+
+    // 综合评分（专业占主导）
+    let score = 50;
+    if (gpaNum >= 3.5) score += 12;
+    if (englishOk) score += 8;
+    if (hasResearch) score += 10;
+    if (hasAward) score += 6;
+    if (majorMatches) score += 18; // 专业匹配 +18
+    else if (majorClearlyMismatch) score -= 30; // 文转工/工转文 -30
+    else score -= 8; // 不确定 -8
+    score = Math.max(10, Math.min(95, score));
+    const rec: 'recommend' | 'reference' | 'skip' =
+      majorClearlyMismatch ? 'skip'
+      : score >= 75 ? 'recommend'
+      : score >= 45 ? 'reference'
+      : 'skip';
+
+    const requirements: RequirementCheck[] = [
+      {
+        type: 'rank',
+        requirement: '本科前三年专业排名前 30%',
+        userMatch: gpaNum >= 3.5 ? 'pass' : gpaNum > 0 ? 'warn' : 'unknown',
+        explanation: gpaNum >= 3.5
+          ? `你 GPA ${gpaNum}，估算排名靠前。`
+          : gpaNum > 0
+          ? `你 GPA ${gpaNum}，建议补充专业排名。`
+          : '档案未填写 GPA / 排名。',
+      },
+      {
+        type: 'english',
+        requirement: 'CET-6 ≥ 425（或 TOEFL 90+）',
+        userMatch: englishOk ? 'pass' : englishScore > 0 ? 'warn' : 'unknown',
+        explanation: englishOk
+          ? `你 ${englishStr}，达标。`
+          : englishScore > 0
+          ? `你 ${englishStr}，未达 425。`
+          : '档案未填写英语成绩。',
+      },
+      {
+        type: 'major',
+        requirement: '公告招生方向（基于原文识别）',
+        userMatch: majorMatches ? 'pass' : majorClearlyMismatch ? 'fail' : userMajors ? 'warn' : 'unknown',
+        explanation: majorMatches
+          ? `你的目标专业 ${userMajorHits.join('、')} 与公告招生方向匹配。`
+          : majorClearlyMismatch
+          ? `你的目标专业（${userMajors}）与公告招生方向不匹配。`
+          : userMajors
+          ? `你的目标专业（${userMajors}）与公告招生方向可能相关但不直接匹配，建议查看原文确认。`
+          : '档案未填写目标专业，无法判断匹配度。',
+      },
+      {
+        type: 'research',
+        requirement: '具有科研经历（优先）',
+        userMatch: hasResearch ? 'pass' : 'warn',
+        explanation: hasResearch
+          ? '你列出了科研经历，可在个人陈述中重点描述。'
+          : '档案未填写科研经历，建议补充。',
+      },
+      {
+        type: 'award',
+        requirement: '学科竞赛获奖（优先）',
+        userMatch: hasAward ? 'pass' : 'warn',
+        explanation: hasAward ? '你列出了竞赛获奖，加分项。' : '档案未填写竞赛获奖。',
+      },
+      {
+        type: 'school_tier',
+        requirement: '本科为 985/211 高校',
+        userMatch: isTier985Or211 ? 'pass' : 'warn',
+        explanation: schoolStr
+          ? `你本科：${schoolStr}`
+          : '档案未填写本科学校。',
+      },
+    ];
+
+    // 根据 rawContent 尽量抽取截止日
+    let extractedDeadline: string | null = null;
+    const dateMatch = rawContent.match(/(\d{4})[-./年](\d{1,2})[-./月](\d{1,2})/);
+    if (dateMatch) {
+      const [_, y, m, d] = dateMatch;
+      extractedDeadline = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T23:59:59`;
+    } else {
+      // 默认 30 天后
+      const dt = new Date(Date.now() + 30 * 24 * 3600 * 1000);
+      extractedDeadline = dt.toISOString();
+    }
+
+    return {
+      isRelevant: true,
+      campType,
+      // 真实专业匹配判断，不再简单跟 rec 绑定
+      matchesUserMajor: majorMatches,
+      extractedTitle: title.slice(0, 80),
+      extractedDeadline,
+      extractedStartDate: null,
+      extractedEndDate: null,
+      extractedLocation: '（mock）线下 + 线上',
+      extractedSummary:
+        rec === 'recommend'
+          ? `该${isPreRec ? '预推免' : '夏令营'}与你的档案高度匹配，建议优先准备。`
+          : rec === 'reference'
+          ? `部分条件匹配，可作为备选关注。建议优先冲击更高匹配的机会。`
+          : `与你目标方向偏差较大，建议跳过。`,
+      keyRequirements: requirements,
+      overallRecommendation: rec,
+      matchScore: score,
+      reasoning:
+        majorClearlyMismatch
+          ? `你的专业（${userMajors || '未填写'}）与公告招生方向（${campIsEngineering ? '理工科' : '通用'}）差异较大，匹配度低，建议跳过。`
+          : !majorMatches && userMajors
+          ? `你的专业（${userMajors}）与公告招生方向不完全匹配，但可能相关，建议查看原文确认是否在招生范围内。`
+          : rec === 'recommend'
+          ? `你 GPA + 英语 + 科研三项均过线，且专业 ${userMajorHits.join('、')} 匹配，建议作为重点目标。`
+          : rec === 'reference'
+          ? '部分硬性条件偏弱，但仍有机会，建议在投递清单中备选。'
+          : '硬性条件多项未达，建议把精力投放更匹配的营。',
+      llmModel: 'mock-v0 (无 API key)',
+      llmTokensUsed: 0,
+    };
   }
 }

@@ -1415,6 +1415,8 @@ export class CrawlerService {
       rawContent,
       confidence: this.normalizeConfidence(item.confidence),
       status: 'published',
+      // v0.3 按需点对点抓取归因：departmentId 直接写入，crawlJobId 用作日志/未匹配跟踪
+      ...(item.departmentId ? { departmentId: this.normalizeText(item.departmentId, 80) } : {}),
     };
   }
 

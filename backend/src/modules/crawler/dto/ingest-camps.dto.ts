@@ -100,6 +100,17 @@ export class CrawlerCampItemDto {
   @IsOptional()
   @IsString()
   spiderName?: string;
+
+  // v0.3 按需点对点抓取归因
+  @ApiPropertyOptional({ description: '院系ID（按需抓取必填）' })
+  @IsOptional()
+  @IsString()
+  departmentId?: string;
+
+  @ApiPropertyOptional({ description: '关联的 CrawlJob.id' })
+  @IsOptional()
+  @IsString()
+  crawlJobId?: string;
 }
 
 export class IngestCrawlerCampsDto {

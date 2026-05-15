@@ -90,6 +90,36 @@ export class AuthService {
           },
         });
         this.logger.log(`新用户创建成功: ${user.id}`);
+        // Mock 模式：给新用户自动填一份典型保研画像档案
+        const allowMock = this.configService.get<string>('ALLOW_MOCK_WECHAT_LOGIN') === 'true';
+        if (allowMock) {
+          try {
+            await this.prisma.userProfile.create({
+              data: {
+                userId: user.id,
+                schoolName: '某 211 高校',
+                schoolLevel: '211',
+                education: '本科',
+                major: '计算机科学与技术',
+                gradeRankPercent: 0.12,
+                gradeRankText: '前 12%',
+                gpa: '3.85',
+                englishType: 'CET-6',
+                englishScore: 568,
+                subjectRanking: '专业第 9 / 共 76 人',
+                researchExperience: '1. 国家自然基金项目"基于深度学习的图像检索"参与者; 2. 一篇 EI 会议论文一作; 3. 大厂算法实习一段。',
+                competitionAwards: 'ACM-ICPC 区域赛铜奖 / 数模国二 / 蓝桥杯省一',
+                preferredDirection: '人工智能、计算机视觉、推荐系统',
+                targetMajors: JSON.stringify(['计算机科学与技术', '人工智能', '软件工程', '电子信息']),
+                englishStandardized: 'CET6:568',
+                targetNote: 'Mock 档案，用于前端预览',
+              },
+            });
+            this.logger.log(`[mock] 已为新用户 ${user.id} 创建默认档案`);
+          } catch (e: any) {
+            this.logger.warn(`[mock] 默认档案创建失败: ${e?.message}`);
+          }
+        }
       } else if (user.openidHash !== openidHash || !user.openidCipher || user.openid) {
         // 兼容旧数据：登录时自动迁移到新字段并清理明文openid
         user = await this.prisma.user.update({

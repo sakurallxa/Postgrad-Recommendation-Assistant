@@ -35,5 +35,7 @@
     </view>
   </view>
 
+  <view class="logout-btn" bindtap="onLogout">退出登录</view>
+
   <view class="footer-tip">v0.2 · AI 保研助理</view>
 </view>

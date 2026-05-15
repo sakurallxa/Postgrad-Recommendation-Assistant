@@ -80,12 +80,12 @@ Page({
     })
   },
 
-  async onInterested() {
-    await this.updateAction('interested', '已收藏')
+  async onBookmark() {
+    await this.updateAction('interested', '已收藏 · 截止前会提醒你')
   },
 
-  async onSkip() {
-    await this.updateAction('skipped', '已跳过')
+  async onApplied() {
+    await this.updateAction('applied', '已标记为已申请')
   },
 
   async updateAction(action, msg) {

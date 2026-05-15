@@ -6,8 +6,9 @@
       <text class="judge-text">{{recommendationText}}</text>
     </view>
     <view wx:if="{{match.matchScore != null}}" class="judge-score">
+      <text class="score-label">匹配度</text>
       <text class="score-value">{{match.matchScore}}</text>
-      <text class="score-unit">分</text>
+      <text class="score-unit">%</text>
     </view>
     <view class="judge-reasoning" wx:if="{{match.reasoning}}">{{match.reasoning}}</view>
   </view>
@@ -34,10 +35,9 @@
     </view>
   </view>
 
-  <!-- 标题 -->
+  <!-- 标题（只保留公告标题；AI 摘要已经在顶部 reasoning 里讲过了，不重复 + 避免长文本截断）-->
   <view class="title-card">
     <view class="card-title">{{match.camp.title}}</view>
-    <view wx:if="{{match.extractedSummary}}" class="card-summary">{{match.extractedSummary}}</view>
   </view>
 
   <!-- 时间地点 -->
@@ -92,19 +92,19 @@
     <view class="source-action">复制链接</view>
   </view>
 
-  <!-- 底部操作 -->
+  <!-- 底部操作：⭐ 收藏 / ✓ 我已申请 -->
   <view class="bottom-bar">
     <view
-      class="action-btn action-secondary {{match.userAction === 'skipped' ? 'active-skip' : ''}}"
-      bindtap="onSkip"
+      class="action-btn action-secondary {{match.userAction === 'interested' ? 'active-interested' : ''}}"
+      bindtap="onBookmark"
     >
-      跳过
+      {{match.userAction === 'interested' ? '⭐ 已收藏' : '⭐ 收藏'}}
     </view>
     <view
-      class="action-btn action-primary {{match.userAction === 'interested' || match.userAction === 'applied' ? 'active-interested' : ''}}"
-      bindtap="onInterested"
+      class="action-btn action-primary {{match.userAction === 'applied' ? 'active-applied' : ''}}"
+      bindtap="onApplied"
     >
-      {{match.userAction === 'interested' || match.userAction === 'applied' ? '已收藏' : '感兴趣'}}
+      {{match.userAction === 'applied' ? '✓ 已申请' : '✓ 我已申请'}}
     </view>
   </view>
 </view>

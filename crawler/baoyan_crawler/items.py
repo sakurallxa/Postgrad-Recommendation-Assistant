@@ -33,6 +33,10 @@ class CampInfoItem(scrapy.Item):
     crawl_time = scrapy.Field()     # 爬取时间
     spider_name = scrapy.Field()    # 爬虫名称
 
+    # v0.3 新增：按需点对点抓取归因
+    department_id = scrapy.Field()  # 院系ID（按需抓取必填）
+    crawl_job_id = scrapy.Field()   # 关联的 CrawlJob.id（按需抓取必填）
+
 
 class UniversityItem(scrapy.Item):
     """

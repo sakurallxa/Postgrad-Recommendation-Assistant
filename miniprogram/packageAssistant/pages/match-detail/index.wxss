@@ -56,7 +56,7 @@
 /* 卡片通用 */
 .meta-card, .title-card, .info-card, .req-card, .source-card {
   background: var(--bg-surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: var(--space-4);
   margin-bottom: var(--space-3);
   box-shadow: var(--shadow-sm);
@@ -213,10 +213,10 @@
   left: 0;
   right: 0;
   background: var(--bg-surface);
-  padding: var(--space-3) var(--space-3) calc(env(safe-area-inset-bottom) + var(--space-3));
+  padding: var(--space-3) var(--space-4) calc(env(safe-area-inset-bottom) + var(--space-3));
   display: flex;
   gap: var(--space-3);
-  box-shadow: 0 -4rpx 16rpx rgba(17, 24, 39, 0.04);
+  box-shadow: 0 -8rpx 24rpx rgba(17, 24, 39, 0.06);
 }
 .action-btn {
   flex: 1;
@@ -231,18 +231,43 @@
 .action-secondary {
   background: var(--bg-muted);
   color: var(--text-secondary);
+  border: 2rpx solid transparent;
+  transition: transform 0.12s;
 }
-.action-secondary:active { background: var(--border-default); }
+.action-secondary:active {
+  background: var(--border-default);
+  transform: scale(0.98);
+}
 .action-primary {
   background: var(--color-primary);
   color: #FFFFFF;
+  box-shadow: 0 6rpx 18rpx rgba(79, 70, 229, 0.28);
+  transition: transform 0.12s;
 }
-.action-primary:active { background: var(--color-primary-hover); }
-.active-skip { background: var(--text-tertiary); color: #FFFFFF; }
-.active-interested { background: var(--color-success); }
+.action-primary:active {
+  background: var(--color-primary-hover);
+  transform: scale(0.98);
+}
+
+/* 已收藏（黄色）/ 已申请（绿色）激活态 */
+.active-interested {
+  background: var(--color-warning-soft) !important;
+  color: var(--color-warning) !important;
+  border-color: var(--color-warning) !important;
+}
+.active-applied {
+  background: var(--color-success) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 6rpx 18rpx rgba(16, 185, 129, 0.28);
+}
 
 /* loading */
 .loading { padding: var(--space-4); }
 .skeleton-card {
   height: 600rpx;
+}
+.score-label {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  margin-right: 8rpx;
 }

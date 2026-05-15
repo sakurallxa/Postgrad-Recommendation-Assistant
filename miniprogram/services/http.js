@@ -101,8 +101,11 @@ class HttpClient {
     if (configured) {
       return configured
     }
-    // v0.2 本地开发：默认 localhost；生产部署改为 'https://baoyanwang-helper.cn/api/v1'
-    return 'http://localhost:3000/api/v1'
+    // 兜底：localStorage 中已存的
+    const saved = wx.getStorageSync('apiBaseUrl')
+    if (saved) return saved
+    // 默认生产域名
+    return 'https://baoyanwang-helper.cn/api/v1'
   }
 
   getFallbackBaseUrl(baseUrl) {
