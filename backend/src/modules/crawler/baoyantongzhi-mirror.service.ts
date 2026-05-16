@@ -46,17 +46,27 @@ export class BaoyantongzhiMirrorService {
     const thisYear = new Date().getFullYear();
     const lastYear = thisYear - 1;
     const levels = ['985', '211', '双一流'];
+    // 每 (year, level) 最多翻的页数。每页 50 条，5 页 = 250 条，足以覆盖近期+少量历史。
+    // 经实测 985/2026 总量 ~200 条分 4 个 page —— 之前 cron 只拉 page=1 漏了 75%。
+    // 翻太多会无谓拖累 cron（30min 一次），权衡选 5。
+    const MAX_PAGES_PER_SCOPE = Number(this.configService.get('MIRROR_SYNC_MAX_PAGES') || 5);
+    const PAGE_SIZE = 50;
     let totalFetched = 0;
     let totalErrors = 0;
     for (const year of [thisYear, lastYear]) {
       for (const level of levels) {
         try {
-          const records = await this.fetchPage(1, 50, year, level);
-          if (records.length) {
-            await this.ingestRecords(records, `baoyantongzhi-${level}-${year}-cron`);
-            totalFetched += records.length;
+          let scopeFetched = 0;
+          for (let page = 1; page <= MAX_PAGES_PER_SCOPE; page++) {
+            const records = await this.fetchPage(page, PAGE_SIZE, year, level);
+            if (!records.length) break;
+            await this.ingestRecords(records, `baoyantongzhi-${level}-${year}-p${page}-cron`);
+            scopeFetched += records.length;
+            // 拉到的不足一页 → 没有下一页了
+            if (records.length < PAGE_SIZE) break;
           }
-          this.recordSyncOutcome(true, null, records.length, `${level}/${year}`);
+          totalFetched += scopeFetched;
+          this.recordSyncOutcome(true, null, scopeFetched, `${level}/${year}`);
         } catch (e: any) {
           totalErrors++;
           this.logger.warn(`syncLatest(${level}/${year}) 失败: ${e?.message}`);
@@ -65,7 +75,7 @@ export class BaoyantongzhiMirrorService {
       }
     }
     this.logger.log(
-      `[mirror] syncLatest done: fetched=${totalFetched} errors=${totalErrors}/${levels.length * 2}`,
+      `[mirror] syncLatest done: fetched=${totalFetched} errors=${totalErrors}/${levels.length * 2} maxPages=${MAX_PAGES_PER_SCOPE}`,
     );
   }
 
