@@ -59,48 +59,52 @@ function decryptOpenid(cipherText: string): string {
   return plain.toString('utf8');
 }
 
+function tryDecryptOpenid(cipher: string | null | undefined): string | null {
+  if (!cipher) return null;
+  const parts = cipher.split(':');
+  if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return null;
+  try {
+    return decryptOpenid(cipher);
+  } catch {
+    return null;
+  }
+}
+
 async function resolveOpenidFromDB(userIdOrLatest: string): Promise<{ userId: string; openid: string }> {
   const prisma = new PrismaClient();
   try {
-    let user: any;
     if (userIdOrLatest === 'latest') {
-      user = await prisma.user.findFirst({
-        where: { OR: [{ openidCipher: { not: null } }, { openid: { not: null } }] },
+      // 拉最近 20 个用户，跳过 system-* / 格式异常的，挑第一个能解出真实 openid 的
+      const users = await prisma.user.findMany({
+        where: {
+          OR: [{ openidCipher: { not: null } }, { openid: { not: null } }],
+          NOT: { id: { startsWith: 'system-' } },
+        },
         orderBy: { updatedAt: 'desc' },
+        take: 20,
         select: { id: true, openid: true, openidCipher: true, updatedAt: true },
       });
-    } else {
-      user = await prisma.user.findUnique({
-        where: { id: userIdOrLatest },
-        select: { id: true, openid: true, openidCipher: true },
-      });
-    }
-    if (!user) throw new Error(`找不到用户: ${userIdOrLatest}`);
-
-    // 调试：打印用户字段状态，便于排查 cipher 格式异常
-    console.log(`[debug] user.id=${user.id}, hasPlainOpenid=${!!user.openid}, hasCipher=${!!user.openidCipher}, cipherLen=${user.openidCipher?.length || 0}`);
-    if (user.openidCipher) {
-      const parts = user.openidCipher.split(':');
-      console.log(`[debug] cipher split parts: ${parts.length} (expect 3: iv:tag:data)`);
-    }
-
-    let openid: string | null = null;
-    if (user.openidCipher) {
-      const parts = user.openidCipher.split(':');
-      if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
-        try {
-          openid = decryptOpenid(user.openidCipher);
-        } catch (e: any) {
-          console.warn(`[debug] decrypt 失败，fallback 到明文 openid: ${e.message}`);
+      for (const u of users) {
+        const decrypted = tryDecryptOpenid(u.openidCipher);
+        const candidate = decrypted || u.openid;
+        if (!candidate) continue;
+        // 排除 mock 测试用户
+        if (candidate.startsWith('mock_') || candidate.includes('test') || candidate === 'dev-mock-user') {
+          console.log(`[debug] 跳过 mock 用户: ${u.id} openid=${candidate.slice(0, 30)}`);
+          continue;
         }
-      } else {
-        console.warn(`[debug] openidCipher 格式异常（非 iv:tag:data），fallback 到明文 openid`);
+        console.log(`[debug] 选中用户: id=${u.id} updated=${u.updatedAt.toISOString().slice(0, 16)} openidPrefix=${candidate.slice(0, 10)}...`);
+        return { userId: u.id, openid: candidate };
       }
+      throw new Error(`扫描了 ${users.length} 个用户都没找到真实微信 openid`);
     }
-    if (!openid && user.openid) {
-      openid = user.openid;
-      console.log(`[debug] 使用明文 openid 字段`);
-    }
+    // 指定 userId 模式
+    const user = await prisma.user.findUnique({
+      where: { id: userIdOrLatest },
+      select: { id: true, openid: true, openidCipher: true },
+    });
+    if (!user) throw new Error(`找不到用户: ${userIdOrLatest}`);
+    const openid = tryDecryptOpenid(user.openidCipher) || user.openid;
     if (!openid) throw new Error(`用户 ${user.id} 没有可用 openid`);
     return { userId: user.id, openid };
   } finally {
