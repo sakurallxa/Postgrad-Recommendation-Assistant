@@ -120,6 +120,15 @@ model University {
   region   String?
   level    String? // 985/211/双一流/普通
   website  String?
+  /// 研究生院/招生考试网 central admissions URL（如 yzb.sjtu.edu.cn / gs.pku.edu.cn）。
+  /// 许多院系会把保研公告交叉发布在这个中央站点 → 爬虫需要同步覆盖。
+  gradWebsite String?
+  /// 国家工程标记（包含关系：985 ⊂ 211 ⊂ 双一流）
+  /// 来源：shared/university-tiers.json（教育部官方名单）
+  /// 旧的单值 level 字段保留兼容，但用户选择院系的过滤逻辑已切到这 3 个 boolean
+  is985             Boolean @default(false)
+  is211             Boolean @default(false)
+  isDoubleFirstClass Boolean @default(false)
   priority String  @default("P3") // P0/P1/P2/P3
 
   createdAt DateTime @default(now())
@@ -294,8 +303,13 @@ model CampMatchResult {
   reasoning             String? // AI 一句话总结建议
 
   // 用户决策
-  userAction   String? // null / interested / applied / skipped / hidden
+  // 用户的"收藏"/"隐藏"/"跳过"状态（互斥单值）
+  userAction   String? // null / interested / skipped / hidden
   userActionAt DateTime?
+  // 用户"已申请"状态：与 userAction 独立的 boolean，可以同时是 interested + isApplied
+  // 这样用户点"已申请"不会清掉"收藏"，反之亦然
+  isApplied   Boolean   @default(false)
+  appliedAt   DateTime?
 
   // 元数据
   llmModel      String?

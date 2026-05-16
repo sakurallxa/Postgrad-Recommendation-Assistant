@@ -3045,5 +3045,33 @@ export const universities = [
     "level": "其他",
     "priority": "P3",
     "website": null
+  },
+  {
+    "name": "哈尔滨工业大学（威海）",
+    "region": "山东",
+    "level": "985",
+    "priority": "P1",
+    "website": "http://www.hitwh.edu.cn"
+  },
+  {
+    "name": "哈尔滨工业大学（深圳）",
+    "region": "广东",
+    "level": "985",
+    "priority": "P1",
+    "website": "https://www.hitsz.edu.cn"
+  },
+  {
+    "name": "山东大学（威海）",
+    "region": "山东",
+    "level": "985",
+    "priority": "P1",
+    "website": "https://www.wh.sdu.edu.cn"
+  },
+  {
+    "name": "中国科学院",
+    "region": "北京",
+    "level": "中科院",
+    "priority": "P1",
+    "website": "https://www.cas.cn"
   }
 ];
