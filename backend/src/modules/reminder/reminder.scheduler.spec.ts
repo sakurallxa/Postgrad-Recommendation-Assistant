@@ -51,7 +51,7 @@ describe('ReminderScheduler', () => {
     prisma.progressAlert.updateMany.mockResolvedValue({ count: 1 });
   });
 
-  it('普通提醒发送应使用 time4 字段', async () => {
+  it('普通提醒发送应使用「报名时间提醒」模板字段 thing9 / time7 / thing3', async () => {
     prisma.reminder.findMany.mockResolvedValue([
       {
         id: 'r1',
@@ -70,8 +70,41 @@ describe('ReminderScheduler', () => {
     await scheduler.scanAndSendReminders();
 
     const sendPayload = mockedAxios.post.mock.calls[0][1] as any;
-    expect(sendPayload.data.time4).toBeDefined();
-    expect(sendPayload.data.time2).toBeUndefined();
+    // 新模板字段
+    expect(sendPayload.data.thing9).toBeDefined();
+    expect(sendPayload.data.thing9.value).toBe('测试夏令营');
+    expect(sendPayload.data.time7).toBeDefined();
+    // time7 应该是 yyyy年M月d日 HH:mm 格式（微信 time 类要求）
+    expect(sendPayload.data.time7.value).toMatch(/^\d{4}年\d{1,2}月\d{1,2}日 \d{2}:\d{2}$/);
+    expect(sendPayload.data.thing3).toBeDefined();
+    expect(sendPayload.data.thing3.value).toContain('清华大学');
+    // 旧模板字段不应再出现
+    expect(sendPayload.data.thing1).toBeUndefined();
+    expect(sendPayload.data.time4).toBeUndefined();
+  });
+
+  it('普通提醒：thing 字段超 20 字应被截断', async () => {
+    prisma.reminder.findMany.mockResolvedValue([
+      {
+        id: 'r2',
+        templateId: null,
+        remindTime: new Date('2026-03-08T10:00:00.000Z'),
+        user: { openidCipher: 'cipher' },
+        camp: {
+          id: 'c2',
+          // 超过 20 字符的长标题
+          title: '北京大学2026年优秀大学生暑期夏令营招生简章信息科学技术学院',
+          deadline: new Date('2026-03-20T00:00:00.000Z'),
+          university: { name: '北京大学信息科学技术学院' }, // 12 字符 + " · 剩X天" 会超 20
+        },
+      },
+    ]);
+
+    await scheduler.scanAndSendReminders();
+
+    const sendPayload = mockedAxios.post.mock.calls[0][1] as any;
+    expect(sendPayload.data.thing9.value.length).toBeLessThanOrEqual(20);
+    expect(sendPayload.data.thing3.value.length).toBeLessThanOrEqual(20);
   });
 
   it('进展变更提醒发送应使用 time4 字段', async () => {

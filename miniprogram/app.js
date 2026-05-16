@@ -61,7 +61,11 @@ App({
       token: '',
       isLoggedIn: false,
       apiBaseUrl: resolvedApiBaseUrl,
-      isLocalDev: USE_LOCAL_BACKEND
+      isLocalDev: USE_LOCAL_BACKEND,
+      // 微信订阅消息：截止前 7/5/3 天提醒模板 ID
+      // 必须与 backend .env 的 WX_SUBSCRIBE_TEMPLATE_ID 一致
+      // 当前：「报名时间提醒」(11005) — 字段 thing9 活动名称 / time7 截止时间 / thing3 温馨提示
+      wxSubscribeTemplateId: '379sA5oXwz0SlTwtmuk8Sz9sO4gx5bq9rUpwHPf31QI'
     }
   },
   

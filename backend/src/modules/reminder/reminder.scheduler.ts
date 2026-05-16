@@ -165,15 +165,18 @@ export class ReminderScheduler {
     try {
       const touser = this.resolveUserOpenid(user);
 
-      // 构建微信订阅消息
+      // 构建微信订阅消息 —— 「报名时间提醒」模板字段映射
+      //   thing9 = 活动名称（公告标题，≤20 字）
+      //   time7  = 截止时间（yyyy年M月d日 HH:mm）
+      //   thing3 = 温馨提示（学校 · 剩 X 天，≤20 字）
       const message: WxSubscribeMessage = {
         touser,
         template_id: templateId || this.configService.get('WX_SUBSCRIBE_TEMPLATE_ID'),
         page: `/pages/camp/detail?id=${camp.id}`,
         data: {
-          thing1: { value: camp.title },
-          time4: { value: this.formatDate(camp.deadline) },
-          thing3: { value: camp.university.name },
+          thing9: { value: this.clampThing(camp.title || '保研公告') },
+          time7: { value: this.formatWxTime(camp.deadline) },
+          thing3: { value: this.buildReminderTip(camp.university?.name, camp.deadline) },
         },
       };
 
@@ -394,7 +397,7 @@ export class ReminderScheduler {
   }
 
   /**
-   * 格式化日期
+   * 格式化日期 —— 用于变更提醒类（旧模板 time4 字段）
    */
   private formatDate(date: Date | null): string {
     if (!date) return '未设置';
@@ -403,5 +406,51 @@ export class ReminderScheduler {
       month: '2-digit',
       day: '2-digit',
     });
+  }
+
+  /**
+   * 微信订阅消息 time 类字段格式化
+   * 输出 `yyyy年M月d日 HH:mm`，符合微信 time 类字段允许的格式之一
+   * 若 date 为空则返回当前时间，确保通过校验（避免 47003）
+   */
+  private formatWxTime(date: Date | null): string {
+    const d = date && !isNaN(date.getTime()) ? date : new Date();
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const dd = d.getDate();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${y}年${m}月${dd}日 ${hh}:${mi}`;
+  }
+
+  /**
+   * 微信订阅消息 thing 类字段统一截断（≤20 字符）
+   */
+  private clampThing(text: string, max = 20): string {
+    if (!text) return '';
+    if (text.length <= max) return text;
+    return text.slice(0, max - 1) + '…';
+  }
+
+  /**
+   * 拼装温馨提示文案：「学校 · 剩 X 天」
+   * 总长度超 20 字符则只保留 "剩 X 天"，已过截止则用"今日截止"
+   */
+  private buildReminderTip(universityName?: string | null, deadline?: Date | null): string {
+    const days =
+      deadline && !isNaN(deadline.getTime())
+        ? Math.ceil((deadline.getTime() - Date.now()) / 86400000)
+        : null;
+    let daysText: string;
+    if (days == null) daysText = '即将截止';
+    else if (days < 0) daysText = '已过期';
+    else if (days === 0) daysText = '今日截止';
+    else daysText = `剩${days}天`;
+
+    const name = (universityName || '').trim();
+    if (!name) return this.clampThing(daysText);
+    const combined = `${name} · ${daysText}`;
+    if (combined.length <= 20) return combined;
+    return this.clampThing(daysText);
   }
 }
