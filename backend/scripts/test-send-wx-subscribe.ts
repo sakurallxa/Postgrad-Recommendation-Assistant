@@ -76,8 +76,32 @@ async function resolveOpenidFromDB(userIdOrLatest: string): Promise<{ userId: st
       });
     }
     if (!user) throw new Error(`找不到用户: ${userIdOrLatest}`);
-    const openid = user.openidCipher ? decryptOpenid(user.openidCipher) : user.openid;
-    if (!openid) throw new Error(`用户 ${user.id} 没有 openid`);
+
+    // 调试：打印用户字段状态，便于排查 cipher 格式异常
+    console.log(`[debug] user.id=${user.id}, hasPlainOpenid=${!!user.openid}, hasCipher=${!!user.openidCipher}, cipherLen=${user.openidCipher?.length || 0}`);
+    if (user.openidCipher) {
+      const parts = user.openidCipher.split(':');
+      console.log(`[debug] cipher split parts: ${parts.length} (expect 3: iv:tag:data)`);
+    }
+
+    let openid: string | null = null;
+    if (user.openidCipher) {
+      const parts = user.openidCipher.split(':');
+      if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+        try {
+          openid = decryptOpenid(user.openidCipher);
+        } catch (e: any) {
+          console.warn(`[debug] decrypt 失败，fallback 到明文 openid: ${e.message}`);
+        }
+      } else {
+        console.warn(`[debug] openidCipher 格式异常（非 iv:tag:data），fallback 到明文 openid`);
+      }
+    }
+    if (!openid && user.openid) {
+      openid = user.openid;
+      console.log(`[debug] 使用明文 openid 字段`);
+    }
+    if (!openid) throw new Error(`用户 ${user.id} 没有可用 openid`);
     return { userId: user.id, openid };
   } finally {
     await prisma.$disconnect();
