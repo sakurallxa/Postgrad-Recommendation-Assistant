@@ -4,8 +4,20 @@
       <view class="avatar">{{avatarInitial}}</view>
     </view>
     <view class="hero-name">{{userName}}</view>
-    <view class="hero-meta" wx:if="{{profile.completeness > 0}}">档案完整度 {{profile.completeness}}%</view>
-    <view class="hero-meta" wx:else>未填写档案</view>
+
+    <!-- 未登录态 -->
+    <block wx:if="{{!isLoggedIn}}">
+      <view class="hero-meta">登录后查看个人档案与订阅</view>
+      <view class="login-btn {{loginPending ? 'login-btn-disabled' : ''}}" bindtap="onLogin">
+        {{loginPending ? '登录中...' : '微信一键登录'}}
+      </view>
+    </block>
+
+    <!-- 已登录态 -->
+    <block wx:else>
+      <view class="hero-meta" wx:if="{{profile.completeness > 0}}">档案完整度 {{profile.completeness}}%</view>
+      <view class="hero-meta" wx:else>未填写档案</view>
+    </block>
   </view>
 
   <view class="menu-card">
@@ -35,7 +47,7 @@
     </view>
   </view>
 
-  <view class="logout-btn" bindtap="onLogout">退出登录</view>
+  <view class="logout-btn" wx:if="{{isLoggedIn}}" bindtap="onLogout">退出登录</view>
 
   <view class="footer-tip">v0.2 · AI 保研助理</view>
 </view>

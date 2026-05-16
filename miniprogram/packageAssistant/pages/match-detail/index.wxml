@@ -23,21 +23,36 @@
       <text class="meta-label">院系</text>
       <text class="meta-value">{{match.camp.departmentName}}</text>
     </view>
+    <view class="meta-row" wx:elif="{{match.camp.isUniversityLevel}}">
+      <text class="meta-label">范围</text>
+      <text class="meta-value value-primary">全校通用 · 适用于全部院系</text>
+    </view>
     <view class="meta-row">
       <text class="meta-label">类型</text>
       <text class="meta-value">{{match.campType === 'pre_recommendation' ? '预推免' : '夏令营'}}</text>
     </view>
     <view class="meta-row" wx:if="{{match.matchesUserMajor != null}}">
       <text class="meta-label">专业匹配</text>
-      <text class="meta-value {{match.matchesUserMajor ? 'value-success' : 'value-warning'}}">
-        {{match.matchesUserMajor ? '匹配你的目标专业' : '不在你的目标专业'}}
-      </text>
+      <text class="meta-value {{match.matchesUserMajor ? 'value-primary' : 'value-warning'}}">{{match.matchesUserMajor ? '匹配你的目标专业' : '不在你的目标专业'}}</text>
     </view>
   </view>
 
   <!-- 标题（只保留公告标题；AI 摘要已经在顶部 reasoning 里讲过了，不重复 + 避免长文本截断）-->
   <view class="title-card">
-    <view class="card-title">{{match.camp.title}}</view>
+    <view class="card-title-row">
+      <!-- 校徽：有 URL 显示图片，没有则降级为首字母 placeholder -->
+      <image
+        wx:if="{{match.camp.universityLogo}}"
+        class="card-logo"
+        src="{{match.camp.universityLogo}}"
+        mode="aspectFit"
+        binderror="onLogoError"
+      />
+      <view wx:else class="card-logo card-logo-placeholder">
+        {{match.camp.universityName ? match.camp.universityName[0] : '校'}}
+      </view>
+      <view class="card-title">{{match.camp.title}}</view>
+    </view>
   </view>
 
   <!-- 时间地点 -->
@@ -84,15 +99,26 @@
   </view>
 
   <!-- 跳转原文 -->
-  <view class="source-card" bindtap="onCopySource">
-    <view class="source-text">
+  <view class="source-card">
+    <view class="source-text" bindtap="onViewSource">
       <view class="source-title">查看原文</view>
       <view class="source-url">{{match.camp.sourceUrl}}</view>
     </view>
-    <view class="source-action">复制链接</view>
+    <view class="source-actions">
+      <view class="source-action source-action-secondary" catchtap="onCopyLink">复制</view>
+      <view class="source-action" catchtap="onViewSource">查看 ›</view>
+    </view>
   </view>
 
-  <!-- 底部操作：⭐ 收藏 / ✓ 我已申请 -->
+  <!-- 提示：未收藏时引导用户从详情页收藏（这里 tap 是同步手势链路，可正常弹微信订阅消息授权）-->
+  <view class="bookmark-hint" wx:if="{{match.userAction !== 'interested'}}">
+    <text class="bookmark-hint-icon">🔔</text>
+    <text class="bookmark-hint-text">点收藏可同时开启截止日微信提醒（7/5/3 天前）</text>
+  </view>
+
+  <!-- 底部操作：⭐ 收藏 / ✓ 我已申请
+       两个状态完全独立：userAction='interested' 管收藏；isApplied 管申请。
+       点其中一个不影响另一个。 -->
   <view class="bottom-bar">
     <view
       class="action-btn action-secondary {{match.userAction === 'interested' ? 'active-interested' : ''}}"
@@ -101,10 +127,10 @@
       {{match.userAction === 'interested' ? '⭐ 已收藏' : '⭐ 收藏'}}
     </view>
     <view
-      class="action-btn action-primary {{match.userAction === 'applied' ? 'active-applied' : ''}}"
+      class="action-btn action-primary {{match.isApplied ? 'active-applied' : ''}}"
       bindtap="onApplied"
     >
-      {{match.userAction === 'applied' ? '✓ 已申请' : '✓ 我已申请'}}
+      {{match.isApplied ? '✓ 已申请' : '✓ 我已申请'}}
     </view>
   </view>
 </view>

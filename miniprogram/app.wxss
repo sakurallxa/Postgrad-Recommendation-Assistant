@@ -148,14 +148,16 @@ page {
   transition: all 0.2s ease;
 }
 
+/* 主按钮：统一使用 design-tokens 定义的主色调 #4F46E5（紫色）。
+   之前用的是 Google 蓝渐变（--primary-color = #1A73E8），与系统整体紫色调不一致。 */
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary-color) 0%, #4285F4 100%);
-  color: white;
+  background: var(--color-primary);
+  color: #FFFFFF;
   border: none;
 }
 
 .btn-primary:active {
-  background: var(--primary-dark);
+  background: var(--color-primary-hover);
 }
 
 .btn-secondary {

@@ -347,26 +347,32 @@
   font-size: var(--text-sm);
 }
 
-/* ===== 按需抓取作业进度 banner ===== */
+/* ===== 按需抓取作业进度 banner =====
+   统一白底 + 浅阴影，所有状态用同样的"卡片壳"，状态差异只通过
+   左侧 4rpx 主色条 + 标题里的小图标传递，避免大色块抢戏 */
 .job-banner {
   margin-bottom: var(--space-4);
   padding: var(--space-4);
-  background: linear-gradient(135deg, #F5F3FF 0%, #EEF2FF 100%);
-  border: 2rpx solid rgba(79, 70, 229, 0.12);
+  background: #FFFFFF;
   border-radius: var(--radius-xl);
+  box-shadow: 0 4rpx 16rpx rgba(15, 23, 42, 0.04);
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  position: relative;
+  overflow: hidden;
 }
-.job-banner-completed {
-  background: linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%);
-  border-color: rgba(16, 185, 129, 0.18);
+/* 左侧极细状态条 —— 唯一的色彩入口 */
+.job-banner::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6rpx;
+  background: var(--color-primary);
 }
-.job-banner-failed {
-  background: linear-gradient(135deg, #FEF2F2 0%, #FFF5F5 100%);
-  border-color: rgba(239, 68, 68, 0.18);
-}
-.job-banner-slow {
-  background: linear-gradient(135deg, #FFFBEB 0%, #FEFCE8 100%);
-  border-color: rgba(245, 158, 11, 0.22);
-}
+.job-banner-completed::before { background: var(--color-success, #10B981); }
+.job-banner-failed::before { background: var(--color-danger, #EF4444); }
+.job-banner-slow::before { background: var(--color-warning, #F59E0B); }
 .job-banner-head {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: var(--space-2);
@@ -375,6 +381,17 @@
   font-size: var(--text-md);
   font-weight: var(--weight-semibold);
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+.job-banner-spin {
+  display: inline-block;
+  animation: job-banner-spin 1.4s linear infinite;
+}
+@keyframes job-banner-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 .job-banner-close {
   width: 48rpx;
@@ -384,53 +401,64 @@
   font-size: 36rpx;
   color: var(--text-tertiary);
 }
-.job-banner-progress {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-1);
-}
-.job-banner-bar {
-  flex: 1;
-  height: 16rpx;
-  background: rgba(79, 70, 229, 0.12);
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-}
-.job-banner-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
-  border-radius: var(--radius-pill);
-  transition: width 0.4s ease;
-}
-.job-banner-num {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
-  color: var(--color-primary);
-  min-width: 80rpx;
-  text-align: right;
-}
-.job-banner-eta {
+.job-banner-hint {
   font-size: var(--text-xs);
   color: var(--text-secondary);
   display: block;
-  margin-top: var(--space-1);
+  line-height: 1.5;
 }
 .job-banner-slow-text { color: var(--color-warning); font-weight: var(--weight-medium); }
+
+/* 抓不到时的"手动补充"CTA —— 白底 + 主色描边 + 主色字 */
+.job-banner-stuck {
+  margin-top: var(--space-2);
+}
+.job-banner-cta {
+  margin-top: var(--space-3);
+  display: flex;
+  align-items: center;
+  background: rgba(79, 70, 229, 0.04);
+  border: 1rpx solid rgba(79, 70, 229, 0.18);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  gap: var(--space-3);
+}
+.job-banner-cta:active { background: rgba(79, 70, 229, 0.08); transform: scale(0.995); }
+.job-banner-cta-icon {
+  font-size: 40rpx;
+  flex-shrink: 0;
+}
+.job-banner-cta-text { flex: 1; min-width: 0; }
+.job-banner-cta-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: 4rpx;
+}
+.job-banner-cta-desc {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+.job-banner-cta-arrow {
+  font-size: 36rpx;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
 .job-banner-summary {
   font-size: var(--text-sm);
-  color: var(--color-success);
+  color: var(--text-primary);
   font-weight: var(--weight-semibold);
   display: block;
 }
 .job-banner-empty-list {
   margin-top: var(--space-3);
   padding-top: var(--space-2);
-  border-top: 1rpx dashed var(--border-default);
+  border-top: 1rpx solid var(--border-light);
 }
 .job-banner-empty-head {
   font-size: var(--text-xs);
-  color: var(--color-warning);
+  color: var(--text-secondary);
   margin-bottom: var(--space-1);
 }
 .job-banner-empty-row {
@@ -441,8 +469,23 @@
   border-bottom: 1rpx solid var(--border-light);
 }
 .job-banner-empty-row:last-child { border-bottom: none; }
-.job-banner-empty-name { font-size: var(--text-sm); color: var(--text-primary); }
-.job-banner-empty-action { font-size: var(--text-xs); color: var(--color-primary); font-weight: var(--weight-medium); }
+.job-banner-empty-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+  flex: 1;
+  min-width: 0;
+}
+.job-banner-empty-univ {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+.job-banner-empty-dept {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+.job-banner-empty-action { font-size: var(--text-xs); color: var(--color-primary); font-weight: var(--weight-medium); flex-shrink: 0; }
 
 /* ===== 探探式滑动 ===== */
 .match-card-wrap {
@@ -648,8 +691,22 @@
   font-weight: var(--weight-semibold);
 }
 .deck-dept { color: var(--text-secondary); margin-left: 4rpx; }
+.deck-univ-badge {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  margin-left: 8rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 999rpx;
+  font-size: var(--text-xs);
+}
 
 /* 标题主视觉 */
+.deck-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  margin-bottom: var(--space-3);
+}
 .deck-title {
   font-size: 40rpx;
   font-weight: var(--weight-bold);
@@ -660,7 +717,24 @@
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-bottom: var(--space-3);
+}
+/* 类型 tag：夏令营 / 预推免 */
+.deck-type-tag {
+  flex-shrink: 0;
+  padding: 4rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: var(--weight-semibold);
+  line-height: 1.5;
+  margin-top: 8rpx;
+}
+.camp-type-summer {
+  background: rgba(79, 70, 229, 0.10);
+  color: var(--color-primary);
+}
+.camp-type-pre-rec {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
 }
 
 /* 截止状态 */

@@ -2,6 +2,9 @@
 import { assistantService } from '../../services/assistant'
 import { profileV2Service } from '../../services/profile-v2'
 import { subscriptionService } from '../../services/subscription'
+import { http } from '../../services/http'
+// 注：首页"轻收藏"不请求微信订阅消息授权（避免 touchend 异步链路下静默 fail 的体验割裂）
+// requestDeadlineQuota 仅在详情页使用
 
 const RECOMMENDATION_MAP = {
   recommend: { icon: '🟢', text: '推荐', cls: 'match-recommendation-success' },
@@ -69,10 +72,24 @@ Page({
     wx.showModal({
       title: '需要先登录',
       content: '登录后才能保存档案、订阅院系、收到 AI 抓取的公告。',
-      confirmText: '去登录',
+      confirmText: '微信登录',
       cancelText: '稍后再说',
-      success: (res) => {
-        if (res.confirm) wx.switchTab({ url: '/pages/my/my' })
+      success: async (res) => {
+        if (!res.confirm) return
+        wx.showLoading({ title: '登录中...', mask: true })
+        try {
+          const token = await http.login()
+          wx.hideLoading()
+          if (!token) {
+            wx.showToast({ title: '登录失败', icon: 'none' })
+            return
+          }
+          wx.showToast({ title: '已登录', icon: 'success', duration: 800 })
+          thenAction && thenAction()
+        } catch (e) {
+          wx.hideLoading()
+          wx.showToast({ title: e?.message || '登录失败', icon: 'none' })
+        }
       }
     })
   },
@@ -133,21 +150,34 @@ Page({
   async fetchJobOnce(jobId) {
     try {
       const job = await subscriptionService.getCrawlJob(jobId)
-      const eta = job.etaSeconds || 0
-      const etaText = eta < 60 ? `${eta} 秒` : `${Math.ceil(eta / 60)} 分钟`
+      // 计算实际耗时（从作业 startedAt 起）
+      const startedAtMs = job.startedAt ? new Date(job.startedAt).getTime() : Date.now()
+      const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000))
+      const campsFound = job.campsFound || 0
+
+      // "抓不到 → 引导用户手动补充"判定：
+      //   1) running/queued 且超过 60s 还没拿到任何公告
+      //   2) completed 但 campsFound === 0
+      const STUCK_THRESHOLD = 60
+      const stuckRunning =
+        (job.status === 'running' || job.status === 'queued') &&
+        elapsedSeconds > STUCK_THRESHOLD &&
+        campsFound === 0
+      const completedEmpty = job.status === 'completed' && campsFound === 0
+      const showManualSubmitHint = stuckRunning || completedEmpty
+
       this.setData({
         jobBanner: {
           visible: true,
           jobId,
           status: job.status,
-          progressPercent: job.progressPercent || 0,
-          completedTargets: job.completedTargets,
-          totalTargets: job.totalTargets,
-          campsFound: job.campsFound,
-          etaSeconds: eta,
-          etaText,
+          campsFound,
+          elapsedSeconds,
           isSlowWarning: !!job.isSlowWarning,
-          emptyTargets: job.emptyTargets || []
+          emptyTargets: job.emptyTargets || [],
+          stuckRunning,
+          completedEmpty,
+          showManualSubmitHint
         }
       })
       if (job.status === 'completed' || job.status === 'failed') {
@@ -155,7 +185,8 @@ Page({
         wx.removeStorageSync('activeCrawlJobId')
         // 完成后刷新首页"今日新机会"
         this.refresh()
-        if (job.status === 'completed') {
+        // 只有"抓到了公告"才自动收起 banner；抓不到则保留，让用户看到手动补充入口
+        if (job.status === 'completed' && campsFound > 0) {
           setTimeout(() => this.setData({ 'jobBanner.collapsed': true }), 8000)
         }
       }
@@ -282,6 +313,12 @@ Page({
     // 过期状态
     const deadlineInfo = this.formatDeadlineCompact(raw.extractedDeadline)
 
+    // 公告类型 tag：夏令营 / 预推免
+    const announcementType = raw.campType || raw.camp?.announcementType || 'summer_camp'
+    const isPreRec = announcementType === 'pre_recommendation'
+    const campTypeLabel = isPreRec ? '预推免' : '夏令营'
+    const campTypeClass = isPreRec ? 'camp-type-pre-rec' : 'camp-type-summer'
+
     return {
       ...raw,
       recommendationIcon: rec.icon,
@@ -290,6 +327,8 @@ Page({
       matchLabel,
       matchClass,
       matchScoreShort: score,
+      campTypeLabel,
+      campTypeClass,
       deadlineText: deadlineInfo.text,
       deadlineUrgent: deadlineInfo.urgent,
       deadlineExpired: deadlineInfo.expired
@@ -343,15 +382,52 @@ Page({
   },
 
   // ============ 主操作：收藏 / 已申请 / 隐藏 ============
+  // 首页快速交互（右滑 + 卡片底部按钮 + 简表点击）一律走"轻收藏" —— 不弹微信订阅消息授权
+  // 用户想要"截止前微信提醒"，需要进详情页点收藏（详情页保留授权流程）
+  // toggle 入口：当前是 interested → 取消收藏；否则 → 仅 mark interested
   async onActionBookmark(e) {
     const id = e.currentTarget.dataset.id
-    try {
-      await assistantService.updateAction(id, 'interested')
-      wx.showToast({ title: '已收藏 · 截止前会提醒你', icon: 'success', duration: 1800 })
-      this.loadOpportunities()
-    } catch (err) {
-      wx.showToast({ title: '操作失败', icon: 'none' })
+    const userAction = e.currentTarget.dataset.userAction || ''
+    if (userAction === 'interested') {
+      return this.uncollectFromList(id)
     }
+    await this.quickCollect(id)
+    this.loadOpportunities()
+  },
+
+  uncollectFromList(matchId) {
+    wx.showModal({
+      title: '取消收藏',
+      content: '取消后将不再收到截止提醒，确定吗？',
+      confirmText: '取消收藏',
+      confirmColor: '#d94343',
+      success: async (res) => {
+        if (!res.confirm) return
+        try {
+          await assistantService.updateAction(matchId, 'reset')
+          wx.showToast({ title: '已取消收藏', icon: 'success', duration: 1000 })
+          this.loadOpportunities()
+        } catch (err) {
+          wx.showToast({ title: '操作失败', icon: 'none' })
+        }
+      }
+    })
+  },
+
+  /**
+   * 首页"轻收藏"：只 mark interested，不打断用户浏览节奏。
+   * 不请求微信订阅消息授权 — 该流程移到详情页。
+   */
+  async quickCollect(matchId) {
+    try {
+      await assistantService.updateAction(matchId, 'interested')
+    } catch (err) {
+      wx.showToast({ title: '收藏失败，请重试', icon: 'none' })
+      return
+    }
+    // icon=success 实心黑底 + 大对勾，视觉稳；不再用 icon=none（半透明会漏出底下内容）
+    // "开启微信提醒"的引导信息放在详情页底部 hint 里，首页 toast 只确认动作完成即可
+    wx.showToast({ title: '已收藏', icon: 'success', duration: 1500 })
   },
 
   async onActionApplied(e) {
@@ -420,13 +496,9 @@ Page({
     this._swipeBusy = true
     this.setData({ swipeFlying: direction, swiping: false })
     const hiddenIndex = this.data.deckIndex
-    setTimeout(() => {
-      const action = direction === 'right' ? 'interested' : 'hidden'
-      assistantService.updateAction(card.id, action).catch(() => null)
-      if (direction === 'right') {
-        wx.showToast({ title: '已收藏 · 截止前会提醒', icon: 'success', duration: 1200 })
-      }
-      // 推进到下一张
+
+    // 推进卡片到下一张（动画结束后）
+    const advance = () => {
       this.setData({
         deckIndex: this.data.deckIndex + 1,
         swipeOffsetX: 0,
@@ -434,12 +506,23 @@ Page({
         swipeFlying: ''
       })
       this._swipeBusy = false
-
-      // 左滑（隐藏）触发可撤销 Toast
       if (direction === 'left') {
         this.showUndoBanner(card, hiddenIndex)
       }
-    }, 320)
+    }
+
+    if (direction === 'right') {
+      // 右滑 = 轻收藏：不弹微信订阅消息（touchend 异步链路下 WeChat 会静默拒绝，
+      //                体验割裂且不可控）；想要微信提醒的用户在详情页点收藏会拿到授权
+      setTimeout(advance, 320)
+      this.quickCollect(card.id)
+    } else {
+      // 左滑 = 隐藏
+      setTimeout(() => {
+        assistantService.updateAction(card.id, 'hidden').catch(() => null)
+        advance()
+      }, 320)
+    }
   },
 
   // ============ 撤销 Toast ============
@@ -458,6 +541,11 @@ Page({
     this._undoCountdownTimer = setInterval(() => {
       const next = this.data.undoCountdown - 1
       if (next <= 0) {
+        // 倒计时归零：清掉这个 interval 自己（防泄漏），再走 dismiss
+        if (this._undoCountdownTimer) {
+          clearInterval(this._undoCountdownTimer)
+          this._undoCountdownTimer = null
+        }
         this.dismissUndoBanner()
       } else {
         this.setData({ undoCountdown: next })
@@ -473,8 +561,11 @@ Page({
   },
 
   dismissUndoBanner() {
+    // 幂等：多次调用安全
     this.clearUndoTimers()
-    this.setData({ undoVisible: false, undoCard: null })
+    if (this.data.undoVisible) {
+      this.setData({ undoVisible: false, undoCard: null })
+    }
   },
 
   // 点击撤销
@@ -493,13 +584,17 @@ Page({
     }
 
     // 2) 前端：把卡片重新插回到 opportunities 数组的 deckIndex 位置
-    //    并把 deckIndex 退回去一格，下一次渲染时就显示这张卡
+    //    安全 clamp：用 list.length（splice 后真实长度）+ 0 兜底
+    //    若 idx 超出当前列表（数组被后台 loadOpportunities 重置过），插到当前 deckIndex 位置
     const list = this.data.opportunities.slice()
-    const insertAt = Math.min(idx, list.length)
-    list.splice(insertAt, 0, card)
+    const safeIdx = Math.max(0, Math.min(idx, list.length))
+    const targetIdx = list.length === 0
+      ? 0
+      : Math.min(safeIdx, this.data.deckIndex) // 不超过当前 deckIndex，否则用户看不到
+    list.splice(targetIdx, 0, card)
     this.setData({
       opportunities: list,
-      deckIndex: insertAt
+      deckIndex: Math.min(targetIdx, list.length - 1)
     })
     wx.showToast({ title: '已恢复', icon: 'success', duration: 1000 })
   },
@@ -513,7 +608,7 @@ Page({
     wx.navigateTo({ url: `/packageAssistant/pages/match-detail/index?id=${card.id}` })
   },
 
-  // 卡片底部按钮 - 同样推进下一张
+  // 卡片底部"⭐收藏"按钮 - 复用右滑同样的"先订阅消息授权再推进卡片"流程
   async onDeckActionBookmark() {
     const card = this.data.opportunities[this.data.deckIndex]
     if (!card || this._swipeBusy) return
@@ -521,13 +616,19 @@ Page({
   },
 
   async onDeckActionApplied() {
-    const card = this.data.opportunities[this.data.deckIndex]
-    if (!card || this._swipeBusy) return
+    // 立即按引用 capture card + 当前 deckIndex（防止 await 期间 opportunities 被 loadOpportunities 重置导致越界）
+    const capturedCard = this.data.opportunities[this.data.deckIndex]
+    const capturedIndex = this.data.deckIndex
+    if (!capturedCard || this._swipeBusy) return
     this._swipeBusy = true
     try {
-      await assistantService.updateAction(card.id, 'applied')
+      await assistantService.updateAction(capturedCard.id, 'applied')
       wx.showToast({ title: '已标记为已申请', icon: 'success' })
-      this.setData({ deckIndex: this.data.deckIndex + 1, swipeOffsetX: 0, swipeOffsetY: 0 })
+      // 若 opportunities 已被刷新（capturedCard 不在当前列表第 capturedIndex 位），直接不推进 deckIndex，避免越界
+      const current = this.data.opportunities[capturedIndex]
+      if (current && current.id === capturedCard.id) {
+        this.setData({ deckIndex: capturedIndex + 1, swipeOffsetX: 0, swipeOffsetY: 0 })
+      }
     } catch (e) {
       wx.showToast({ title: '操作失败', icon: 'none' })
     } finally {
@@ -554,5 +655,11 @@ Page({
 
   goSubmitUrl() {
     wx.navigateTo({ url: '/packageAssistant/pages/submit-url/index' })
+  },
+
+  // 从抓取 banner 的"手动补充公告"按钮进入：附带 source 便于后续埋点
+  goSubmitUrlFromBanner() {
+    console.log('[home] tap submit-url from crawl banner')
+    wx.navigateTo({ url: '/packageAssistant/pages/submit-url/index?from=crawl-stuck' })
   }
 })

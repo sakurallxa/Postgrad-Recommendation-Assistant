@@ -1,0 +1,24 @@
+<view class="page" wx:if="{{!hasError}}">
+  <!-- 顶部提示条：让用户知道这是外部网页 -->
+  <view class="tip-bar">
+    <text class="tip-text">原文来自 {{originDomain}}</text>
+    <view class="tip-copy" bindtap="onCopy">复制链接</view>
+  </view>
+  <web-view src="{{url}}" bindload="onWebViewLoad" binderror="onWebViewError" bindmessage="onWebViewMessage"></web-view>
+  <!-- 右下角悬浮"复制链接"按钮：万一 web-view 渲染异常也能随时退路 -->
+  <view class="floating-copy" bindtap="onCopy">
+    <text class="floating-copy-icon">📋</text>
+    <text class="floating-copy-text">复制链接</text>
+  </view>
+</view>
+
+<!-- 域名未加白名单 / web-view 加载失败的兜底视图 -->
+<view class="fallback" wx:if="{{hasError}}">
+  <view class="fallback-icon">🌐</view>
+  <view class="fallback-title">无法在小程序内打开此页</view>
+  <view class="fallback-desc">
+    微信对小程序内打开外部网页有"业务域名白名单"限制，{{originDomain}} 未在白名单内。
+  </view>
+  <view class="fallback-url">{{url}}</view>
+  <view class="fallback-btn" bindtap="onCopy">复制链接到浏览器打开</view>
+</view>

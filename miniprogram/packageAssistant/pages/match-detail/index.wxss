@@ -82,13 +82,39 @@
 }
 .value-success { color: var(--color-success); }
 .value-warning { color: var(--color-warning); }
+.value-primary { color: var(--color-primary); font-weight: var(--weight-medium); }
 
+.card-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.card-logo {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 16rpx;
+  flex-shrink: 0;
+  background: #FFFFFF;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  object-fit: contain;
+}
+.card-logo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary);
+  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(79, 70, 229, 0.16);
+}
 .card-title {
+  flex: 1;
   font-size: var(--text-lg);
   font-weight: var(--weight-semibold);
   color: var(--text-primary);
   line-height: var(--leading-tight);
-  margin-bottom: var(--space-2);
 }
 .card-summary {
   font-size: var(--text-sm);
@@ -197,6 +223,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.source-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
 .source-action {
   flex-shrink: 0;
   padding: var(--space-1) var(--space-3);
@@ -205,6 +237,35 @@
   border-radius: var(--radius-pill);
   font-size: var(--text-xs);
 }
+.source-action:active { opacity: 0.7; }
+/* "复制"按钮：次级样式，留白底+边框 */
+.source-action-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1rpx solid var(--border-light);
+}
+
+/* 收藏前的"点收藏开启微信提醒"提示 — 位于 bottom-bar 上方 */
+/* 实心白底 + 主色描边 + 阴影，避免半透明漏底导致视觉混乱 */
+.bookmark-hint {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom) + 160rpx);
+  left: var(--space-4);
+  right: var(--space-4);
+  background: #FFFFFF;
+  border: 1rpx solid rgba(79, 70, 229, 0.28);
+  border-radius: var(--radius-md);
+  padding: 14rpx 22rpx;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 24rpx;
+  color: var(--color-primary);
+  box-shadow: 0 4rpx 16rpx rgba(15, 23, 42, 0.06);
+  z-index: 50;
+}
+.bookmark-hint-icon { font-size: 26rpx; flex-shrink: 0; }
+.bookmark-hint-text { flex: 1; line-height: 1.4; }
 
 /* 底部 */
 .bottom-bar {
@@ -249,16 +310,18 @@
   transform: scale(0.98);
 }
 
-/* 已收藏（黄色）/ 已申请（绿色）激活态 */
+/* 激活态：统一用主色系（紫色），不再用黄色/绿色 — 系统主色调一致性
+   收藏按钮（次级）激活：浅紫底 + 紫色边
+   申请按钮（主级）激活：深一档紫（hover 紫）保持区分，仍是同色系 */
 .active-interested {
-  background: var(--color-warning-soft) !important;
-  color: var(--color-warning) !important;
-  border-color: var(--color-warning) !important;
+  background: var(--color-primary-soft) !important;
+  color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
 }
 .active-applied {
-  background: var(--color-success) !important;
+  background: var(--color-primary-hover) !important;
   color: #FFFFFF !important;
-  box-shadow: 0 6rpx 18rpx rgba(16, 185, 129, 0.28);
+  box-shadow: 0 6rpx 18rpx rgba(67, 56, 202, 0.30);
 }
 
 /* loading */

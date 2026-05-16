@@ -1,7 +1,7 @@
 <view class="page">
   <view class="hero">
     <view class="hero-title">选择目标院系</view>
-    <view class="hero-subtitle">从 39 所 985 自由选择 · 已选 <text class="hero-emph">{{selectedCount}}</text> / 5 个院系</view>
+    <view class="hero-subtitle">全部推免高校 · 已选 <text class="hero-emph">{{selectedCount}}</text> / 5 个院系</view>
     <view class="hero-tip">最多关注 5 个 · AI 帮你精准盯紧</view>
   </view>
 
@@ -22,6 +22,19 @@
     >
       <text class="chip-text">{{item.displayText}}</text>
       <text class="chip-close">×</text>
+    </view>
+  </scroll-view>
+
+  <!-- 层级过滤 chip 行 -->
+  <scroll-view class="level-bar" scroll-x="true" enhanced show-scrollbar="{{false}}">
+    <view
+      wx:for="{{levelOptions}}"
+      wx:key="value"
+      class="level-chip {{levelFilter === item.value ? 'level-chip-active' : ''}}"
+      data-value="{{item.value}}"
+      bindtap="onTapLevel"
+    >
+      {{item.label}}
     </view>
   </scroll-view>
 

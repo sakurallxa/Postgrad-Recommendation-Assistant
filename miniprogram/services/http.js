@@ -13,20 +13,28 @@ class HttpClient {
    */
   async ensureToken() {
     // 已有 token 直接返回
-    if (userStore.token) return userStore.token
+    if (userStore.token) { console.log('[http] ensureToken: hit userStore.token'); return userStore.token }
     const cached = wx.getStorageSync('token')
     if (cached) {
+      console.log('[http] ensureToken: hit storage token')
       userStore.setToken && userStore.setToken(cached)
       return cached
     }
+    // 用户主动退出后，禁止自动登录，直到用户显式触发 login()
+    if (wx.getStorageSync('disableAutoLogin')) {
+      console.log('[http] ensureToken: blocked by disableAutoLogin')
+      return ''
+    }
     // 并发请求合并到同一个登录 Promise
-    if (this.loginPromise) return this.loginPromise
+    if (this.loginPromise) { console.log('[http] ensureToken: reuse in-flight loginPromise'); return this.loginPromise }
 
+    console.log('[http] ensureToken: starting new login flow')
     this.loginPromise = (async () => {
       try {
         const baseUrl = this.getBaseUrl()
         const isLocal = /localhost|127\.0\.0\.1/.test(baseUrl)
         const fallbackBaseUrl = this.getFallbackBaseUrl(baseUrl)
+        console.log('[http] login flow:', { baseUrl, isLocal, path: isLocal ? '/auth/dev-login' : '/auth/wx-login' })
 
         let code = ''
         if (!isLocal) {
@@ -64,6 +72,7 @@ class HttpClient {
         try {
           data = await doLogin(baseUrl)
         } catch (err) {
+          console.warn('[http] login primary failed:', err?.message, 'try fallback:', fallbackBaseUrl)
           if (fallbackBaseUrl) {
             data = await doLogin(fallbackBaseUrl)
           } else {
@@ -72,6 +81,7 @@ class HttpClient {
         }
 
         const accessToken = data?.accessToken || data?.token || ''
+        console.log('[http] login response:', { hasToken: !!accessToken, userId: data?.user?.id })
         if (!accessToken) throw new Error('login 响应缺少 accessToken')
 
         wx.setStorageSync('token', accessToken)
@@ -93,6 +103,47 @@ class HttpClient {
       }
     })()
     return this.loginPromise
+  }
+
+  /**
+   * 显式登录：清掉"禁止自动登录"标记 + 旧 loginPromise，强制重新跑一次 ensureToken
+   * 由"我的"页或登录引导按钮调用
+   * 成功返回 accessToken；失败抛错（onLogin 应捕获并提示用户）
+   */
+  async login() {
+    console.log('[http] login() invoked')
+    wx.removeStorageSync('disableAutoLogin')
+    // 关键：清掉可能残留的、resolve 自旧 token 的 loginPromise
+    this.loginPromise = null
+    const token = await this.ensureToken()
+    console.log('[http] login() got token, len=', (token || '').length)
+    if (!token) throw new Error('登录未拿到 accessToken')
+    return token
+  }
+
+  /**
+   * 显式登出：设置标记，清掉本地 token/user 状态 + 任何 in-flight loginPromise
+   * 不做页面跳转，由调用方负责 UI 刷新
+   */
+  logout() {
+    console.log('[http] logout() invoked')
+    try {
+      wx.setStorageSync('disableAutoLogin', '1')
+      wx.removeStorageSync('token')
+      wx.removeStorageSync('accessToken')
+      wx.removeStorageSync('refreshToken')
+      wx.removeStorageSync('activeCrawlJobId')
+      wx.removeStorageSync('userSelectionDepartments')
+      userStore.logout && userStore.logout()
+      // 关键：丢弃任何可能存在的、resolve 自旧 token 的 loginPromise
+      this.loginPromise = null
+      const app = getApp()
+      if (app?.globalData) {
+        app.globalData.token = ''
+        app.globalData.isLoggedIn = false
+        app.globalData.userInfo = null
+      }
+    } catch (e) {}
   }
 
   getBaseUrl() {

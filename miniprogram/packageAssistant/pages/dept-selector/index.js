@@ -1,30 +1,40 @@
 import { subscriptionService } from '../../../services/subscription'
 
-// 39 所 985 拼音首字母映射（用于排序+搜索）
+// 39 所 985 + 11 所新增（分校区/医学/双一流）的拼音映射
+// 用于：1) 列表按首字母排序  2) 字母索引 sidebar  3) 拼音搜索
 const SCHOOL_PINYIN_MAP = {
   '北京大学': { letter: 'B', full: 'beijingdaxue', short: 'bjdx' },
   '北京航空航天大学': { letter: 'B', full: 'beijinghangkonghangtian', short: 'bjhkht' },
   '北京理工大学': { letter: 'B', full: 'beijinglgdx', short: 'bjlg' },
   '北京师范大学': { letter: 'B', full: 'beijingshifandaxue', short: 'bjsf' },
+  '北京协和医学院': { letter: 'B', full: 'beijingxiehe', short: 'bjxh' },
   '大连理工大学': { letter: 'D', full: 'dalianligong', short: 'dllg' },
   '电子科技大学': { letter: 'D', full: 'dianzikejidaxue', short: 'dzkj' },
   '东北大学': { letter: 'D', full: 'dongbeidaxue', short: 'dbdx' },
   '东南大学': { letter: 'D', full: 'dongnandaxue', short: 'dndx' },
   '复旦大学': { letter: 'F', full: 'fudandaxue', short: 'fddx' },
+  '广州医科大学': { letter: 'G', full: 'guangzhouyike', short: 'gzyk' },
   '国防科技大学': { letter: 'G', full: 'guofangkejidaxue', short: 'gfkj' },
   '哈尔滨工业大学': { letter: 'H', full: 'haerbingongye', short: 'hagy' },
+  '哈尔滨工业大学（威海）': { letter: 'H', full: 'haerbingongyeweihai', short: 'hagywh' },
+  '哈尔滨工业大学（深圳）': { letter: 'H', full: 'haerbingongyeshenzhen', short: 'hagysz' },
   '湖南大学': { letter: 'H', full: 'hunandaxue', short: 'hndx' },
   '华东师范大学': { letter: 'H', full: 'huadongshifandaxue', short: 'hdsf' },
   '华南理工大学': { letter: 'H', full: 'huananligong', short: 'hnlg' },
   '华中科技大学': { letter: 'H', full: 'huazhongkejidaxue', short: 'hzkj' },
   '吉林大学': { letter: 'J', full: 'jilindaxue', short: 'jldx' },
+  '暨南大学': { letter: 'J', full: 'jinandaxue', short: 'jndx' },
   '兰州大学': { letter: 'L', full: 'lanzhoudaxue', short: 'lzdx' },
   '南京大学': { letter: 'N', full: 'nanjingdaxue', short: 'njdx' },
   '南开大学': { letter: 'N', full: 'nankaidaxue', short: 'nkdx' },
+  '南方科技大学': { letter: 'N', full: 'nanfangkeji', short: 'nfkj' },
   '清华大学': { letter: 'Q', full: 'qinghuadaxue', short: 'qhdx' },
-  '厦门大学': { letter: 'S', full: 'xiamendaxue', short: 'xmdx' }, // 厦读 xià，但小程序按俗称 X
+  '厦门大学': { letter: 'S', full: 'xiamendaxue', short: 'xmdx' },
   '山东大学': { letter: 'S', full: 'shandongdaxue', short: 'sddx' },
+  '山东大学（威海）': { letter: 'S', full: 'shandongdaxueweihai', short: 'sddxwh' },
   '上海交通大学': { letter: 'S', full: 'shanghaijiaotong', short: 'shjt' },
+  '上海科技大学': { letter: 'S', full: 'shanghaikeji', short: 'shkj' },
+  '上海财经大学': { letter: 'S', full: 'shanghaicaijing', short: 'shcj' },
   '四川大学': { letter: 'S', full: 'sichuandaxue', short: 'scdx' },
   '同济大学': { letter: 'T', full: 'tongjidaxue', short: 'tjdx' },
   '天津大学': { letter: 'T', full: 'tianjindaxue', short: 'tjdx2' },
@@ -37,10 +47,44 @@ const SCHOOL_PINYIN_MAP = {
   '中国海洋大学': { letter: 'Z', full: 'zhongguohaiyang', short: 'zghy' },
   '中国人民大学': { letter: 'Z', full: 'zhongguorenmin', short: 'zgrm' },
   '中国科学技术大学': { letter: 'Z', full: 'zhongguokeji', short: 'zgkj' },
+  '中国科学院': { letter: 'Z', full: 'zhongguokexueyuan', short: 'zgkxy' },
+  '中国科学院大学': { letter: 'Z', full: 'zhongguokexueyuandaxue', short: 'zgkxydx' },
   '中央民族大学': { letter: 'Z', full: 'zhongyangminzu', short: 'zymz' },
   '中南大学': { letter: 'Z', full: 'zhongnandaxue', short: 'zndx' },
   '中山大学': { letter: 'Z', full: 'zhongshandaxue', short: 'zsdx' },
   '重庆大学': { letter: 'C', full: 'chongqingdaxue', short: 'cqdx' }
+}
+
+// 兜底：中文首字 → 字母索引（覆盖所有 211/双一流/普通高校的首字母排序）
+// 列表里没有的学校，按学校名第一个汉字推断首字母（保证 Z 之外的字母 bucket 都有内容）
+const FIRST_CHAR_TO_LETTER = {
+  '安': 'A', '澳': 'A',
+  '北': 'B',
+  '长': 'C', '成': 'C', '常': 'C', '重': 'C',
+  '大': 'D', '东': 'D', '电': 'D', '都': 'D',
+  '俄': 'E',
+  '复': 'F', '福': 'F', '佛': 'F',
+  '广': 'G', '贵': 'G', '甘': 'G', '国': 'G', '高': 'G', '桂': 'G',
+  '哈': 'H', '河': 'H', '湖': 'H', '海': 'H', '杭': 'H', '黑': 'H', '华': 'H', '合': 'H', '淮': 'H',
+  '济': 'J', '吉': 'J', '江': 'J', '嘉': 'J', '解': 'J', '景': 'J', '金': 'J', '军': 'J', '暨': 'J',
+  '凯': 'K', '昆': 'K',
+  '兰': 'L', '辽': 'L', '聊': 'L', '凉': 'L', '陆': 'L', '陇': 'L', '丽': 'L', '柳': 'L',
+  '马': 'M',
+  '内': 'N', '南': 'N', '宁': 'N',
+  '青': 'Q', '清': 'Q', '齐': 'Q', '钦': 'Q', '泉': 'Q',
+  '日': 'R',
+  '上': 'S', '山': 'S', '陕': 'S', '深': 'S', '沈': 'S', '石': 'S', '苏': 'S', '四': 'S', '厦': 'S', '邵': 'S', '韶': 'S', '汕': 'S', '绍': 'S',
+  '太': 'T', '天': 'T', '通': 'T', '同': 'T',
+  '武': 'W', '温': 'W',
+  '西': 'X', '香': 'X', '湘': 'X', '徐': 'X', '新': 'X',
+  '云': 'Y', '燕': 'Y', '烟': 'Y', '阳': 'Y',
+  '浙': 'Z', '中': 'Z', '郑': 'Z', '珠': 'Z'
+}
+
+function inferLetter(name) {
+  if (!name) return '#'
+  const first = name[0]
+  return FIRST_CHAR_TO_LETTER[first] || '#'
 }
 
 Page({
@@ -57,7 +101,16 @@ Page({
     availableLetters: [],
     activeLetter: '',
     // scroll-into-view 目标
-    scrollIntoView: ''
+    scrollIntoView: '',
+    // 院校层级过滤
+    levelFilter: 'all',
+    levelOptions: [
+      { label: '全部', value: 'all' },
+      { label: '985', value: '985' },
+      { label: '211', value: '211' },
+      { label: '双一流', value: '双一流' },
+      { label: '其他', value: 'other' }
+    ]
   },
 
   async onLoad() {
@@ -77,7 +130,11 @@ Page({
             majorsText: (d.majors || []).slice(0, 4).join(' · ')
           }
         })
-        const pinyin = SCHOOL_PINYIN_MAP[school.universityName] || { letter: '#', full: '', short: '' }
+        // 优先用 PINYIN_MAP 的精确条目；查不到则按首字符推断字母（确保 211/双一流/分校区都进对桶）
+        const mapped = SCHOOL_PINYIN_MAP[school.universityName]
+        const pinyin = mapped
+          ? mapped
+          : { letter: inferLetter(school.universityName), full: '', short: '' }
         return {
           ...school,
           departments,
@@ -113,7 +170,7 @@ Page({
     }
   },
 
-  // ============ 搜索 ============
+  // ============ 搜索 + 层级过滤 ============
   onSearchInput(e) {
     const keyword = (e.detail.value || '').trim().toLowerCase()
     this.setData({ keyword })
@@ -125,12 +182,48 @@ Page({
     this.applyFilter('')
   },
 
+  // 点击层级过滤 chip（全部 / 985 / 211 / 双一流 / 其他）
+  onTapLevel(e) {
+    const value = e.currentTarget.dataset.value
+    if (!value || value === this.data.levelFilter) return
+    this.setData({ levelFilter: value })
+    this.applyFilter(this.data.keyword)
+  },
+
+  // 单条 school 是否通过层级过滤（按国家工程包含关系：985 ⊂ 211 ⊂ 双一流）
+  // 注意：levelOptions 的 value 用的是 'other' 而不是中文 '其他'，匹配时要用 'other'
+  matchesLevel(school) {
+    const lf = this.data.levelFilter
+    if (lf === 'all') return true
+    const hasBooleanFields =
+      typeof school.is985 === 'boolean' ||
+      typeof school.is211 === 'boolean' ||
+      typeof school.isDoubleFirstClass === 'boolean'
+
+    if (hasBooleanFields) {
+      if (lf === '985') return !!school.is985
+      if (lf === '211') return !!school.is211          // 自动含 985
+      if (lf === '双一流') return !!school.isDoubleFirstClass  // 自动含 985+211
+      if (lf === 'other') return !school.is985 && !school.is211 && !school.isDoubleFirstClass
+    }
+    // 兼容旧后端（无 boolean 字段时按单值 level 互斥比较）
+    if (lf === 'other') return !['985', '211', '双一流'].includes(school.level)
+    return school.level === lf
+  },
+
   applyFilter(kw) {
+    const lf = this.data.levelFilter
+    // 1) 仅层级过滤（无关键词）
     if (!kw) {
-      this.setData({ filteredSchools: this.data.schools })
+      const list = lf === 'all'
+        ? this.data.schools
+        : this.data.schools.filter((s) => this.matchesLevel(s))
+      this.setData({ filteredSchools: list })
       return
     }
+    // 2) 关键词 + 层级双过滤
     const filtered = this.data.schools.filter(s => {
+      if (!this.matchesLevel(s)) return false
       const name = s.universityName || ''
       const pinyinFull = s.pinyinFull || ''
       const pinyinShort = s.pinyinShort || ''
@@ -242,19 +335,27 @@ Page({
   },
 
   // 点字母 → 滚到该字母第一所学校
+  // 优先级：1) 层级过滤生效内的目标  2) 全量目标 + 清掉关键词搜索
   onTapLetter(e) {
     const letter = e.currentTarget.dataset.letter
     if (!letter) return
-    // 找到该字母下第一所学校的 slug 作为 scrollIntoView 目标
-    const target = this.data.filteredSchools.find(s => s.firstLetter === letter)
-    if (target) {
-      this.setData({
-        activeLetter: letter,
-        scrollIntoView: 'school-' + target.schoolSlug
-      })
-      // 250ms 后清空 scrollIntoView，下一次点同字母才会重新触发
-      setTimeout(() => this.setData({ scrollIntoView: '' }), 250)
+    // 先在"层级过滤后的列表"里找；找不到再退到全量并清掉搜索
+    const inLevel = this.data.schools.filter((s) => this.matchesLevel(s))
+    let target = inLevel.find((s) => s.firstLetter === letter)
+    const needsResetSearch = !target || this.data.keyword
+    if (!target) target = this.data.schools.find((s) => s.firstLetter === letter)
+    if (!target) return
+    const updates = {
+      activeLetter: letter,
+      scrollIntoView: 'school-' + target.schoolSlug
     }
+    if (needsResetSearch && this.data.keyword) {
+      updates.keyword = ''
+      // 清搜索后重算 filteredSchools（仅按层级过滤）
+      updates.filteredSchools = this.data.schools.filter((s) => this.matchesLevel(s))
+    }
+    this.setData(updates)
+    setTimeout(() => this.setData({ scrollIntoView: '' }), 250)
   },
 
   // ============ 保存（订阅 + 立即触发按需抓取作业）============

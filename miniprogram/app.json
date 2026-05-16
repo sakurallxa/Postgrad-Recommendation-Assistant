@@ -11,7 +11,8 @@
         "pages/profile-edit/index",
         "pages/dept-selector/index",
         "pages/submit-url/index",
-        "pages/match-detail/index"
+        "pages/match-detail/index",
+        "pages/source-webview/index"
       ]
     },
     {

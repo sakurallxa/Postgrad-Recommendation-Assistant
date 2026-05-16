@@ -2,27 +2,65 @@
   <!-- 按需抓取作业进度 banner -->
   <view wx:if="{{jobBanner.visible && !jobBanner.collapsed}}" class="job-banner job-banner-{{jobBanner.status}} {{jobBanner.isSlowWarning ? 'job-banner-slow' : ''}}">
     <view class="job-banner-head">
-      <text class="job-banner-title">
-        <block wx:if="{{jobBanner.status === 'running' || jobBanner.status === 'queued' || jobBanner.status === 'loading'}}">🔄 正在为你抓取公告</block>
-        <block wx:elif="{{jobBanner.status === 'completed'}}">✅ 抓取完成</block>
-        <block wx:elif="{{jobBanner.status === 'failed'}}">⚠️ 抓取失败</block>
-      </text>
+      <view class="job-banner-title">
+        <block wx:if="{{jobBanner.status === 'running' || jobBanner.status === 'queued' || jobBanner.status === 'loading'}}">
+          <text class="job-banner-spin">🔄</text>
+          <text>正在为你抓取公告</text>
+        </block>
+        <block wx:elif="{{jobBanner.status === 'completed'}}">
+          <text>✅ 抓取完成</text>
+        </block>
+        <block wx:elif="{{jobBanner.status === 'failed'}}">
+          <text>⚠️ 抓取失败</text>
+        </block>
+      </view>
       <view class="job-banner-close" bindtap="onCloseJobBanner">×</view>
     </view>
 
     <block wx:if="{{jobBanner.status === 'running' || jobBanner.status === 'queued' || jobBanner.status === 'loading'}}">
-      <view class="job-banner-progress">
-        <view class="job-banner-bar"><view class="job-banner-fill" style="width: {{jobBanner.progressPercent}}%"></view></view>
-        <text class="job-banner-num">{{jobBanner.completedTargets}}/{{jobBanner.totalTargets}}</text>
+      <!-- 正常等待文案 -->
+      <text class="job-banner-hint" wx:if="{{!jobBanner.stuckRunning && !jobBanner.isSlowWarning}}">
+        通常需要 30-60 秒，请稍后
+      </text>
+      <!-- 超过 60s 仍未抓到任何公告：引导用户手动补充 -->
+      <view class="job-banner-stuck" wx:if="{{jobBanner.stuckRunning}}">
+        <text class="job-banner-hint job-banner-slow-text">
+          已等待 {{jobBanner.elapsedSeconds}} 秒还没抓到公告。可能院系页面结构特殊，AI 暂时取不到。
+        </text>
+        <view class="job-banner-cta" bindtap="goSubmitUrlFromBanner">
+          <text class="job-banner-cta-icon">🔗</text>
+          <view class="job-banner-cta-text">
+            <view class="job-banner-cta-title">手动补充公告 URL</view>
+            <view class="job-banner-cta-desc">把公告链接粘给 AI，立刻分析匹配度</view>
+          </view>
+          <text class="job-banner-cta-arrow">›</text>
+        </view>
       </view>
-      <text class="job-banner-eta" wx:if="{{jobBanner.etaSeconds > 0 && !jobBanner.isSlowWarning}}">预计还需 {{jobBanner.etaText}}</text>
-      <text class="job-banner-eta job-banner-slow-text" wx:if="{{jobBanner.isSlowWarning}}">抓取较慢，可继续等待或先看其他内容</text>
+      <text class="job-banner-hint job-banner-slow-text" wx:if="{{jobBanner.isSlowWarning && !jobBanner.stuckRunning}}">
+        抓取耗时较长，请稍后，完成后会自动出现
+      </text>
     </block>
 
     <block wx:elif="{{jobBanner.status === 'completed'}}">
-      <text class="job-banner-summary">共抓到 {{jobBanner.campsFound}} 条公告</text>
+      <!-- 有抓到 -->
+      <text class="job-banner-summary" wx:if="{{jobBanner.campsFound > 0}}">共抓到 {{jobBanner.campsFound}} 条公告</text>
+      <!-- 没抓到任何公告：引导手动补充 -->
+      <view class="job-banner-stuck" wx:if="{{jobBanner.completedEmpty}}">
+        <text class="job-banner-hint job-banner-slow-text">
+          本次没抓到新公告。可能学院近期没更新，或页面结构特殊 AI 取不到。
+        </text>
+        <view class="job-banner-cta" bindtap="goSubmitUrlFromBanner">
+          <text class="job-banner-cta-icon">🔗</text>
+          <view class="job-banner-cta-text">
+            <view class="job-banner-cta-title">手动补充公告 URL</view>
+            <view class="job-banner-cta-desc">把公告链接粘给 AI，立刻分析匹配度</view>
+          </view>
+          <text class="job-banner-cta-arrow">›</text>
+        </view>
+      </view>
+      <!-- 部分学院未抓到（反馈入口） -->
       <view wx:if="{{jobBanner.emptyTargets.length > 0}}" class="job-banner-empty-list">
-        <view class="job-banner-empty-head">⚠ 以下 {{jobBanner.emptyTargets.length}} 个学院未抓到近期公告：</view>
+        <view class="job-banner-empty-head">以下 {{jobBanner.emptyTargets.length}} 个学院未抓到近期公告：</view>
         <view
           wx:for="{{jobBanner.emptyTargets}}"
           wx:key="departmentId"
@@ -31,7 +69,10 @@
           data-dept-name="{{item.departmentName}}"
           bindtap="onJobBannerEmptyFeedback"
         >
-          <text class="job-banner-empty-name">{{item.departmentName}}</text>
+          <view class="job-banner-empty-name">
+            <text class="job-banner-empty-univ" wx:if="{{item.universityName}}">{{item.universityName}}</text>
+            <text class="job-banner-empty-dept">{{item.departmentName}}</text>
+          </view>
           <text class="job-banner-empty-action">反馈 ›</text>
         </view>
       </view>
@@ -39,13 +80,12 @@
   </view>
 
   <!-- 顶部欢迎 -->
+  <!-- 副标题只在"新机会"tab 显示；"我的收藏" / "已申请" tab 不展示副标题，避免文案与内容不一致 -->
   <view class="hero">
     <view class="hero-title">你好，保研er 👋</view>
-    <view class="hero-subtitle">
-      <text wx:if="{{!hasSubscription}}">AI 帮你盯紧夏令营和预推免公告</text>
-      <text wx:elif="{{stats.recommendCount > 0}}">为你筛出 {{stats.recommendCount}} 个高匹配机会</text>
-      <text wx:else>暂时还没有新机会，订阅的院系有动静会自动出现</text>
-    </view>
+    <view class="hero-subtitle" wx:if="{{!hasSubscription}}">AI 帮你盯紧夏令营和预推免公告</view>
+    <view class="hero-subtitle" wx:elif="{{activeTab === 'new' && opportunities.length > 0}}">为你筛出 {{opportunities.length}} 个公告</view>
+    <view class="hero-subtitle" wx:elif="{{activeTab === 'new'}}">暂时还没有新机会，订阅的院系有动静会自动出现</view>
   </view>
 
   <!-- ============ 未订阅引导：欢迎页 ============ -->
@@ -67,7 +107,7 @@
         <view class="welcome-step-num">2</view>
         <view class="welcome-step-body">
           <view class="welcome-step-title">选择目标院校（最多 5 个）</view>
-          <view class="welcome-step-desc">从 39 所 985 中选定你的目标 · 系统点对点抓取这些学院的公告</view>
+          <view class="welcome-step-desc">从全部推免高校中选定你的目标 · 系统点对点抓取这些学院的公告</view>
         </view>
         <view class="welcome-step-arrow">›</view>
       </view>
@@ -95,7 +135,7 @@
   <!-- 概览数据条 -->
   <view class="stats-row" wx:if="{{hasSubscription}}">
     <view class="stat-item" bindtap="onTapStat" data-tab="bookmarked">
-      <view class="stat-value stat-value-success">⭐ {{stats.bookmarkedCount}}</view>
+      <view class="stat-value stat-value-primary">⭐ {{stats.bookmarkedCount}}</view>
       <view class="stat-label">我的收藏</view>
     </view>
     <view class="stat-divider"></view>
@@ -115,15 +155,10 @@
     <text class="profile-nudge-arrow">›</text>
   </view>
 
-  <!-- 提交URL测试入口（已订阅时也保留） -->
-  <view wx:if="{{hasSubscription}}" class="submit-url-card" bindtap="onTapGuideSubmitUrl">
-    <view class="submit-url-icon">🔗</view>
-    <view class="submit-url-text">
-      <view class="submit-url-title">手动测试 AI 助理</view>
-      <view class="submit-url-desc">贴一条公告 URL，看 AI 给出的匹配判断</view>
-    </view>
-    <view class="submit-url-arrow">›</view>
-  </view>
+  <!-- 已订阅状态下不再单独展示"手动测试 AI 助理"入口：
+       - "我的"页有常驻入口
+       - 抓不到公告时进度卡内置 CTA
+       重复出现会让首页杂乱 -->
 
   <!-- 列表 Tab 切换：只在已订阅时显示 -->
   <view class="tab-bar" wx:if="{{hasSubscription}}">
@@ -183,14 +218,18 @@
           <text class="deck-match-score">匹配度 {{opportunities[deckIndex].matchScoreShort}}%</text>
         </view>
 
-        <!-- 学校 + 院系 -->
+        <!-- 学校 + 院系 / 全校通用标签 + 类型 tag（夏令营/预推免）-->
         <view class="deck-affil">
           <text class="deck-univ">{{opportunities[deckIndex].camp.universityName}}</text>
           <text wx:if="{{opportunities[deckIndex].camp.departmentName}}" class="deck-dept">· {{opportunities[deckIndex].camp.departmentName}}</text>
+          <text wx:elif="{{opportunities[deckIndex].camp.isUniversityLevel}}" class="deck-univ-badge">· 全校通用</text>
         </view>
 
-        <!-- 公告标题（卡片主视觉） -->
-        <view class="deck-title">{{opportunities[deckIndex].camp.title}}</view>
+        <!-- 公告标题 + 类型 tag（校徽留在详情页展示，首页保持简洁）-->
+        <view class="deck-title-row">
+          <view class="deck-type-tag {{opportunities[deckIndex].campTypeClass}}">{{opportunities[deckIndex].campTypeLabel}}</view>
+          <view class="deck-title">{{opportunities[deckIndex].camp.title}}</view>
+        </view>
 
         <!-- 过期/截止状态 -->
         <view class="deck-deadline {{opportunities[deckIndex].deadlineExpired ? 'deck-deadline-expired' : opportunities[deckIndex].deadlineUrgent ? 'deck-deadline-urgent' : ''}}">

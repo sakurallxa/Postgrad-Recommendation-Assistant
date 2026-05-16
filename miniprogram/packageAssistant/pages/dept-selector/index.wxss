@@ -32,6 +32,30 @@
   display: inline-block;
 }
 
+/* 层级过滤 chip 行（全部/985/211/双一流/其他）*/
+.level-bar {
+  white-space: nowrap;
+  padding: 0 var(--space-2) var(--space-2);
+}
+.level-chip {
+  display: inline-block;
+  padding: 12rpx 24rpx;
+  margin-right: 12rpx;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 26rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid var(--border-light);
+  transition: background 0.15s, color 0.15s;
+}
+.level-chip:active { opacity: 0.85; }
+.level-chip-active {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
 /* 搜索框 */
 .search-bar {
   display: flex;
