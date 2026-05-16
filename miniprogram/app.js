@@ -34,12 +34,20 @@ App({
     // ====================================
 
     const savedApiBaseUrl = wx.getStorageSync('apiBaseUrl')
-    const isLegacyInvalidDomain = typeof savedApiBaseUrl === 'string' && (
+    // 任何不等于当前期望值的缓存 baseUrl，都视为脏数据：
+    // 1) 历史遗留域名（api.baoyan.com / tcb.qcloud.la）
+    // 2) 本地开发地址（localhost / 127.0.0.1）
+    // 3) 缺 /api/v1 前缀的裸域名（之前的 bug，会导致 login 404）
+    // 4) 任何不等于当前期望 PROD_BACKEND_URL 的值（防御性兜底）
+    const expectedUrl = USE_LOCAL_BACKEND ? LOCAL_BACKEND_URL : PROD_BACKEND_URL
+    const isDirtyCache = typeof savedApiBaseUrl !== 'string' ||
+      !savedApiBaseUrl ||
       savedApiBaseUrl.indexOf('api.baoyan.com') > -1 ||
       savedApiBaseUrl.indexOf('tcb.qcloud.la') > -1 ||
       savedApiBaseUrl.indexOf('localhost') > -1 ||
-      savedApiBaseUrl.indexOf('127.0.0.1') > -1
-    )
+      savedApiBaseUrl.indexOf('127.0.0.1') > -1 ||
+      savedApiBaseUrl.indexOf('/api/v1') === -1 ||
+      savedApiBaseUrl !== expectedUrl
 
     let resolvedApiBaseUrl
     if (USE_LOCAL_BACKEND) {
@@ -47,10 +55,13 @@ App({
       try { wx.setStorageSync('apiBaseUrl', LOCAL_BACKEND_URL) } catch (e) {}
       console.log('[环境] 使用本地后端:', LOCAL_BACKEND_URL)
     } else {
-      // 生产模式：如果本地缓存的是 localhost/旧域名，强制覆盖为生产域名
-      if (isLegacyInvalidDomain || !savedApiBaseUrl) {
+      // 生产模式：缓存值跟期望值不一致就强制覆盖
+      if (isDirtyCache) {
         resolvedApiBaseUrl = PROD_BACKEND_URL
         try { wx.setStorageSync('apiBaseUrl', PROD_BACKEND_URL) } catch (e) {}
+        if (savedApiBaseUrl) {
+          console.warn('[环境] 检测到脏缓存 baseUrl，已覆盖:', savedApiBaseUrl, '→', PROD_BACKEND_URL)
+        }
       } else {
         resolvedApiBaseUrl = savedApiBaseUrl
       }
