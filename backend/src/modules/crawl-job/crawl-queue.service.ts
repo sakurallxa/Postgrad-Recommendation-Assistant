@@ -5,7 +5,13 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { spawn } from 'child_process';
 
-const CACHE_TTL_HOURS = 24;
+// 缓存 TTL 按状态分层：
+//   - ok（找到公告）：24 小时（公告新增不频繁，1 天内不必重抓）
+//   - empty（没找到）：2 小时（学院可能临时没更新，太长会让"重选订阅"立刻命中缓存看不到新数据）
+//   - error（抓取失败）：30 分钟（快速重试）
+const CACHE_TTL_OK_HOURS = 24;
+const CACHE_TTL_EMPTY_HOURS = 2;
+const CACHE_TTL_ERROR_HOURS = 0.5;
 const JOB_TIMEOUT_MS = 25 * 60 * 1000; // 单 job 最长跑 25 分钟
 
 /**
@@ -175,8 +181,15 @@ export class CrawlQueueService implements OnModuleInit {
 
   private async upsertDeptCache(deptId: string, count: number, crawlFailed: boolean) {
     const now = new Date();
-    const ttl = new Date(now.getTime() + CACHE_TTL_HOURS * 3600 * 1000);
     const status = crawlFailed ? 'error' : count > 0 ? 'ok' : 'empty';
+    // 不同状态用不同 TTL（详见模块顶部常量注释）
+    const ttlHours =
+      status === 'ok'
+        ? CACHE_TTL_OK_HOURS
+        : status === 'empty'
+          ? CACHE_TTL_EMPTY_HOURS
+          : CACHE_TTL_ERROR_HOURS;
+    const ttl = new Date(now.getTime() + ttlHours * 3600 * 1000);
     await this.prisma.departmentCrawlCache.upsert({
       where: { departmentId: deptId },
       create: { departmentId: deptId, lastCrawledAt: now, campsFoundLast: count, status, ttlExpiresAt: ttl },

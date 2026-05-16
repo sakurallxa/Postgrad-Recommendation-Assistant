@@ -30,7 +30,9 @@ export class CrawlJobService {
     }
 
     // 限频：用户手动触发的 trigger（不含定时任务 system_cron） → 30 分钟内最多 1 次
-    // 防止用户狂点抓取按钮浪费 LLM 配额
+    // 防止用户狂点抓取按钮浪费 LLM 配额。
+    // 但如果用户加了新的 dept（scope 包含上次 job 没爬过的院系），允许重跑只爬"新增"部分，
+    // 因为这是用户合理预期：「我刚加了一个新院校，应该立刻看到它的公告」。
     if (triggerType !== 'system_cron') {
       const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
       const recent = await this.prisma.crawlJob.findFirst({
@@ -40,14 +42,32 @@ export class CrawlJobService {
           triggerType: { not: 'system_cron' },
         },
         orderBy: { createdAt: 'desc' },
-        select: { id: true, createdAt: true },
+        select: { id: true, createdAt: true, scopeJson: true },
       });
       if (recent) {
-        const waitSec = 30 * 60 - Math.floor((Date.now() - recent.createdAt.getTime()) / 1000);
-        const waitMin = Math.max(1, Math.ceil(waitSec / 60));
-        throw new BadRequestException(
-          `30 分钟内已有抓取任务，请 ${waitMin} 分钟后再试（每用户每 30 分钟限 1 次）`,
+        // 检查这次 scope 是否包含上次 job 没爬过的 dept
+        let prevDeptIds = new Set<string>();
+        try {
+          const prevScope = JSON.parse(recent.scopeJson || '[]') as Array<{ departmentId?: string }>;
+          prevDeptIds = new Set(prevScope.map((s) => s.departmentId).filter((x): x is string => !!x));
+        } catch (e) {
+          // 解析失败按"严格限频"处理
+        }
+        const newDeptIds = dto.departmentIds.filter((id) => !prevDeptIds.has(id));
+        if (newDeptIds.length === 0) {
+          // 完全是上次 job 的子集 → 真重复，限频
+          const waitSec = 30 * 60 - Math.floor((Date.now() - recent.createdAt.getTime()) / 1000);
+          const waitMin = Math.max(1, Math.ceil(waitSec / 60));
+          throw new BadRequestException(
+            `30 分钟内已抓取过相同院系，请 ${waitMin} 分钟后再试（每用户每 30 分钟限 1 次）`,
+          );
+        }
+        // 有新增 → 允许，但只抓"新增"那批，避免重复消耗 LLM
+        this.logger.log(
+          `[crawl-job] user=${userId} 上次 job 之后新增 ${newDeptIds.length} 个 dept，绕过 30min 限频，只抓新增`,
         );
+        // 把 dto.departmentIds 缩窄到只有新增的，避免再爬已抓过的
+        dto.departmentIds = newDeptIds;
       }
     }
 

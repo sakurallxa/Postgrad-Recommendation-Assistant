@@ -675,8 +675,21 @@ export class BaoyantongzhiMirrorService {
     });
     const m = new Map<string, string>();
     for (const d of depts) {
-      m.set(this.normalizeDeptName(d.name), d.id);
-      if (d.shortName) m.set(this.normalizeDeptName(d.shortName), d.id);
+      // 同时存 3 种 key,提高匹配命中率:
+      //   - norm: 完整名（去空格/括号/标点）
+      //   - core: 去尾部"学院/系/研究院"等的核心词
+      //   - shortName: 别名
+      const norm = this.normalizeDeptName(d.name);
+      const core = this.extractCoreDeptName(d.name);
+      m.set(norm, d.id);
+      if (core && core !== norm && core.length >= 2) {
+        // core 至少 2 字符防止"院"这类被匹配
+        m.set(core, d.id);
+      }
+      if (d.shortName) {
+        const sn = this.normalizeDeptName(d.shortName);
+        if (sn && sn.length >= 2) m.set(sn, d.id);
+      }
     }
     this.deptCacheByUni.set(universityId, m);
     return m;
@@ -686,14 +699,52 @@ export class BaoyantongzhiMirrorService {
     return (s || '').replace(/\s+/g, '').replace(/[()（）·]/g, '').toLowerCase();
   }
 
-  /** 直接拿 college 字段去匹配 dept */
+  /**
+   * 提取核心 dept name：去掉常见尾部冗余词，保留核心专业词。
+   * 例：「信息科学技术学院」→「信息科学技术」、「数学科学学院」→「数学科学」、
+   *     「集成电路学院」→「集成电路」、「电子工程系」→「电子工程」
+   * 这样 baoyantongzhi 的「数学科学学院」和 DB 的「数学学院」能通过共同的 core 子串匹配。
+   */
+  private extractCoreDeptName(s: string): string {
+    if (!s) return '';
+    let v = this.normalizeDeptName(s);
+    // 反复去尾部的常见后缀（防止「电子工程系学院」这种叠加）
+    while (true) {
+      const next = v.replace(/(学院|研究院|学部|学系|系|院|中心|工作室|实验室)$/, '');
+      if (next === v) break;
+      v = next;
+    }
+    return v;
+  }
+
+  /**
+   * 拿 baoyantongzhi 的 college 字段去匹配 DB 的 dept。
+   * 匹配优先级（从严到松）：
+   *   1. norm 精确（最严，完整名一致）
+   *   2. core 精确（去掉"学院/系"等后缀的核心词一致）
+   *   3. core 包含（任一方核心词包含对方）
+   *   4. norm 包含（兜底，保留旧行为）
+   */
   private resolveDeptId(college: string, cache: Map<string, string>): string | null {
     if (!college) return null;
     const norm = this.normalizeDeptName(college);
+    const core = this.extractCoreDeptName(college);
+
+    // 1. norm 精确
     if (cache.has(norm)) return cache.get(norm)!;
-    // 包含关系：找最长匹配
+    // 2. core 精确（cache 已经把 dept 的 core 存进来了）
+    if (core && core.length >= 2 && cache.has(core)) return cache.get(core)!;
+
+    // 3. core 包含 / 4. norm 包含（一起遍历，按分数取最优）
     let best: { score: number; id: string } | null = null;
     for (const [key, id] of cache.entries()) {
+      if (key.length < 2) continue; // 跳过过短 key
+      // core 包含 → 分数 ×1.5（核心词命中权重高）
+      if (core && core.length >= 2 && (core.includes(key) || key.includes(core))) {
+        const score = Math.min(key.length, core.length) * 1.5;
+        if (!best || score > best.score) best = { score, id };
+      }
+      // norm 包含
       if (norm.includes(key) || key.includes(norm)) {
         const score = Math.min(key.length, norm.length);
         if (!best || score > best.score) best = { score, id };
