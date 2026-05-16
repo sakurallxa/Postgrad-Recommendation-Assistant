@@ -1,5 +1,5 @@
-# deploy-v0.3.ps1 — 按需点对点抓取 v0.3 一键部署脚本
-# 用法（在 Windows 服务器 PowerShell 7+ 以管理员运行）:
+# deploy-v0.3.ps1 — v0.3+ 一键部署脚本（适配 PowerShell 5.1 / 7+）
+# 用法（在 Windows 服务器以管理员运行）:
 #   cd C:\Users\Administrator\project_baoyan
 #   .\deploy\deploy-v0.3.ps1
 #
@@ -8,13 +8,22 @@
 #   - backend/.env 配好 INTERNAL_API_TOKEN / DEEPSEEK_API_KEY / DATABASE_URL
 #   - crawler/.env 配好 CRAWLER_BACKEND_BASE_URL / INTERNAL_API_TOKEN
 #   - python3 + pip 可用（spider 用）
+#
+# 注意：所有 Write-Host / Write-Error 字符串保持纯 ASCII，
+#       因为 PowerShell 5.1 默认按 ANSI(GBK) 解析 .ps1 文件，
+#       UTF-8 中文（尤其全角标点）可能导致 ParseError 全文件不执行。
+#       Switch the console code page to UTF-8 so step messages still render properly.
+
+chcp 65001 > $null
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 
 Write-Host ""
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host " 保研汪 v0.3 部署脚本" -ForegroundColor Cyan
+Write-Host " baoyan v0.3+ deploy script" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "Project root: $projectRoot"
 Write-Host ""
@@ -22,7 +31,7 @@ Write-Host ""
 # ------- 0. 预检 -------
 function Assert-Service-Exists($name) {
   $svc = Get-Service -Name $name -ErrorAction SilentlyContinue
-  if (-not $svc) { Write-Error "❌ 找不到 Windows 服务: $name"; exit 1 }
+  if (-not $svc) { Write-Error "[ERROR] Windows service not found: $name"; exit 1 }
 }
 Assert-Service-Exists 'baoyan-backend'
 Assert-Service-Exists 'baoyan-caddy'
@@ -33,14 +42,14 @@ if (-not $python) {
   $python = (Get-Command python3 -ErrorAction SilentlyContinue)
 }
 if (-not $python) {
-  Write-Error "❌ 找不到 python/python3（spider 需要）"
+  Write-Error "[ERROR] python/python3 not found (spider needs it)"
   exit 1
 }
-Write-Host "✓ Python: $($python.Source)" -ForegroundColor Green
+Write-Host "[OK] Python: $($python.Source)" -ForegroundColor Green
 
 # Node 版本
 $nodeVersion = node --version
-Write-Host "✓ Node: $nodeVersion" -ForegroundColor Green
+Write-Host "[OK] Node: $nodeVersion" -ForegroundColor Green
 
 # ------- 1. Git pull -------
 Write-Host ""
@@ -52,7 +61,7 @@ git pull origin refactor/ai-assistant
 
 # ------- 2a. 先停 backend 服务，释放 prisma engine dll 锁 -------
 Write-Host ""
-Write-Host "[2a/8] 暂停 baoyan-backend 服务（释放 dll 锁）" -ForegroundColor Yellow
+Write-Host "[2a/8] stop baoyan-backend service (release prisma dll lock)" -ForegroundColor Yellow
 sc.exe stop baoyan-backend | Out-Null
 Start-Sleep -Seconds 3
 
@@ -67,26 +76,26 @@ Write-Host ""
 Write-Host "[3/8] Prisma migrate deploy" -ForegroundColor Yellow
 npx prisma generate
 npx prisma migrate deploy
-if ($LASTEXITCODE -ne 0) { Write-Error "❌ prisma migrate deploy 失败"; exit 1 }
+if ($LASTEXITCODE -ne 0) { Write-Error "[ERROR] prisma migrate deploy failed"; exit 1 }
 
 # ------- 4. Department 数据 seed（幂等）-------
 Write-Host ""
-Write-Host "[4/8] seed Department 表（从 shared/university-departments.json）" -ForegroundColor Yellow
+Write-Host "[4/8] seed Department table (from shared/university-departments.json)" -ForegroundColor Yellow
 if (Test-Path "$projectRoot\shared\university-departments.json") {
   # --transpile-only 跳过严格类型检查，避免 @types/node 之类的开发依赖问题
   npx ts-node --transpile-only prisma/seed-from-university-departments.ts
   if ($LASTEXITCODE -ne 0) {
-    Write-Host "⚠️  dept seed 失败，但 migration 已应用，继续部署" -ForegroundColor DarkYellow
+    Write-Host "[WARN] dept seed failed, but migration applied; continuing" -ForegroundColor DarkYellow
   }
 } else {
-  Write-Host "⚠️  shared/university-departments.json 不存在，跳过 dept seed" -ForegroundColor DarkYellow
+  Write-Host "[WARN] shared/university-departments.json missing, skip dept seed" -ForegroundColor DarkYellow
 }
 
 # ------- 5. backend build -------
 Write-Host ""
 Write-Host "[5/8] backend build (nest build)" -ForegroundColor Yellow
 npm run build
-if ($LASTEXITCODE -ne 0) { Write-Error "❌ backend build 失败"; exit 1 }
+if ($LASTEXITCODE -ne 0) { Write-Error "[ERROR] backend build failed"; exit 1 }
 
 # ------- 6. crawler 依赖 -------
 Write-Host ""
@@ -98,7 +107,7 @@ if (Test-Path "requirements.txt") {
 
 # ------- 7. 重启 backend 服务 -------
 Write-Host ""
-Write-Host "[7/8] 重启 NSSM 服务 baoyan-backend" -ForegroundColor Yellow
+Write-Host "[7/8] restart NSSM service baoyan-backend" -ForegroundColor Yellow
 Set-Location $projectRoot
 sc.exe stop baoyan-backend | Out-Null
 Start-Sleep -Seconds 3
@@ -123,7 +132,7 @@ while ($attempts -lt $maxAttempts) {
 }
 
 if (-not $healthOk) {
-  Write-Error "❌ /health 5 次重试仍失败，请查 backend 日志"
+  Write-Error "[ERROR] /health failed after 6 retries. See backend log:"
   Get-Content "C:\Users\Administrator\backend.log" -Tail 50
   exit 1
 }
@@ -136,12 +145,12 @@ $routes = @(
 )
 Write-Host ""
 Write-Host "==========================================" -ForegroundColor Green
-Write-Host " ✅ v0.3 部署成功" -ForegroundColor Green
+Write-Host " [OK] deploy success" -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "新路由（已上线）:"
+Write-Host "Routes online:"
 $routes | ForEach-Object { Write-Host "  - $_" }
 Write-Host ""
-Write-Host "下一步：在微信开发者工具上传小程序「体验版」"
-Write-Host "       记得把 USE_LOCAL_BACKEND 改为 false 再上传"
+Write-Host "Next step: upload the miniprogram trial version in WeChat DevTools."
+Write-Host "           Make sure USE_LOCAL_BACKEND is set to false before upload."
 Write-Host ""
