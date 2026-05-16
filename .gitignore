@@ -39,9 +39,17 @@ ehthumbs.db
 
 # 本地环境与构建产物（不入库）
 backend/.env
+backend/.env.bak*
 backend/dev.db
 backend/prisma/dev.db
+backend/prisma/dev.db-journal
+backend/prisma/dev.db.backup*
 backend/dist/
 backend/coverage/
+backend/backend.log
+backend/backend.smoke.log
 baoyanwang.jpg
 .claude/
+
+# 爬虫导出数据（运行时产物，体积大，不入库）
+crawler/.crawl-exports/
