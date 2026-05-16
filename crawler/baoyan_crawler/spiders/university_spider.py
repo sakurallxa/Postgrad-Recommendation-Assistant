@@ -119,6 +119,20 @@ class UniversitySpider(scrapy.Spider):
         '预推免',
         '推荐免试',
     }
+    # LLM fallback：标题不直接命中 positive_keywords，但带有"招生/研究生/通知/公告"等弱信号，
+    # 仍然把详情页拉下来交给 LLM 判断（用准确率换覆盖率）
+    borderline_keywords = [
+        '招生',
+        '研究生招生',
+        '推研',
+        '保研',
+        '免试推荐',
+        '招生简章',
+        '招生通知',
+        '招生公告',
+        '研招',
+        '研究生院',
+    ]
     noisy_url_keywords = [
         'gat',
         'gangao',
@@ -699,7 +713,7 @@ class UniversitySpider(scrapy.Spider):
             return []
 
     def build_dept_urls(self, dept):
-        """对单个院系，构造入口 URL 列表（来自 noticeUrl + homepage + 探测路径）"""
+        """对单个院系，构造入口 URL 列表（来自 noticeUrl + homepage + 探测路径 + 大学中央招生网）"""
         urls = []
         notice = (dept.get('noticeUrl') or '').strip()
         if notice:
@@ -711,6 +725,18 @@ class UniversitySpider(scrapy.Spider):
             # 学院常见公告路径
             for probe in ['tzgg.htm', 'zsxx.htm', 'yjs/', 'yjsjy/', 'news/']:
                 urls.append({'url': urljoin(base, probe), 'type': 'dept_probe'})
+
+        # 中央招生网 / 研究生院（如 yzb.sjtu.edu.cn / gs.pku.edu.cn）：
+        # 很多院系把保研公告交叉发布在这里，必须一起扫，
+        # 否则像"上海交大集成电路学院 / yzb.sjtu.edu.cn/post/3222"会被漏抓。
+        grad_url = (dept.get('universityGradWebsite') or '').strip()
+        if grad_url:
+            grad_base = grad_url.rstrip('/') + '/'
+            urls.append({'url': grad_base, 'type': 'univ_grad_home'})
+            # 中央站常见的"通知公告 / 推免 / 招生信息"路径
+            for probe in ['tzgg.htm', 'zsxx.htm', 'tmsm/', 'news/', 'post/', 'notice/']:
+                urls.append({'url': urljoin(grad_base, probe), 'type': 'univ_grad_probe'})
+
         # 去重
         seen = set()
         out = []
@@ -993,6 +1019,11 @@ class UniversitySpider(scrapy.Spider):
         if self.is_site_detail_allowlisted(url, self.clean_title(title or '')):
             return True
         if self.has_recruitment_context(response) and self.is_generic_detail_like_url(url):
+            return True
+        # LLM fallback lane：标题没硬命中夏令营/推免，但带有招生/研究生上下文
+        # → 仍然下载详情页，由 extract_with_ai (DeepSeek LLM) 来做最终判断
+        if self.contains_borderline_signal(merged_text) and self.is_generic_detail_like_url(url):
+            self.logger.debug(f"[borderline-llm-fallback] follow candidate: {url} ({title[:30]})")
             return True
         return False
 
@@ -1834,6 +1865,14 @@ class UniversitySpider(scrapy.Spider):
             return False
         return any(keyword.lower() in normalized for keyword in self.positive_keywords)
 
+    def contains_borderline_signal(self, text):
+        """弱匹配：标题/URL 带有招生上下文但没有夏令营/推免等强关键词。
+        命中则候选页面会被下载交给 LLM 判断。"""
+        normalized = self.normalize_text(text).lower()
+        if not normalized:
+            return False
+        return any(keyword.lower() in normalized for keyword in self.borderline_keywords)
+
     def has_noisy_url(self, url):
         normalized = (url or '').lower()
         return any(keyword in normalized for keyword in self.noisy_url_keywords)
@@ -1868,7 +1907,13 @@ class UniversitySpider(scrapy.Spider):
         merged_text = self.normalize_text(' '.join([title or '', url or '', content[:200] if content else '']))
         if self.contains_negative_signal(merged_text):
             return False
-        return self.contains_positive_signal(merged_text)
+        if self.contains_positive_signal(merged_text):
+            return True
+        # LLM fallback lane：弱信号也下载，让 LLM 决定
+        if self.contains_borderline_signal(merged_text):
+            self.logger.debug(f"[borderline-llm-fallback] follow detail: {url} ({(title or '')[:30]})")
+            return True
+        return False
 
     def should_keep_detail(self, url, title, content):
         cleaned_title = self.clean_title(title)

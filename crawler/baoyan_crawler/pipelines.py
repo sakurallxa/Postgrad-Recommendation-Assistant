@@ -61,6 +61,8 @@ class DatabasePipeline:
 
         self._buffer: List[Dict[str, Any]] = []
         self._seen_keys = set()
+        # 单独追踪 sourceUrl 指纹，防止"同一公告 URL 被多次入库"
+        self._seen_url_fingerprints: set = set()
         self._stats = {
             'buffered': 0,
             'deduped': 0,
@@ -151,12 +153,19 @@ class DatabasePipeline:
     def process_item(self, item, spider):
         payload_item = self._to_backend_item(item, spider)
         dedupe_key = self._dedupe_key(payload_item)
-
-        if dedupe_key in self._seen_keys:
+        # 双层去重：
+        #   1) (universityId, sourceUrl) ——主键，跨学院归因可保留差异
+        #   2) sourceUrl 单独 fingerprint ——彻底防"同一 URL 被不同 universityId 重复 ingest"
+        #      这个二层保护对解决"跨域中央招生网 + 学院页同源公告"非常重要
+        source_url_norm = (payload_item.get('sourceUrl') or '').strip().lower()
+        if dedupe_key in self._seen_keys or (source_url_norm and source_url_norm in self._seen_url_fingerprints):
             self._stats['deduped'] += 1
+            spider.logger.debug(f"[pipeline-dedup] skip url={source_url_norm[:80]} key={dedupe_key}")
             return item
 
         self._seen_keys.add(dedupe_key)
+        if source_url_norm:
+            self._seen_url_fingerprints.add(source_url_norm)
         self._buffer.append(payload_item)
         self._stats['buffered'] += 1
 
