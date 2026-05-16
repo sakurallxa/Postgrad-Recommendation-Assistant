@@ -29,6 +29,28 @@ export class CrawlJobService {
       throw new BadRequestException('至少选择 1 个院系');
     }
 
+    // 限频：用户手动触发的 trigger（不含定时任务 system_cron） → 30 分钟内最多 1 次
+    // 防止用户狂点抓取按钮浪费 LLM 配额
+    if (triggerType !== 'system_cron') {
+      const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+      const recent = await this.prisma.crawlJob.findFirst({
+        where: {
+          userId,
+          createdAt: { gte: thirtyMinAgo },
+          triggerType: { not: 'system_cron' },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, createdAt: true },
+      });
+      if (recent) {
+        const waitSec = 30 * 60 - Math.floor((Date.now() - recent.createdAt.getTime()) / 1000);
+        const waitMin = Math.max(1, Math.ceil(waitSec / 60));
+        throw new BadRequestException(
+          `30 分钟内已有抓取任务，请 ${waitMin} 分钟后再试（每用户每 30 分钟限 1 次）`,
+        );
+      }
+    }
+
     const depts = await this.prisma.department.findMany({
       where: { id: { in: dto.departmentIds } },
       include: { university: { select: { id: true, name: true } } },

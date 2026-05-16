@@ -114,7 +114,8 @@ describe('Controller smoke', () => {
       getTaskStatus: jest.fn().mockResolvedValue({ status: 'done' }),
       ingestCamps: jest.fn().mockResolvedValue({ created: 1, updated: 0 }),
     };
-    const controller = new CrawlerController(service as any);
+    const mirror = { syncLatest: jest.fn(), syncFull: jest.fn().mockResolvedValue({ fetched: 0 }) };
+    const controller = new CrawlerController(service as any, mirror as any);
 
     await controller.trigger(undefined, 'P1', '2');
     expect(service.trigger).toHaveBeenCalledWith(undefined, 'P1', 2);

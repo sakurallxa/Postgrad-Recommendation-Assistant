@@ -2,10 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsIn, IsOptional, IsString, ArrayMinSize } from 'class-validator';
 
 export class CreateCrawlJobDto {
-  @ApiProperty({ enum: ['initial_selection', 'refresh', 'incremental'], required: false })
+  @ApiProperty({ enum: ['initial_selection', 'refresh', 'incremental', 'system_cron'], required: false })
   @IsOptional()
-  @IsIn(['initial_selection', 'refresh', 'incremental'])
-  triggerType?: 'initial_selection' | 'refresh' | 'incremental';
+  @IsIn(['initial_selection', 'refresh', 'incremental', 'system_cron'])
+  triggerType?: 'initial_selection' | 'refresh' | 'incremental' | 'system_cron';
 
   @ApiProperty({
     description: '要抓取的院系 ID 列表 (departments.id, 如 "pku-cs")',

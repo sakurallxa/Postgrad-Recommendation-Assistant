@@ -30,8 +30,10 @@ class SubmitUrlDto {
 
 class UpdateMatchActionDto {
   @IsString()
-  @IsIn(['interested', 'applied', 'skipped', 'hidden', 'reset'])
-  action!: string; // 'reset' 表示撤销之前的标记，回到"新机会"
+  // 'interested'/'skipped'/'hidden'/'reset' → 操作 userAction（互斥）
+  // 'applied'/'unapplied' → 操作 isApplied（与 userAction 独立）
+  @IsIn(['interested', 'applied', 'unapplied', 'skipped', 'hidden', 'reset'])
+  action!: string;
 }
 
 @ApiTags('AI 助理')
@@ -173,24 +175,41 @@ export class AssistantController {
     if (!user?.sub) throw new BadRequestException('需要登录');
     const take = Math.min(parseInt(limit || '20', 10) || 20, 100);
 
+    // 收藏 / 申请 是两个独立状态：
+    //   action='interested' (我的收藏 tab) → userAction='interested'
+    //   action='applied'    (已申请 tab)   → isApplied=true
+    //   action='undecided'  (新机会 tab)   → userAction=null AND isApplied=false
     const where: any = { userId: user.sub, isRelevant: true };
-    if (action === 'undecided') where.userAction = null;
-    else if (action) where.userAction = action;
+    if (action === 'undecided') {
+      where.userAction = null;
+      where.isApplied = false;
+    } else if (action === 'applied') {
+      where.isApplied = true;
+    } else if (action === 'interested') {
+      where.userAction = 'interested';
+    } else if (action) {
+      where.userAction = action;
+    }
 
-    const items = await this.prisma.campMatchResult.findMany({
-      where,
-      orderBy: [
-        { overallRecommendation: 'asc' }, // recommend 在前
-        { extractedDeadline: 'asc' },
-        { createdAt: 'desc' },
-      ],
-      take,
-      include: { camp: { include: { university: true, department: true } } },
-    });
+    // 并行：取分页数据 + 真实总数
+    // 修复 bug：之前用 items.length 当 total，传 limit=1 取统计时永远返回 1。
+    const [items, total] = await Promise.all([
+      this.prisma.campMatchResult.findMany({
+        where,
+        orderBy: [
+          { overallRecommendation: 'asc' }, // recommend 在前
+          { extractedDeadline: 'asc' },
+          { createdAt: 'desc' },
+        ],
+        take,
+        include: { camp: { include: { university: true, department: true } } },
+      }),
+      this.prisma.campMatchResult.count({ where }),
+    ]);
 
     return {
       data: items.map((it) => this.serializeMatchResult(it, it.camp)),
-      total: items.length,
+      total,
     };
   }
 
@@ -207,7 +226,12 @@ export class AssistantController {
   }
 
   @Patch('match/:id/action')
-  @ApiOperation({ summary: '更新用户决策（感兴趣/已申请/跳过/隐藏）' })
+  @ApiOperation({
+    summary: '更新用户决策',
+    description: '收藏 / 申请 是两个独立状态。' +
+      'interested/reset/skipped/hidden → 操作 userAction；' +
+      'applied/unapplied → 操作 isApplied。'
+  })
   async updateAction(
     @Param('id') id: string,
     @Body() body: UpdateMatchActionDto,
@@ -219,18 +243,38 @@ export class AssistantController {
     });
     if (!item) throw new NotFoundException('匹配结果不存在');
     if (item.userId !== user.sub) throw new BadRequestException('无权访问');
-    // reset = 清空 userAction，回到"新机会"列表
+
+    // 'applied' / 'unapplied' 走 isApplied 字段 —— 不影响 userAction（收藏态）
+    if (body.action === 'applied' || body.action === 'unapplied') {
+      const isApplied = body.action === 'applied';
+      const updated = await this.prisma.campMatchResult.update({
+        where: { id },
+        data: {
+          isApplied,
+          appliedAt: isApplied ? new Date() : null,
+        } as any,
+      });
+      return {
+        id: updated.id,
+        userAction: updated.userAction,
+        userActionAt: updated.userActionAt,
+        isApplied: (updated as any).isApplied,
+        appliedAt: (updated as any).appliedAt,
+      };
+    }
+
+    // 其它 action 操作 userAction（含 reset 清空收藏）
     const nextAction = body.action === 'reset' ? null : body.action;
     const updated = await this.prisma.campMatchResult.update({
       where: { id },
       data: { userAction: nextAction, userActionAt: nextAction ? new Date() : null },
     });
 
-    // 收藏（interested）时自动注册截止前 7/3/1 天提醒
+    // 收藏（interested）时自动注册截止前 7/5/3 天提醒
     if (nextAction === 'interested') {
       await this.scheduleDeadlineReminders(user.sub, item.campId, item.extractedDeadline || item.camp?.deadline);
     }
-    // 改为其他状态（或重置）时清掉之前的提醒
+    // 取消收藏时清掉提醒（applied 状态不应影响提醒——applied 跟 deadline 提醒无直接关系，所以也不删）
     if (nextAction !== 'interested') {
       await this.prisma.reminder
         .deleteMany({
@@ -239,18 +283,26 @@ export class AssistantController {
         .catch(() => null);
     }
 
-    return { id: updated.id, userAction: updated.userAction, userActionAt: updated.userActionAt };
+    return {
+      id: updated.id,
+      userAction: updated.userAction,
+      userActionAt: updated.userActionAt,
+      isApplied: (updated as any).isApplied,
+      appliedAt: (updated as any).appliedAt,
+    };
   }
 
   /**
-   * 收藏后注册 3 个 deadline 提醒（7/3/1 天前），过期的不创建。
+   * 收藏后注册 3 个 deadline 提醒（7/5/3 天前），过期的不创建。
    * 复用现有 Reminder 表 + scheduler 推送链路。
+   * 注：小程序端会同步调用 wx.requestSubscribeMessage 申请 3 次 quota，
+   *     若用户拒绝或部分授权，scheduler 发送时 WeChat API 会丢弃多余调用。
    */
   private async scheduleDeadlineReminders(userId: string, campId: string, deadline: Date | null) {
     if (!deadline) return;
     const now = Date.now();
     const dl = deadline.getTime();
-    const offsets = [7 * 24 * 3600 * 1000, 3 * 24 * 3600 * 1000, 1 * 24 * 3600 * 1000];
+    const offsets = [7 * 24 * 3600 * 1000, 5 * 24 * 3600 * 1000, 3 * 24 * 3600 * 1000];
     for (const off of offsets) {
       const remindAt = new Date(dl - off);
       if (remindAt.getTime() <= now) continue;
@@ -273,7 +325,7 @@ export class AssistantController {
         this.logger.warn(`注册提醒失败: ${e?.message}`);
       }
     }
-    this.logger.log(`[收藏后] 已为 user=${userId} camp=${campId} 注册截止前 7/3/1 天提醒`);
+    this.logger.log(`[收藏后] 已为 user=${userId} camp=${campId} 注册截止前 7/5/3 天提醒`);
   }
 
   // ============ 私有工具 ============
@@ -317,7 +369,7 @@ export class AssistantController {
     );
     const universityId = resolvedUni?.id;
     if (!universityId) {
-      throw new BadRequestException('无法识别公告所属学校（URL/标题里没有匹配到 39 所 985 中的任何一所）');
+      throw new BadRequestException('无法识别公告所属学校（URL/标题里没有匹配到任何推免高校）');
     }
 
     if (existing) {
@@ -359,6 +411,8 @@ export class AssistantController {
         keyReqs = JSON.parse(match.keyRequirements);
       }
     } catch {}
+    // 没有 departmentId 视为"全校通用"公告
+    const isUniversityLevel = !camp.departmentId;
     return {
       id: match.id,
       camp: {
@@ -366,7 +420,11 @@ export class AssistantController {
         title: camp.title,
         sourceUrl: camp.sourceUrl,
         universityName: camp.university?.name,
+        universityLogo: camp.university?.logo || null,
         departmentName: camp.department?.name,
+        announcementType: camp.announcementType,
+        isUniversityLevel,
+        levelBadge: isUniversityLevel ? '全校通用' : null,
       },
       isRelevant: match.isRelevant,
       campType: match.campType,
@@ -382,6 +440,8 @@ export class AssistantController {
       reasoning: match.reasoning,
       userAction: match.userAction,
       userActionAt: match.userActionAt,
+      isApplied: !!match.isApplied,
+      appliedAt: match.appliedAt || null,
       createdAt: match.createdAt,
     };
   }
@@ -459,8 +519,9 @@ export class AssistantController {
       if (uni) return uni;
     }
 
-    // 3. 都没命中 → 返回第一所 985 作为兜底（log warn）
-    this.logger.warn(`无法从 URL "${url}" 或标题 "${title}" 识别学校，使用第一所 985 兜底`);
-    return this.prisma.university.findFirst({ where: { level: '985' } });
+    // 都没命中 → 返回 null（caller 应该拒绝创建错误归属的公告，而不是落到"第一所 985"）
+    // 之前的兜底逻辑会把所有未识别 URL 默认归属到 ID 最小的学校，造成数据污染
+    this.logger.warn(`无法从 URL "${url}" 或标题 "${title}" 识别学校 → 拒绝写入`);
+    return null;
   }
 }

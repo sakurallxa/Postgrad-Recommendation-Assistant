@@ -50,6 +50,96 @@ class MatchScheduler {
       .catch((e) => this.logger.error(`[match] 调度失败: ${e?.message}`));
   }
 
+  /**
+   * 全校层级公告匹配（"全校类"等没有归属到具体院系的 camp）。
+   * 给"该大学下任意 dept 的所有订阅用户"都跑一次 LLM 匹配。
+   * 数据形态：camp.departmentId IS NULL but camp.universityId IS SET
+   */
+  /**
+   * 单用户重新匹配：用于 profile 更新后刷新该用户的所有 CampMatchResult。
+   * 只针对一个 userId 跑 LLM，不影响其他用户。
+   */
+  async scheduleMatchingForUser(userId: string, campIds: string[]): Promise<void> {
+    if (!campIds || campIds.length === 0 || !userId) return;
+    this.queue = this.queue
+      .then(() => this.runOneForUser(userId, campIds))
+      .catch((e) => this.logger.error(`[match-user] 调度失败: ${e?.message}`));
+  }
+
+  private async runOneForUser(userId: string, campIds: string[]): Promise<void> {
+    const camps = await this.prisma.campInfo.findMany({
+      where: { id: { in: campIds } },
+      include: { university: { select: { name: true } } },
+    });
+    this.logger.log(`[match-user] user=${userId.slice(0, 8)} × ${camps.length} camps`);
+    for (const camp of camps) {
+      // 已有就跳过（runOneForUser 仅创建新 match；profile 刷新流程已先 delete 老的）
+      const exists = await this.prisma.campMatchResult.findUnique({
+        where: { userId_campId: { userId, campId: camp.id } },
+      });
+      if (exists) continue;
+      try {
+        await this.matchOne(userId, camp);
+      } catch (e: any) {
+        this.logger.warn(`[match-user] 单条失败 user=${userId} camp=${camp.id}: ${e?.message}`);
+      }
+      await new Promise((r) => setTimeout(r, 800));
+    }
+  }
+
+  async scheduleMatchingForUniversity(universityId: string, campIds: string[]): Promise<void> {
+    if (!campIds || campIds.length === 0 || !universityId) return;
+    this.queue = this.queue
+      .then(() => this.runOneForUniversity(universityId, campIds))
+      .catch((e) => this.logger.error(`[match-uni] 调度失败: ${e?.message}`));
+  }
+
+  private async runOneForUniversity(universityId: string, campIds: string[]): Promise<void> {
+    // 拉该 university 下所有 active dept 的订阅用户（去重）
+    const depts = await this.prisma.department.findMany({
+      where: { universityId, active: true },
+      select: { id: true },
+    });
+    const deptIds = depts.map((d) => d.id);
+    if (deptIds.length === 0) {
+      this.logger.log(`[match-uni] university ${universityId} 无活跃 dept，跳过`);
+      return;
+    }
+    const subs = await this.prisma.userDepartmentSubscription.findMany({
+      where: { departmentId: { in: deptIds }, active: true },
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+    if (subs.length === 0) {
+      this.logger.log(`[match-uni] university ${universityId} 无订阅用户，跳过`);
+      return;
+    }
+
+    const camps = await this.prisma.campInfo.findMany({
+      where: { id: { in: campIds } },
+      include: { university: { select: { name: true } } },
+    });
+
+    this.logger.log(
+      `[match-uni] 处理 univ=${universityId}: ${subs.length} 用户 × ${camps.length} 全校公告 = ${subs.length * camps.length} 次匹配`,
+    );
+
+    for (const camp of camps) {
+      for (const sub of subs) {
+        const exists = await this.prisma.campMatchResult.findUnique({
+          where: { userId_campId: { userId: sub.userId, campId: camp.id } },
+        });
+        if (exists) continue;
+        try {
+          await this.matchOne(sub.userId, camp);
+        } catch (e: any) {
+          this.logger.warn(`[match-uni] 单条失败 user=${sub.userId} camp=${camp.id}: ${e?.message}`);
+        }
+        await new Promise((r) => setTimeout(r, 800));
+      }
+    }
+  }
+
   private async runOne(deptId: string, campIds: string[]): Promise<void> {
     const subs = await this.prisma.userDepartmentSubscription.findMany({
       where: { departmentId: deptId, active: true },
@@ -114,9 +204,13 @@ class MatchScheduler {
         isRelevant: result.isRelevant,
         campType: result.campType || camp.announcementType,
         matchesUserMajor: result.matchesUserMajor,
+        // deadline 字段 LLM 一直比较准，保留 fallback。
         extractedDeadline: result.extractedDeadline ? new Date(result.extractedDeadline) : camp.deadline,
-        extractedStartDate: result.extractedStartDate ? new Date(result.extractedStartDate) : camp.startDate,
-        extractedEndDate: result.extractedEndDate ? new Date(result.extractedEndDate) : camp.endDate,
+        // ⚠ 营期字段（startDate/endDate）：严格以 LLM 结果为准（含 sanity check 后的 null）。
+        // 不 fallback 到 camp.startDate/endDate —— 那是历史 LLM 误识别的报名期，
+        // 会让 sanity check 的清空动作被反向回填。
+        extractedStartDate: result.extractedStartDate ? new Date(result.extractedStartDate) : null,
+        extractedEndDate: result.extractedEndDate ? new Date(result.extractedEndDate) : null,
         extractedLocation: result.extractedLocation || camp.location,
         extractedSummary: result.extractedSummary,
         keyRequirements: JSON.stringify(result.keyRequirements || []),

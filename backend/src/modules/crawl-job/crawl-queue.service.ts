@@ -82,7 +82,7 @@ export class CrawlQueueService implements OnModuleInit {
       universityId?: string;
     }>;
 
-    const empty: Array<{ departmentId: string; departmentName: string; reason: string }> = [];
+    const empty: Array<{ departmentId: string; departmentName: string; universityName: string; reason: string }> = [];
     const now = new Date();
 
     // 1) 分流：缓存命中 vs 需要真实抓取
@@ -101,6 +101,7 @@ export class CrawlQueueService implements OnModuleInit {
           empty.push({
             departmentId: item.departmentId,
             departmentName: item.departmentName,
+            universityName: item.universityName,
             reason: cached.status === 'error' ? 'crawl_error' : 'no_recent_announcements',
           });
         }
@@ -140,6 +141,7 @@ export class CrawlQueueService implements OnModuleInit {
           empty.push({
             departmentId: item.departmentId,
             departmentName: item.departmentName,
+            universityName: item.universityName,
             reason: crawlFailed ? 'crawl_error' : 'no_recent_announcements',
           });
         } else {

@@ -34,7 +34,9 @@ export class InternalDepartmentController {
 
     const depts = await this.prisma.department.findMany({
       where: { id: { in: ids }, active: true },
-      include: { university: { select: { id: true, name: true } } },
+      include: {
+        university: { select: { id: true, name: true, website: true, gradWebsite: true } },
+      },
     });
     return {
       departments: depts.map((d) => ({
@@ -46,6 +48,8 @@ export class InternalDepartmentController {
         universityName: d.university?.name,
         homepage: d.homepage,
         noticeUrl: d.noticeUrl,
+        // 中央招生网 URL：spider 在跑每个 dept 时一起扫，覆盖跨域发布的公告
+        universityGradWebsite: d.university?.gradWebsite || null,
         majors: (() => {
           try {
             return JSON.parse(d.majors || '[]');

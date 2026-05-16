@@ -391,6 +391,85 @@ export class CrawlerService {
     return stats;
   }
 
+  /**
+   * 一次性：失效所有用户的 CampMatchResult 并重跑 LLM 匹配。
+   *
+   * 重要：rematch 范围 = 用户**所有现存 match** 的 campIds（不只是当前订阅的 dept）
+   * 这样可以覆盖：
+   *   - 用户当前订阅 dept 下的 camp
+   *   - 用户已收藏但后来取消订阅的 camp
+   *   - 通过 university-level orphan 匹配进来的 camp
+   *   - 历史上任何被生成过 match 但用户现在不订阅的 camp
+   * 比之前的"按订阅范围"逻辑更彻底。
+   */
+  async rematchAllUsers(): Promise<{
+    users: number;
+    totalDeleted: number;
+    totalReMatched: number;
+  }> {
+    const profiles = await this.prisma.userProfile.findMany({ select: { userId: true } });
+    let users = 0;
+    let totalDeleted = 0;
+    let totalReMatched = 0;
+    const { MatchSchedulerSingleton } = require('../crawl-job/match-scheduler');
+    const matchScheduler = MatchSchedulerSingleton(this.prisma, this.configService, this.logger);
+    for (const prof of profiles) {
+      const userId = prof.userId;
+
+      // 1) 用户所有现存的 match
+      const existing = await this.prisma.campMatchResult.findMany({
+        where: { userId },
+        select: { campId: true },
+      });
+      const fromExistingMatches = new Set(existing.map((m) => m.campId));
+
+      // 2) 用户当前订阅 dept 对应的 camp（含 university-level orphan）—— 覆盖"档案更新后想看新公告"的场景
+      const subs = await this.prisma.userDepartmentSubscription.findMany({
+        where: { userId, active: true },
+        select: { departmentId: true },
+      });
+      const deptIds = subs.map((s) => s.departmentId);
+      let fromSubsCamps: { id: string }[] = [];
+      if (deptIds.length > 0) {
+        const depts = await this.prisma.department.findMany({
+          where: { id: { in: deptIds } },
+          select: { universityId: true },
+        });
+        const universityIds = Array.from(new Set(depts.map((d) => d.universityId)));
+        fromSubsCamps = await this.prisma.campInfo.findMany({
+          where: {
+            OR: [
+              { departmentId: { in: deptIds } },
+              { AND: [{ departmentId: null }, { universityId: { in: universityIds } }] },
+            ],
+          },
+          select: { id: true },
+        });
+      }
+
+      // 3) 合并去重
+      const allCampIds = new Set<string>([
+        ...fromExistingMatches,
+        ...fromSubsCamps.map((c) => c.id),
+      ]);
+      if (allCampIds.size === 0) continue;
+      const campIds = Array.from(allCampIds);
+
+      // 4) 删除旧 match + 调度新匹配
+      const r = await this.prisma.campMatchResult.deleteMany({
+        where: { userId, campId: { in: campIds } },
+      });
+      await matchScheduler.scheduleMatchingForUser(userId, campIds);
+      users++;
+      totalDeleted += r.count;
+      totalReMatched += campIds.length;
+      this.logger.log(
+        `[rematch-all] user=${userId.slice(0, 8)} fromExisting=${fromExistingMatches.size} fromSubs=${fromSubsCamps.length} total=${campIds.length} deleted=${r.count}`,
+      );
+    }
+    return { users, totalDeleted, totalReMatched };
+  }
+
   async ingestCamps(items: CrawlerCampItemDto[], options: IngestCampOptions = {}) {
     const emitBaselineEvents = options.emitBaselineEvents !== false;
     const sourceType = options.sourceType || 'crawler';

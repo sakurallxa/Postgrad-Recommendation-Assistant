@@ -28,11 +28,19 @@ export class SubscriptionController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get('schools')
-  @ApiOperation({ summary: '获取所有 985 学校及其院系，用户可自由订阅' })
+  @ApiOperation({ summary: '获取所有保研院校（按教育部官方名单：985/211/双一流）及其院系，用户可自由订阅' })
   async listSchools(@CurrentUser() user: any) {
-    // 拉所有 985 大学（覆盖所有可选范围）
+    // 推免高校筛选：按官方工程标记取并集（985 ⊂ 211 ⊂ 双一流，所以只查 is211 OR isDoubleFirstClass 即可覆盖全部）
+    // 同时保留旧 level 兼容（中科院系统等不在三大工程里但应该展示的）
     const universities = await this.prisma.university.findMany({
-      where: { level: '985' },
+      where: {
+        OR: [
+          { is985: true },
+          { is211: true },
+          { isDoubleFirstClass: true },
+          { level: { in: ['985', '211', '双一流', '中科院'] } }, // legacy 字段兜底
+        ],
+      },
       include: {
         departments: { where: { active: true }, orderBy: { name: 'asc' } },
       },
@@ -71,6 +79,11 @@ export class SubscriptionController {
           universityName: u.name,
           shortName: u.name.slice(0, 4),
           logo: u.logo || null,
+          level: u.level || null, // legacy 单值字段，保留兼容
+          // 国家三大工程标记（包含关系，前端按这 3 个 boolean 做过滤）
+          is985: u.is985,
+          is211: u.is211,
+          isDoubleFirstClass: u.isDoubleFirstClass,
           hasDetailedDepts,
           subscribedCount,
           departments: deptList,
@@ -98,6 +111,11 @@ export class SubscriptionController {
   @ApiOperation({ summary: '批量订阅院系（覆盖式：传入的成为最新订阅，其余取消）' })
   async batchSubscribe(@Body() body: BatchSubscribeDto, @CurrentUser() user: any) {
     if (!user?.sub) throw new BadRequestException('需要登录');
+    // 后端硬限制：最多 5 个 dept，防止恶意/异常客户端绕过前端限制
+    const MAX_SUBSCRIPTIONS = 5;
+    if (body.departmentIds.length > MAX_SUBSCRIPTIONS) {
+      throw new BadRequestException(`最多订阅 ${MAX_SUBSCRIPTIONS} 个院系`);
+    }
     const validDepts = await this.prisma.department.findMany({
       where: { id: { in: body.departmentIds }, active: true },
       select: { id: true },
